@@ -1,0 +1,12 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="1" errors="0" time="1.1421659999997356">
+<testsuite name="public-page.spec.ts" timestamp="2025-12-03T14:08:11.674Z" hostname="chromium" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="Public Page Tests › requiere configuración de empresa de prueba" classname="public-page.spec.ts" time="0">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

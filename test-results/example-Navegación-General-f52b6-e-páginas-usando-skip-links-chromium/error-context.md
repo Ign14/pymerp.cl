@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - navigation "Enlaces de navegación rápida":
+    - link "Saltar al contenido principal" [active] [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - link "Saltar a la navegación" [ref=e4] [cursor=pointer]:
+      - /url: "#navigation"
+    - link "Saltar al pie de página" [ref=e5] [cursor=pointer]:
+      - /url: "#footer"
+  - generic [ref=e8]:
+    - img [ref=e10]
+    - generic [ref=e12]:
+      - heading "App lista para usar offline" [level=4] [ref=e13]
+      - paragraph [ref=e14]: La aplicación está lista para funcionar sin conexión.
+    - button "Cerrar" [ref=e16] [cursor=pointer]:
+      - img [ref=e17]
+  - generic [ref=e20]:
+    - generic [ref=e22]:
+      - button "Cerrar" [ref=e23] [cursor=pointer]: ×
+      - generic [ref=e24]:
+        - generic [ref=e25]: Versión Beta Gratuita
+        - heading "Todas las cuentas creadas hasta el 28 de febrero de 2026" [level=2] [ref=e26]
+        - paragraph [ref=e27]: Tendrán acceso gratis al Plan Standard + mejoras.
+        - paragraph [ref=e28]: 🎁 Lanzamiento beta 2025–2026
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - button "Cambiar idioma" [ref=e32] [cursor=pointer]:
+            - img "Spanish" [ref=e33]: 🇪🇸
+          - button "Cambiar modo claro/oscuro" [ref=e34] [cursor=pointer]: 💡
+        - link "¿Ya tienes cuenta?" [ref=e36] [cursor=pointer]:
+          - /url: /login
+      - generic [ref=e37]:
+        - img "PYM-ERP" [ref=e39]
+        - paragraph [ref=e40]: Plataforma para que tu emprendimiento muestre servicios o productos y conecte con clientes a través de WhatsApp
+        - generic [ref=e41]:
+          - link "Ingresar" [ref=e42] [cursor=pointer]:
+            - /url: /login
+          - link "Solicitar acceso" [ref=e43] [cursor=pointer]:
+            - /url: /request-access
+          - link "Buscar PYMEs cercanas" [ref=e44] [cursor=pointer]:
+            - /url: /pymes-cercanas
+      - generic [ref=e45]:
+        - link "Transparencia" [ref=e46] [cursor=pointer]:
+          - /url: /transparencia
+        - generic [ref=e47]:
+          - img "Instagram" [ref=e48]
+          - link "@pymerp" [ref=e49] [cursor=pointer]:
+            - /url: https://instagram.com/pymerp
+        - generic [ref=e50]: Beta v 0.0.1
+```
