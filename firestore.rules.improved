@@ -1,0 +1,379 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is SUPERADMIN
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPERADMIN') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'SUPERADMIN')
+      );
+    }
+    
+    // Get user's company_id from Firestore
+    function getUserCompanyId() {
+      return isAuthenticated() ? (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.company_id : 
+          (exists(/databases/$(database)/documents/users/$(request.auth.token.email)) ? 
+            get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.company_id : null)
+      ) : null;
+    }
+    
+    // Check if user owns the resource's company
+    function ownsCompany(companyId) {
+      return isAuthenticated() && getUserCompanyId() == companyId;
+    }
+    
+    // Validate string field (not empty, max length)
+    function validString(field, maxLen) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() > 0 && 
+             request.resource.data[field].size() <= maxLen;
+    }
+    
+    // Validate email format
+    function validEmail(email) {
+      return email is string && 
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$') &&
+             email.size() >= 5 &&
+             email.size() <= 254;
+    }
+    
+    // Validate timestamp not in future
+    function validTimestamp(field) {
+      return request.resource.data[field] is timestamp &&
+             request.resource.data[field] <= request.time;
+    }
+    
+    // Validate number in range
+    function validNumber(field, min, max) {
+      return request.resource.data[field] is number &&
+             request.resource.data[field] >= min &&
+             request.resource.data[field] <= max;
+    }
+    
+    // Validate URL format (basic)
+    function validURL(url) {
+      return url is string &&
+             (url.matches('^https?://.*') || url.matches('^/.*')) &&
+             url.size() <= 2048;
+    }
+    
+    // Check rate limit (max 10 docs created per user per minute)
+    // Note: This is basic, better implement in Cloud Functions
+    function withinRateLimit(collection) {
+      return true; // Placeholder - implement in Cloud Functions
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{userId} {
+      // Read: Own document or SUPERADMIN
+      allow read: if isAuthenticated() && (
+        resource.data.email == request.auth.token.email ||
+        userId == request.auth.uid ||
+        isSuperAdmin()
+      );
+      
+      // Create: Only via Firebase Auth/Functions
+      allow create: if isAuthenticated() && 
+        validEmail(request.resource.data.email) &&
+        validString('role', 20) &&
+        request.resource.data.role in ['ENTREPRENEUR', 'SUPERADMIN', 'CLIENT'] &&
+        validString('status', 30) &&
+        request.resource.data.status in ['ACTIVE', 'INACTIVE', 'PENDING', 'FORCE_PASSWORD_CHANGE'] &&
+        validTimestamp('created_at');
+      
+      // Update: Own document or SUPERADMIN
+      allow update: if isAuthenticated() && (
+        userId == request.auth.uid || 
+        isSuperAdmin()
+      ) &&
+      // Prevent role escalation (unless SUPERADMIN)
+      (request.resource.data.role == resource.data.role || isSuperAdmin());
+      
+      // Delete: Only SUPERADMIN
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // ACCESS REQUESTS
+    // ============================================
+    match /accessRequests/{requestId} {
+      // Only SUPERADMIN can read
+      allow read: if isSuperAdmin();
+      
+      // Only SUPERADMIN can update/delete
+      allow update, delete: if isSuperAdmin();
+      
+      // Public can create with validations
+      allow create: if validEmail(request.resource.data.email) &&
+                       validString('full_name', 100) &&
+                       validString('business_name', 200) &&
+                       validString('whatsapp', 20) &&
+                       request.resource.data.whatsapp.matches('^[0-9]{9,15}$') &&
+                       validTimestamp('created_at') &&
+                       request.resource.data.status == 'PENDING' &&
+                       withinRateLimit('accessRequests');
+    }
+
+    // ============================================
+    // COMPANIES
+    // ============================================
+    match /companies/{companyId} {
+      // Public read for public pages (solo campos públicos)
+      allow read: if true;
+      
+      // Create: Only authenticated entrepreneurs
+      allow create: if isAuthenticated() &&
+        validString('name', 200) &&
+        validString('slug', 100) &&
+        request.resource.data.slug.matches('^[a-z0-9-]+$') && // Solo lowercase, números y guiones
+        validString('owner_user_id', 100) &&
+        request.resource.data.owner_user_id == request.auth.uid &&
+        validString('business_type', 20) &&
+        request.resource.data.business_type in ['SERVICES', 'PRODUCTS'] &&
+        validTimestamp('created_at');
+      
+      // Update: Owner or SUPERADMIN
+      allow update: if isAuthenticated() && (
+        ownsCompany(companyId) ||
+        resource.data.owner_user_id == request.auth.uid ||
+        isSuperAdmin()
+      ) &&
+      // Validaciones adicionales
+      (request.resource.data.name == resource.data.name || validString('name', 200)) &&
+      (request.resource.data.slug == resource.data.slug || validString('slug', 100)) &&
+      // Prevenir cambio de owner (solo SUPERADMIN)
+      (request.resource.data.owner_user_id == resource.data.owner_user_id || isSuperAdmin());
+      
+      // Delete: Only SUPERADMIN (mejor soft delete con status)
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // COMPANY APPEARANCES
+    // ============================================
+    match /companyAppearances/{appearanceId} {
+      allow read: if true; // Public read for styling
+      
+      allow create: if isAuthenticated() &&
+        ownsCompany(request.resource.data.company_id) &&
+        validString('company_id', 100) &&
+        validString('business_type', 20) &&
+        // Validar URLs si existen
+        (!request.resource.data.keys().hasAny(['logo_url']) || validURL(request.resource.data.logo_url)) &&
+        (!request.resource.data.keys().hasAny(['banner_url']) || validURL(request.resource.data.banner_url));
+      
+      allow update: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      allow delete: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // SCHEDULE SLOTS
+    // ============================================
+    match /scheduleSlots/{slotId} {
+      allow read: if true; // Public read
+      
+      allow write: if isAuthenticated() && (
+        ownsCompany(
+          resource != null ? resource.data.company_id : request.resource.data.company_id
+        ) ||
+        isSuperAdmin()
+      ) &&
+      // Validaciones de horarios
+      validString('start_time', 10) &&
+      validString('end_time', 10) &&
+      request.resource.data.start_time.matches('^[0-2][0-9]:[0-5][0-9]$') &&
+      request.resource.data.end_time.matches('^[0-2][0-9]:[0-5][0-9]$');
+    }
+
+    // ============================================
+    // SERVICES
+    // ============================================
+    match /services/{serviceId} {
+      allow read: if true; // Public read
+      
+      allow create: if isAuthenticated() &&
+        ownsCompany(request.resource.data.company_id) &&
+        validString('name', 200) &&
+        validString('description', 2000) &&
+        validNumber('price', 0, 999999999) &&
+        validNumber('estimated_duration_minutes', 1, 1440) &&
+        request.resource.data.status in ['ACTIVE', 'INACTIVE'] &&
+        validTimestamp('created_at');
+      
+      allow update: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      allow delete: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // SERVICE SCHEDULES
+    // ============================================
+    match /serviceSchedules/{scheduleId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && (
+        ownsCompany(
+          resource != null ? resource.data.company_id : request.resource.data.company_id
+        ) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // PRODUCTS
+    // ============================================
+    match /products/{productId} {
+      allow read: if true; // Public read
+      
+      allow create: if isAuthenticated() &&
+        ownsCompany(request.resource.data.company_id) &&
+        validString('name', 200) &&
+        validString('description', 2000) &&
+        validNumber('price', 0, 999999999) &&
+        validNumber('stock', 0, 999999) &&
+        request.resource.data.status in ['ACTIVE', 'INACTIVE'] &&
+        validTimestamp('created_at');
+      
+      allow update: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      allow delete: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // APPOINTMENT REQUESTS (Public submissions)
+    // ============================================
+    match /appointmentRequests/{requestId} {
+      // Only company owner can read their requests
+      allow read: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      // Public can create with strict validation
+      allow create: if validString('client_name', 100) &&
+                       validString('client_whatsapp', 20) &&
+                       request.resource.data.client_whatsapp.matches('^[0-9]{9,15}$') &&
+                       validString('company_id', 100) &&
+                       validString('service_id', 100) &&
+                       validTimestamp('created_at') &&
+                       validTimestamp('requested_date');
+      
+      // Only owner can update status or delete
+      allow update: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      ) &&
+      // Solo puede actualizar status
+      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updated_at']));
+      
+      allow delete: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // PRODUCT ORDER REQUESTS (Public submissions)
+    // ============================================
+    match /productOrderRequests/{requestId} {
+      // Only company owner can read their orders
+      allow read: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      // Public can create with strict validation
+      allow create: if validString('client_name', 100) &&
+                       validString('client_whatsapp', 20) &&
+                       request.resource.data.client_whatsapp.matches('^[0-9]{9,15}$') &&
+                       validString('company_id', 100) &&
+                       validTimestamp('created_at') &&
+                       request.resource.data.items is list &&
+                       request.resource.data.items.size() > 0 &&
+                       request.resource.data.items.size() <= 50 &&
+                       validNumber('total_estimated', 0, 999999999);
+      
+      // Only owner can update/delete
+      allow update: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      ) &&
+      // Solo actualizar status
+      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updated_at']));
+      
+      allow delete: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+    }
+
+    // ============================================
+    // PUBLIC PAGE EVENTS (Analytics)
+    // ============================================
+    match /publicPageEvents/{eventId} {
+      // Only company owner can read their events
+      allow read: if isAuthenticated() && (
+        ownsCompany(resource.data.company_id) ||
+        isSuperAdmin()
+      );
+      
+      // Public can create events (strict validation)
+      allow create: if validString('company_id', 100) &&
+                       exists(/databases/$(database)/documents/companies/$(request.resource.data.company_id)) &&
+                       validString('event_type', 50) &&
+                       request.resource.data.event_type in [
+                         'PAGE_VIEW',
+                         'WHATSAPP_CLICK',
+                         'SERVICE_BOOK_CLICK',
+                         'PRODUCT_ORDER_CLICK'
+                       ] &&
+                       validTimestamp('created_at') &&
+                       // Limitar creación a 100 eventos por IP (implement en Functions)
+                       withinRateLimit('publicPageEvents');
+      
+      // No update/delete for analytics events (immutable)
+      allow update, delete: if false;
+    }
+    
+    // ============================================
+    // DENY ALL OTHER PATHS
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

@@ -1,0 +1,78 @@
+# robots.txt optimizado para PYMERP - Enterprise SEO
+# Última actualización: 2025-12-03
+
+# Configuración para todos los crawlers
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /setup/
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /*?*session=
+Disallow: /*?*token=
+
+# Crawl-delay para evitar sobrecarga (1 segundo)
+Crawl-delay: 1
+
+# Sitemaps dinámicos
+Sitemap: https://pymerp.cl/sitemap.xml
+Sitemap: https://us-central1-agendaweb-d0e5d.cloudfunctions.net/generateSitemap
+
+# Configuración específica para Google
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /setup/
+Disallow: /api/
+
+# Configuración para Googlebot Images
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+# Configuración para Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /setup/
+Crawl-delay: 1
+
+# Bloquear bots maliciosos y scrapers no deseados
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+# Permitir crawlers de redes sociales para Open Graph
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+# Información adicional
+# Host: pymerp.cl
+# Contact: ignacio@datakomerz.com

@@ -1,0 +1,89 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check file size (in bytes)
+    function validSize(maxSizeKB) {
+      return request.resource.size <= maxSizeKB * 1024;
+    }
+    
+    // Check image content type
+    function validImageType() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp|jpg)');
+    }
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the company (via custom claim or Firestore)
+    function ownsCompany(companyId) {
+      return isAuthenticated() && (
+        request.auth.token.company_id == companyId ||
+        request.auth.uid == companyId
+      );
+    }
+    
+    // ============================================
+    // COMPANY ASSETS
+    // ============================================
+    
+    // Logos directory: /companies/{companyId}/logos/{filename}
+    match /companies/{companyId}/logos/{filename} {
+      // Public read
+      allow read: if true;
+      
+      // Write: Authenticated user who owns the company
+      allow write: if isAuthenticated() && 
+                      ownsCompany(companyId) &&
+                      validImageType() &&
+                      validSize(5000); // 5MB max
+    }
+    
+    // Banners directory: /companies/{companyId}/banners/{filename}
+    match /companies/{companyId}/banners/{filename} {
+      // Public read
+      allow read: if true;
+      
+      // Write: Authenticated user who owns the company
+      allow write: if isAuthenticated() && 
+                      ownsCompany(companyId) &&
+                      validImageType() &&
+                      validSize(5000); // 5MB max
+    }
+    
+    // Products directory: /companies/{companyId}/products/{filename}
+    match /companies/{companyId}/products/{filename} {
+      // Public read
+      allow read: if true;
+      
+      // Write: Authenticated user who owns the company
+      allow write: if isAuthenticated() && 
+                      ownsCompany(companyId) &&
+                      validImageType() &&
+                      validSize(5000); // 5MB max
+    }
+    
+    // Catch-all for other company files
+    match /companies/{companyId}/{allPaths=**} {
+      // Public read
+      allow read: if true;
+      
+      // Write: Authenticated user who owns the company
+      allow write: if isAuthenticated() && 
+                      ownsCompany(companyId) &&
+                      validSize(10000); // 10MB max for other files
+    }
+    
+    // ============================================
+    // DENY ALL OTHER PATHS
+    // ============================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

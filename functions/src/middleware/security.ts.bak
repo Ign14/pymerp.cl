@@ -1,0 +1,273 @@
+import validator from 'validator';
+import { Request, Response, NextFunction } from 'express';
+
+// Store para rate limiting simple en memoria
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Rate limiter simple sin dependencias pesadas
+ * Límite: 10 requests por minuto por IP
+ */
+export const strictRateLimiter = (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const key = `strict_${ip}`;
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minuto
+  const maxRequests = 10;
+
+  const record = requestCounts.get(key);
+  
+  if (!record || now > record.resetTime) {
+    // Nueva ventana
+    requestCounts.set(key, { count: 1, resetTime: now + windowMs });
+    next();
+  } else if (record.count < maxRequests) {
+    // Incrementar contador
+    record.count++;
+    next();
+  } else {
+    // Límite excedido
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again later.',
+    });
+  }
+};
+
+/**
+ * Rate limiter más permisivo
+ * Límite: 30 requests por minuto por IP
+ */
+export const moderateRateLimiter = (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const key = `moderate_${ip}`;
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const maxRequests = 30;
+
+  const record = requestCounts.get(key);
+  
+  if (!record || now > record.resetTime) {
+    requestCounts.set(key, { count: 1, resetTime: now + windowMs });
+    next();
+  } else if (record.count < maxRequests) {
+    record.count++;
+    next();
+  } else {
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again later.',
+    });
+  }
+};
+
+/**
+ * Security headers middleware (sin helmet para evitar timeouts)
+ * Establece headers de seguridad HTTP manualmente
+ */
+export const securityHeaders = (req: Request, res: Response, next: NextFunction) => {
+  // Headers de seguridad esenciales
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+};
+
+/**
+ * Sanitiza y valida email
+ */
+export const sanitizeEmail = (email: string): string | null => {
+  if (!email || typeof email !== 'string') return null;
+  
+  const trimmed = email.trim().toLowerCase();
+  
+  // Validar formato de email
+  if (!validator.isEmail(trimmed)) {
+    return null;
+  }
+  
+  // Normalizar email
+  return validator.normalizeEmail(trimmed) || trimmed;
+};
+
+/**
+ * Sanitiza texto general (nombres, mensajes)
+ * Remueve scripts y caracteres peligrosos
+ */
+export const sanitizeText = (text: string, maxLength: number = 500): string | null => {
+  if (!text || typeof text !== 'string') return null;
+  
+  // Trim y validar longitud
+  let sanitized = text.trim();
+  if (sanitized.length === 0 || sanitized.length > maxLength) {
+    return null;
+  }
+  
+  // Escapar HTML peligroso
+  sanitized = validator.escape(sanitized);
+  
+  // Remover caracteres de control
+  sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
+  
+  return sanitized;
+};
+
+/**
+ * Valida y sanitiza número de teléfono (formato internacional)
+ */
+export const sanitizePhoneNumber = (phone: string): string | null => {
+  if (!phone || typeof phone !== 'string') return null;
+  
+  // Remover espacios y caracteres no numéricos excepto +
+  let sanitized = phone.trim().replace(/[^\d+]/g, '');
+  
+  // Validar que empiece con + y tenga entre 8 y 15 dígitos
+  if (!validator.isMobilePhone(sanitized, 'any', { strictMode: true })) {
+    return null;
+  }
+  
+  return sanitized;
+};
+
+/**
+ * Valida y sanitiza URL
+ */
+export const sanitizeUrl = (url: string): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  
+  const trimmed = url.trim();
+  
+  // Validar formato de URL
+  if (!validator.isURL(trimmed, {
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_valid_protocol: true,
+  })) {
+    return null;
+  }
+  
+  return trimmed;
+};
+
+/**
+ * Valida contraseña segura
+ * Mínimo 8 caracteres, al menos una mayúscula, una minúscula y un número
+ */
+export const validatePassword = (password: string): boolean => {
+  if (!password || typeof password !== 'string') return false;
+  
+  return validator.isStrongPassword(password, {
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 0,
+  });
+};
+
+/**
+ * Middleware para validar Content-Type
+ */
+export const validateContentType = (req: Request, res: Response, next: NextFunction) => {
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    const contentType = req.get('Content-Type');
+    if (!contentType || !contentType.includes('application/json')) {
+      res.status(415).json({
+        success: false,
+        error: 'Content-Type must be application/json',
+      });
+      return;
+    }
+  }
+  next();
+};
+
+/**
+ * Middleware para validar tamaño del body
+ */
+export const validateBodySize = (maxSizeKB: number = 50) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const contentLength = req.get('Content-Length');
+    if (contentLength && parseInt(contentLength) > maxSizeKB * 1024) {
+      res.status(413).json({
+        success: false,
+        error: `Request body too large. Maximum ${maxSizeKB}KB allowed.`,
+      });
+      return;
+    }
+    next();
+  };
+};
+
+/**
+ * Middleware para logging de requests (seguridad y auditoría)
+ */
+export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  const { method, path, ip } = req;
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const { statusCode } = res;
+    
+    console.log(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        method,
+        path,
+        ip,
+        statusCode,
+        duration: `${duration}ms`,
+        userAgent: req.get('User-Agent'),
+      })
+    );
+  });
+  
+  next();
+};
+
+/**
+ * Valida que el request tenga autenticación (Firebase Auth)
+ */
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Missing or invalid authorization token',
+    });
+    return;
+  }
+  
+  next();
+};
+
+/**
+ * Sanitiza objeto completo recursivamente
+ */
+export const sanitizeObject = (obj: any, maxDepth: number = 3): any => {
+  if (maxDepth <= 0) return null;
+  
+  if (typeof obj !== 'object' || obj === null) {
+    if (typeof obj === 'string') {
+      return sanitizeText(obj);
+    }
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObject(item, maxDepth - 1)).filter(item => item !== null);
+  }
+  
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const sanitizedKey = sanitizeText(key, 100);
+    if (sanitizedKey) {
+      sanitized[sanitizedKey] = sanitizeObject(value, maxDepth - 1);
+    }
+  }
+  
+  return sanitized;
+};
