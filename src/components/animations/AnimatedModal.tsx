@@ -105,7 +105,7 @@ export default function AnimatedModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2, type: "spring", damping: 20 }}
-            className={`bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${className}`}
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${className}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

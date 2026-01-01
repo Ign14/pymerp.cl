@@ -14,13 +14,19 @@ import { UserRole } from './types';
 
 // Landing & Auth
 import Landing from './pages/Landing';
+import { LandingPage } from './pages/LandingPage';
 import Login from './pages/Login';
 import RequestAccess from './pages/RequestAccess';
 import ChangePassword from './pages/ChangePassword';
+import AuthAction from './pages/AuthAction';
 import NearbyCompanies from './pages/info/NearbyCompanies';
+import FeaturesPage from './pages/info/Features';
+import Security from './pages/info/Security';
+import Roadmap from './pages/info/Roadmap';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
+import ManageSubscriptions from './pages/admin/ManageSubscriptions';
 
 // Setup Wizard
 import SetupCompanyBasic from './pages/setup/SetupCompanyBasic';
@@ -30,6 +36,10 @@ import SetupBusinessType from './pages/setup/SetupBusinessType';
 
 // Entrepreneur Dashboard
 import DashboardOverview from './pages/dashboard/DashboardOverview';
+import SchedulePage from './pages/dashboard/SchedulePage';
+import NewAppointmentPage from './pages/dashboard/appointments/NewAppointmentPage';
+import NotificationsSettingsPage from './pages/dashboard/settings/NotificationsSettingsPage';
+import SubscriptionPage from './pages/dashboard/settings/SubscriptionPage';
 import ServicesSettings from './pages/dashboard/services/ServicesSettings';
 import ServicesSchedules from './pages/dashboard/services/ServicesSchedules';
 import ServicesList from './pages/dashboard/services/ServicesList';
@@ -37,6 +47,19 @@ import ServiceNew from './pages/dashboard/services/ServiceNew';
 import ProductsSettings from './pages/dashboard/products/ProductsSettings';
 import ProductsList from './pages/dashboard/products/ProductsList';
 import ProductNew from './pages/dashboard/products/ProductNew';
+import BrandingBackground from './pages/dashboard/BrandingBackground';
+import BrandingVideo from './pages/dashboard/BrandingVideo';
+
+// Appointments
+import Schedule from './pages/dashboard/appointments/Schedule';
+
+// Professionals
+import ProfessionalsListPage from './pages/dashboard/professionals/ProfessionalsListPage';
+import ProfessionalsNewPage from './pages/dashboard/professionals/ProfessionalsNewPage';
+import ProfessionalForm from './pages/dashboard/professionals/ProfessionalForm';
+
+// Reports
+import AppointmentsReport from './pages/dashboard/reports/AppointmentsReport';
 
 // Public
 import PublicPage from './pages/public/PublicPage';
@@ -45,6 +68,9 @@ import About from './pages/info/About';
 import Costos from './pages/info/Costos';
 import Privacidad from './pages/info/Privacidad';
 import Terminos from './pages/info/Terminos';
+import Cookies from './pages/info/Cookies';
+import Legal from './pages/info/Legal';
+import Licenses from './pages/info/Licenses';
 import Contacto from './pages/info/Contacto';
 import CondicionesBeta from './pages/info/CondicionesBeta';
 import { env } from './config/env';
@@ -56,8 +82,10 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/landing-old" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/auth/action" element={<PageTransition><AuthAction /></PageTransition>} />
         <Route path="/request-access" element={<PageTransition><RequestAccess /></PageTransition>} />
           <Route
             path="/change-password"
@@ -76,6 +104,16 @@ function AnimatedRoutes() {
               <PageTransition>
                 <ProtectedRoute requiredRole={UserRole.SUPERADMIN}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/admin/subscriptions/:companyId"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.SUPERADMIN}>
+                  <ManageSubscriptions />
                 </ProtectedRoute>
               </PageTransition>
             }
@@ -128,6 +166,46 @@ function AnimatedRoutes() {
               <PageTransition>
                 <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
                   <DashboardOverview />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/schedule"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <SchedulePage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/appointments/new"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <NewAppointmentPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/settings/notifications"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <NotificationsSettingsPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/settings/subscription"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <SubscriptionPage />
                 </ProtectedRoute>
               </PageTransition>
             }
@@ -193,6 +271,76 @@ function AnimatedRoutes() {
             }
           />
           <Route
+            path="/dashboard/branding/background"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <BrandingBackground />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/branding/video"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <BrandingVideo />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/appointments"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <Schedule />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/professionals"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <ProfessionalsListPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/professionals/new"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <ProfessionalsNewPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/professionals/edit/:id"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <ProfessionalForm />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/reports/appointments"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <AppointmentsReport />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
             path="/dashboard/products"
             element={
               <PageTransition>
@@ -225,9 +373,19 @@ function AnimatedRoutes() {
 
           <Route path="/transparencia" element={<PageTransition><Transparencia /></PageTransition>} />
           <Route path="/que-es-pymerp" element={<PageTransition><About /></PageTransition>} />
+          <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+          <Route path="/features" element={<PageTransition><FeaturesPage /></PageTransition>} />
+          <Route path="/security" element={<PageTransition><Security /></PageTransition>} />
+          <Route path="/roadmap" element={<PageTransition><Roadmap /></PageTransition>} />
           <Route path="/costos" element={<PageTransition><Costos /></PageTransition>} />
           <Route path="/privacidad" element={<PageTransition><Privacidad /></PageTransition>} />
+          <Route path="/privacy" element={<PageTransition><Privacidad /></PageTransition>} />
           <Route path="/terminos" element={<PageTransition><Terminos /></PageTransition>} />
+          <Route path="/terms" element={<PageTransition><Terminos /></PageTransition>} />
+          <Route path="/cookies" element={<PageTransition><Cookies /></PageTransition>} />
+          <Route path="/legal" element={<PageTransition><Legal /></PageTransition>} />
+          <Route path="/licenses" element={<PageTransition><Licenses /></PageTransition>} />
+          <Route path="/licencias" element={<PageTransition><Licenses /></PageTransition>} />
           <Route path="/contacto" element={<PageTransition><Contacto /></PageTransition>} />
           <Route path="/condiciones-beta" element={<PageTransition><CondicionesBeta /></PageTransition>} />
           <Route path="/pymes-cercanas" element={<PageTransition><NearbyCompanies /></PageTransition>} />

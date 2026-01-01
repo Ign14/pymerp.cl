@@ -45,6 +45,19 @@ const backendOptions = {
   crossDomain: false,
 };
 
+// Normalizar idiomas guardados (ej: es-419 -> es) para evitar solicitar namespaces inexistentes
+if (typeof window !== 'undefined') {
+  try {
+    const storedLng = localStorage.getItem('i18nextLng');
+    if (storedLng && storedLng.includes('-')) {
+      const base = storedLng.split('-')[0];
+      localStorage.setItem('i18nextLng', base);
+    }
+  } catch (error) {
+    console.warn('[i18n] No se pudo normalizar lenguaje almacenado', error);
+  }
+}
+
 // Inicializar i18next
 i18n
   // Pasar la instancia de i18n a react-i18next
@@ -60,6 +73,7 @@ i18n
   .init({
     // Idioma por defecto si no se detecta ninguno
     fallbackLng: 'es',
+    fallbackNS: 'translation',
     
     // Idiomas soportados
     supportedLngs: SUPPORTED_LANGUAGES,
@@ -69,6 +83,7 @@ i18n
     
     // Namespace por defecto
     defaultNS: 'translation',
+    ns: ['translation', 'dashboard', 'appointments', 'notifications', 'landing', 'schedule'],
     
     // Debug en desarrollo
     debug: import.meta.env.DEV,

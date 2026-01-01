@@ -24,8 +24,11 @@ export default function ProductsSettings() {
   const [appearance, setAppearance] = useState({
     logo_url: '',
     banner_url: '',
+    logo_position: 'center' as 'left' | 'center' | 'right',
     background_color: '#ffffff',
     card_color: '#ffffff',
+    background_opacity: 1,
+    card_opacity: 1,
     button_color: '#2563eb',
     button_text_color: '#ffffff',
     title_color: '#111827',
@@ -35,6 +38,8 @@ export default function ProductsSettings() {
     font_body: FONT_OPTIONS[0].value,
     font_button: FONT_OPTIONS[0].value,
     layout: 'GRID' as 'GRID' | 'LIST',
+    card_layout: 1 as 1 | 2 | 3,
+    show_whatsapp_fab: false,
   });
   const [companySchedule, setCompanySchedule] = useState({
     weekday_days: [] as string[],
@@ -44,6 +49,7 @@ export default function ProductsSettings() {
     weekend_open_time: '',
     weekend_close_time: '',
   });
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -73,8 +79,11 @@ export default function ProductsSettings() {
         setAppearance({
           logo_url: appearanceData.logo_url || '',
           banner_url: appearanceData.banner_url || '',
+          logo_position: appearanceData.logo_position || 'center',
           background_color: appearanceData.background_color || '#ffffff',
           card_color: appearanceData.card_color || '#ffffff',
+          background_opacity: appearanceData.background_opacity ?? 1,
+          card_opacity: appearanceData.card_opacity ?? 1,
           button_color: appearanceData.button_color || '#2563eb',
           button_text_color: appearanceData.button_text_color || '#ffffff',
           title_color: appearanceData.title_color || '#111827',
@@ -84,6 +93,8 @@ export default function ProductsSettings() {
           font_body: appearanceData.font_body || FONT_OPTIONS[0].value,
           font_button: appearanceData.font_button || FONT_OPTIONS[0].value,
           layout: appearanceData.layout || 'GRID',
+          card_layout: (appearanceData.card_layout || 1) as 1 | 2 | 3,
+          show_whatsapp_fab: appearanceData.show_whatsapp_fab || false,
         });
       }
       if (companyData) {
@@ -95,6 +106,7 @@ export default function ProductsSettings() {
           weekend_open_time: companyData.weekend_open_time || '',
           weekend_close_time: companyData.weekend_close_time || '',
         });
+        setDeliveryEnabled(companyData.delivery_enabled || false);
       }
     } catch (error) {
       handleError(error);
@@ -144,6 +156,7 @@ export default function ProductsSettings() {
           weekend_days: companySchedule.weekend_days,
           weekend_open_time: companySchedule.weekend_open_time,
           weekend_close_time: companySchedule.weekend_close_time,
+          delivery_enabled: deliveryEnabled,
         }),
       ]);
       toast.success('Configuración guardada');
@@ -203,6 +216,58 @@ export default function ProductsSettings() {
               }}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
+            {appearance.logo_url && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Posición del logo</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAppearance({ ...appearance, logo_position: 'left' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                      appearance.logo_position === 'left'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">⬅️</div>
+                      <div className="text-sm">Izquierda</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppearance({ ...appearance, logo_position: 'center' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                      appearance.logo_position === 'center'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">⬆️</div>
+                      <div className="text-sm">Centro</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppearance({ ...appearance, logo_position: 'right' })}
+                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                      appearance.logo_position === 'right'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">➡️</div>
+                      <div className="text-sm">Derecha</div>
+                    </div>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  El logo se mostrará más grande cuando esté centrado para mayor visibilidad.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -239,6 +304,20 @@ export default function ProductsSettings() {
               onChange={(e) => setAppearance({ ...appearance, background_color: e.target.value })}
               className="h-10 w-full"
             />
+            <label className="block text-sm font-medium text-gray-700 mt-2">Transparencia de fondo</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round((appearance.background_opacity ?? 1) * 100)}
+              onChange={(e) =>
+                setAppearance({ ...appearance, background_opacity: Number(e.target.value) / 100 })
+              }
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">
+              Opacidad: {Math.round((appearance.background_opacity ?? 1) * 100)}%
+            </p>
           </div>
 
           <div>
@@ -249,6 +328,20 @@ export default function ProductsSettings() {
               onChange={(e) => setAppearance({ ...appearance, card_color: e.target.value })}
               className="h-10 w-full"
             />
+            <label className="block text-sm font-medium text-gray-700 mt-2">Transparencia de tarjetas</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round((appearance.card_opacity ?? 1) * 100)}
+              onChange={(e) =>
+                setAppearance({ ...appearance, card_opacity: Number(e.target.value) / 100 })
+              }
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">
+              Opacidad: {Math.round((appearance.card_opacity ?? 1) * 100)}%
+            </p>
           </div>
 
           <div>
@@ -459,6 +552,59 @@ export default function ProductsSettings() {
               <option value="GRID">Grid</option>
               <option value="LIST">Lista</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Layout Premium de Tarjetas</label>
+            <select
+              value={appearance.card_layout}
+              onChange={(e) => setAppearance({ ...appearance, card_layout: Number(e.target.value) as 1 | 2 | 3 })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value={1}>Layout 1: Grid Clásico</option>
+              <option value={2}>Layout 2: Lista con Imagen Circular</option>
+              <option value={3}>Layout 3: Carrusel Fullscreen</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Selecciona el diseño premium para las tarjetas de productos en tu página pública.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-3 border rounded-lg p-4">
+            <input
+              id="whatsappFab"
+              type="checkbox"
+              className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              checked={appearance.show_whatsapp_fab}
+              onChange={(e) => setAppearance({ ...appearance, show_whatsapp_fab: e.target.checked })}
+            />
+            <div>
+              <label htmlFor="whatsappFab" className="text-sm font-medium text-gray-900">
+                Mostrar botón flotante de WhatsApp
+              </label>
+              <p className="text-xs text-gray-600">
+                Permite a los clientes abrir WhatsApp desde la esquina inferior de la página pública de productos.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 border rounded-lg p-4 bg-green-50">
+            <input
+              id="deliveryEnabled"
+              type="checkbox"
+              className="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              checked={deliveryEnabled}
+              onChange={(e) => setDeliveryEnabled(e.target.checked)}
+            />
+            <div>
+              <label htmlFor="deliveryEnabled" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                🚚 Recibir pedidos a domicilio
+              </label>
+              <p className="text-xs text-gray-600 mt-1">
+                Al activar esta opción, los clientes podrán solicitar entrega a domicilio en el carrito de compras. 
+                Se les pedirá que compartan su dirección y ubicación por WhatsApp.
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-end">

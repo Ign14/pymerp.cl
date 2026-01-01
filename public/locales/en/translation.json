@@ -115,6 +115,8 @@
     "emailAlreadyRegisteredLong": "This email already has an active account. Use Forgot password from the sign-in page.",
     "fixEmailError": "Please fix the email before continuing.",
     "submitError": "We couldn't submit your request. Please try again.",
+    "invalidWhatsapp": "Enter a valid WhatsApp number (digits only, 9 to 15 characters).",
+    "requestAlreadySubmitted": "We already received a request with this email. Check your inbox or use Forgot password.",
     "acceptBetaTerms": "You must accept the beta terms of use.",
     "betaTermsLabel": "I accept the beta terms of use",
     "betaTermsLink": "View terms",

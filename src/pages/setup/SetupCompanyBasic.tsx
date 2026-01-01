@@ -4,6 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getCompany, updateCompany } from '../../services/firestore';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { generateSlug } from '../../utils/slug';
+import {
+  validateRequired,
+  validateRut,
+  validatePhone,
+  validateFields,
+} from '../../services/errorHelpers';
 
 export default function SetupCompanyBasic() {
   const { firestoreUser } = useAuth();
@@ -16,9 +23,11 @@ export default function SetupCompanyBasic() {
     sector: '',
     seo_keyword: '',
     whatsapp: '',
+    slug: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadCompany();
@@ -40,6 +49,7 @@ export default function SetupCompanyBasic() {
           sector: company.sector || '',
           seo_keyword: company.seo_keyword || '',
           whatsapp: company.whatsapp || '',
+          slug: company.slug || '',
         });
       }
     } catch (error) {
@@ -51,6 +61,34 @@ export default function SetupCompanyBasic() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validación con helpers
+    const validationErrors = validateFields({
+      name: {
+        value: formData.name,
+        validators: [validateRequired],
+      },
+      rut: {
+        value: formData.rut,
+        validators: [(v) => validateRut(v, true)],
+      },
+      industry: {
+        value: formData.industry,
+        validators: [validateRequired],
+      },
+      whatsapp: {
+        value: formData.whatsapp,
+        validators: [(v) => validatePhone(v, true)],
+      },
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error('Por favor corrige los errores en el formulario');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -62,6 +100,7 @@ export default function SetupCompanyBasic() {
           sector: formData.sector,
           seo_keyword: formData.seo_keyword,
           whatsapp: formData.whatsapp.replace(/\D/g, ''),
+          slug: formData.slug,
         });
       } else {
         // Should not happen, but handle it
@@ -76,6 +115,16 @@ export default function SetupCompanyBasic() {
       handleError(error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFieldChange = (field: keyof typeof formData, value: string) => {
+    setFormData({ ...formData, [field]: value });
+    // Limpiar error del campo al editar
+    if (errors[field]) {
+      const newErrors = { ...errors };
+      delete newErrors[field];
+      setErrors(newErrors);
     }
   };
 
@@ -109,11 +158,21 @@ export default function SetupCompanyBasic() {
             </label>
             <input
               type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
+                errors.name
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleFieldChange('name', e.target.value)}
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'name-error' : undefined}
             />
+            {errors.name && (
+              <p id="name-error" className="mt-1 text-sm text-red-600" role="alert">
+                Campo requerido
+              </p>
+            )}
           </div>
 
           <div>
@@ -122,11 +181,22 @@ export default function SetupCompanyBasic() {
             </label>
             <input
               type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
+                errors.rut
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
               value={formData.rut}
-              onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+              onChange={(e) => handleFieldChange('rut', e.target.value)}
+              placeholder="12.345.678-9"
+              aria-invalid={!!errors.rut}
+              aria-describedby={errors.rut ? 'rut-error' : undefined}
             />
+            {errors.rut && (
+              <p id="rut-error" className="mt-1 text-sm text-red-600" role="alert">
+                {errors.rut === 'required-field' ? 'Campo requerido' : 'RUT inválido (formato: 12.345.678-9)'}
+              </p>
+            )}
           </div>
 
           <div>
@@ -135,11 +205,22 @@ export default function SetupCompanyBasic() {
             </label>
             <input
               type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
+                errors.industry
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
               value={formData.industry}
-              onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+              onChange={(e) => handleFieldChange('industry', e.target.value)}
+              placeholder="Ej: Belleza, Restaurante, Consultoría"
+              aria-invalid={!!errors.industry}
+              aria-describedby={errors.industry ? 'industry-error' : undefined}
             />
+            {errors.industry && (
+              <p id="industry-error" className="mt-1 text-sm text-red-600" role="alert">
+                Campo requerido
+              </p>
+            )}
           </div>
 
           <div>
@@ -172,15 +253,44 @@ export default function SetupCompanyBasic() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono WhatsApp principal *
+          Teléfono WhatsApp principal *
+          </label>
+          <input
+            type="tel"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
+                errors.whatsapp
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
+              placeholder="+56912345678"
+            value={formData.whatsapp}
+            onChange={(e) => handleFieldChange('whatsapp', e.target.value)}
+              aria-invalid={!!errors.whatsapp}
+              aria-describedby={errors.whatsapp ? 'whatsapp-error' : undefined}
+          />
+            {errors.whatsapp && (
+              <p id="whatsapp-error" className="mt-1 text-sm text-red-600" role="alert">
+                {errors.whatsapp === 'required-field' ? 'Campo requerido' : 'Teléfono inválido'}
+              </p>
+            )}
+        </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slug de tu URL pública *
             </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Así se verá tu enlace público: https://pymerp.cl/negocios/<strong>{formData.slug || 'tu-slug'}</strong>
+            </p>
             <input
-              type="tel"
+              type="text"
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="+56912345678"
-              value={formData.whatsapp}
-              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              placeholder="ej: mi-negocio-unico"
+              value={formData.slug}
+              onChange={(e) =>
+                setFormData({ ...formData, slug: generateSlug(e.target.value) })
+              }
             />
           </div>
 

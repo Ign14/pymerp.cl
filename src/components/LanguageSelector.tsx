@@ -47,10 +47,36 @@ export default function LanguageSelector({
 }: LanguageSelectorProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [useBadgeIcon, setUseBadgeIcon] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const currentLang = getCurrentLanguage();
   const currentLanguage = LANGUAGES.find(lang => lang.code === currentLang) || LANGUAGES[0];
+
+  // Windows suele mostrar banderas emoji en blanco y negro; usa badges en ese caso.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setUseBadgeIcon(window.navigator.userAgent.toLowerCase().includes('windows'));
+    }
+  }, []);
+
+  const renderIcon = (language: LanguageOption) => {
+    if (!useBadgeIcon) {
+      return (
+        <span className="text-lg" role="img" aria-label={language.name}>
+          {language.flag}
+        </span>
+      );
+    }
+    return (
+      <span
+        aria-hidden="true"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold uppercase text-white shadow-sm"
+      >
+        {language.code}
+      </span>
+    );
+  };
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -95,9 +121,7 @@ export default function LanguageSelector({
         title={t('language.toggle')}
         aria-label={t('language.toggle')}
       >
-        <span className="text-lg" role="img" aria-label={currentLanguage.name}>
-          {currentLanguage.flag}
-        </span>
+        {renderIcon(currentLanguage)}
         {showLabel && (
           <span className="hidden sm:inline">{currentLanguage.nativeName}</span>
         )}
@@ -115,9 +139,7 @@ export default function LanguageSelector({
         aria-expanded={isOpen}
         title={t('language.toggle')}
       >
-        <span className="text-lg" role="img" aria-label={currentLanguage.name}>
-          {currentLanguage.flag}
-        </span>
+        {renderIcon(currentLanguage)}
         {showLabel && (
           <span className="hidden sm:inline">{currentLanguage.nativeName}</span>
         )}

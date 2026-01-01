@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createAccessRequest,
   createCompany,
   createUser,
-  getUserByEmail,
-  updateAccessRequest,
   updateUser,
 } from '../services/firestore';
-import { sendAccessRequestEmail, sendUserCreationEmail } from '../services/email';
+import { sendAccessRequestEmail } from '../services/email';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageToggle from '../components/LanguageToggle';
@@ -18,13 +16,15 @@ import { usePageMeta } from '../utils/usePageMeta';
 import '../styles/marquee.css';
 import { logger } from '../utils/logger';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { resetUserPassword, setCompanyClaim } from '../services/admin';
+import { setCompanyClaim } from '../services/admin';
 import { generateRandomPassword } from '../utils/password';
 import { generateSlug } from '../utils/slug';
-import { AccessRequestStatus, UserRole, UserStatus } from '../types';
+import { UserRole, UserStatus, BusinessType } from '../types';
+import { auth } from '../config/firebase';
+import { createAuthUser, requestPasswordReset, signOutAuth } from '../services/auth';
 
 export default function RequestAccess() {
-  const { handleError, handleAsyncError } = useErrorHandler();
+  const { handleError } = useErrorHandler();
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -36,7 +36,6 @@ export default function RequestAccess() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [checkingEmail, setCheckingEmail] = useState(false);
   const [showBetaModal, setShowBetaModal] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -48,37 +47,24 @@ export default function RequestAccess() {
   });
 
   // Verificar si el email ya está registrado cuando el usuario termine de escribir
-  useEffect(() => {
-    const checkEmail = async () => {
-      if (!formData.email || !formData.email.includes('@')) {
-        setEmailError(null);
-        return;
-      }
-
-      setCheckingEmail(true);
-      const result = await handleAsyncError(
-        async () => await getUserByEmail(formData.email),
-        { showToast: false, context: { action: 'checkEmail' } }
-      );
-      
-      if (result) {
-        setEmailError(t('requestAccess.emailAlreadyRegistered'));
-      } else {
-        setEmailError(null);
-      }
-      setCheckingEmail(false);
-    };
-
-    // Debounce: esperar 500ms después de que el usuario deje de escribir
-    const timeoutId = setTimeout(checkEmail, 500);
-    return () => clearTimeout(timeoutId);
-  }, [formData.email]);
+  // Email validation will be done during form submission
+  // Removed real-time email checking to avoid Firestore permission issues for unauthenticated users
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (emailError) {
-      toast.error(t('requestAccess.fixEmailError'));
+
+    const normalizedEmail = formData.email.trim().toLowerCase();
+    const normalizedName = formData.full_name.trim();
+    const normalizedBusiness = formData.business_name.trim();
+    const sanitizedWhatsapp = formData.whatsapp.replace(/\D/g, '');
+
+    if (!normalizedName || !normalizedBusiness || !normalizedEmail) {
+      toast.error(t('requestAccess.submitError'));
+      return;
+    }
+
+    if (sanitizedWhatsapp.length < 9 || sanitizedWhatsapp.length > 15) {
+      toast.error(t('requestAccess.invalidWhatsapp'));
       return;
     }
 
@@ -91,102 +77,110 @@ export default function RequestAccess() {
     let requestId: string | null = null;
 
     try {
-      const existingUser = await getUserByEmail(formData.email);
-      if (existingUser) {
-        toast.error(t('requestAccess.emailAlreadyRegisteredLong'));
-        setEmailError(t('requestAccess.emailAlreadyRegistered'));
-        setLoading(false);
-        return;
-      }
-    } catch (error) {
-      logger.warn('No se pudo verificar el email, continuando...');
-    }
-
-    try {
       const payload = {
-        full_name: formData.full_name,
-        email: formData.email,
-        business_name: formData.business_name,
-        whatsapp: formData.whatsapp,
+        full_name: normalizedName,
+        email: normalizedEmail,
+        business_name: normalizedBusiness,
+        whatsapp: sanitizedWhatsapp,
         plan: formData.plan,
       };
       const normalizedPlan = (formData.plan || 'BASIC').toUpperCase() as 'BASIC' | 'STANDARD' | 'PRO';
       const password = generateRandomPassword();
-      const slug = generateSlug(formData.business_name);
-      const loginUrl = 'https://www.pymerp.cl/login';
+      const slugSource = normalizedBusiness || normalizedEmail.split('@')[0] || normalizedEmail;
+      const slug = generateSlug(slugSource);
 
-      requestId = await createAccessRequest({
+      logger.info('🔵 Paso 1: Creando access request...');
+      const accessRequestData = {
         ...payload,
         plan: normalizedPlan,
-        whatsapp: formData.whatsapp.replace(/\D/g, ''),
-      });
+        whatsapp: sanitizedWhatsapp,
+      };
+      logger.info('📋 Datos del access request:', accessRequestData);
+      requestId = await createAccessRequest(accessRequestData);
+      logger.info('✅ Access request creado:', requestId);
 
-      await resetUserPassword(formData.email, password);
-      const userId = await createUser(
+      logger.info('🔵 Paso 2: Creando usuario en Firebase Auth...');
+      const firebaseUser = await createAuthUser(normalizedEmail, password);
+      const userId = firebaseUser.uid;
+      logger.info('✅ Usuario Auth creado:', userId);
+
+      logger.info('🔵 Paso 3: Creando documento de usuario en Firestore...');
+      await createUser(
         {
-          email: formData.email,
+          email: normalizedEmail,
           status: UserStatus.FORCE_PASSWORD_CHANGE,
           role: UserRole.ENTREPRENEUR,
         },
-        formData.email
+        userId
       );
+      logger.info('✅ Documento de usuario creado');
 
+      logger.info('🔵 Paso 4: Creando compañía...');
       const companyId = await createCompany({
         owner_user_id: userId,
-        name: formData.business_name,
+        name: normalizedBusiness,
         rut: '',
         industry: '',
-        whatsapp: formData.whatsapp,
+        whatsapp: sanitizedWhatsapp,
         address: '',
         slug,
         setup_completed: false,
         subscription_plan: normalizedPlan,
+        business_type: BusinessType.SERVICES, // Cambia a BusinessType.PRODUCTS si aplica
       });
+      logger.info('✅ Compañía creada:', companyId);
 
+      logger.info('🔵 Paso 5: Actualizando usuario con company_id...');
       await updateUser(userId, { company_id: companyId });
+      logger.info('✅ Usuario actualizado con company_id');
 
-      try {
-        await setCompanyClaim(userId, companyId);
-      } catch (claimError) {
-        logger.warn('No se pudo asignar claim de compañía automáticamente', claimError);
-      }
+  try {
+    await setCompanyClaim(userId, companyId);
+  } catch (claimError) {
+    logger.warn('No se pudo asignar claim de compañía automáticamente', claimError);
+  }
 
-      try {
-        await updateAccessRequest(requestId, {
-          status: AccessRequestStatus.APPROVED,
-          processed_at: new Date(),
-        });
-      } catch (updateError) {
-        logger.warn('No se pudo marcar la solicitud como aprobada automáticamente', updateError);
-      }
-
-      await sendAccessRequestEmail({
-        ...payload,
-        plan: normalizedPlan,
-        created_at: new Date(),
-        language: getCurrentLanguage(),
+  await sendAccessRequestEmail({
+    ...payload,
+    plan: normalizedPlan,
+    created_at: new Date(),
+    language: getCurrentLanguage(),
       });
 
-      await sendUserCreationEmail(formData.email, password, loginUrl, getCurrentLanguage());
+      // Enviar email oficial de Firebase para que el usuario establezca su contraseña
+      await requestPasswordReset(normalizedEmail);
+
+      // Cerrar sesión de la cuenta recién creada para evitar sesión indeseada en el dispositivo actual
+      await signOutAuth();
 
       setSubmitted(true);
     } catch (error: any) {
-      if (requestId) {
-        try {
-          await updateAccessRequest(requestId, {
-            status: AccessRequestStatus.REJECTED,
-            processed_at: new Date(),
-          });
-        } catch (updateError) {
-          logger.error('No se pudo actualizar el estado de la solicitud fallida', updateError);
-        }
+      // Log detallado del error para diagnóstico
+      logger.error('Error completo en submitAccessRequest:', error);
+      logger.error('Error code:', error?.code);
+      logger.error('Error message:', error?.message);
+      
+      // Errores conocidos de Firebase Auth para dar feedback claro
+      if (error?.code === 'auth/email-already-in-use') {
+        const message = t('requestAccess.emailAlreadyRegisteredLong');
+        toast.error(message);
+        setEmailError(message);
+      } else {
+        // Mostrar mensaje de error más específico si es posible
+        const errorMsg = error?.message || error?.code || 'Error desconocido';
+        logger.error('Mostrando error al usuario:', errorMsg);
+        toast.error(t('requestAccess.submitError') + ': ' + errorMsg);
       }
 
       handleError(error, { 
-        customMessage: t('requestAccess.submitError'),
+        showToast: false,
         context: { action: 'submitAccessRequest' }
       });
     } finally {
+      // Evitar dejar la sesión abierta con el usuario recién creado
+      if (auth.currentUser?.email?.toLowerCase() === normalizedEmail) {
+        await signOutAuth().catch(() => {});
+      }
       setLoading(false);
     }
   };
@@ -243,6 +237,7 @@ export default function RequestAccess() {
                 name="full_name"
                 type="text"
                 required
+                autoComplete="name"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
@@ -257,21 +252,18 @@ export default function RequestAccess() {
                 name="email"
                 type="email"
                 required
+                autoComplete="email"
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
                   emailError 
                     ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                 } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none sm:text-sm`}
                 value={formData.email}
-                onChange={(e) => {
+                  onChange={(e) => {
                   setFormData({ ...formData, email: e.target.value });
                   setEmailError(null); // Limpiar error al escribir
                 }}
-                disabled={checkingEmail}
               />
-              {checkingEmail && (
-                <p className="mt-1 text-xs text-gray-500">{t('requestAccess.checkingEmail')}</p>
-              )}
               {emailError && (
                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-sm text-red-800">{emailError}</p>
@@ -294,6 +286,7 @@ export default function RequestAccess() {
               name="business_name"
               type="text"
               required
+              autoComplete="organization"
               className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               placeholder=""
               value={formData.business_name}
@@ -314,6 +307,7 @@ export default function RequestAccess() {
                 name="whatsapp"
                 type="tel"
                 required
+                autoComplete="tel"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="+56912345678"
                 value={formData.whatsapp}
@@ -327,14 +321,15 @@ export default function RequestAccess() {
               <select
                 id="plan"
                 name="plan"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-gray-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm cursor-not-allowed"
                 value={formData.plan}
-                onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                disabled
               >
                 <option value="BASIC">{t('requestAccess.plans.basic')}</option>
-                <option value="STANDARD">{t('requestAccess.plans.standard')}</option>
-                <option value="PRO">{t('requestAccess.plans.pro')}</option>
               </select>
+              <p className="mt-1 text-xs text-gray-500">
+                El plan BÁSICO es gratis para siempre
+              </p>
             </div>
 
             <div className="flex items-start gap-2">
@@ -363,10 +358,10 @@ export default function RequestAccess() {
           <div>
             <button
               type="submit"
-              disabled={loading || checkingEmail || !!emailError}
+              disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? t('requestAccess.sendingButton') : checkingEmail ? t('requestAccess.checkingButton') : t('requestAccess.submitButton')}
+              {loading ? t('requestAccess.sendingButton') : t('requestAccess.submitButton')}
             </button>
             {emailError && (
               <p className="mt-2 text-xs text-center text-red-600">

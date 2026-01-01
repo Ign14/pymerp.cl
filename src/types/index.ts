@@ -64,11 +64,22 @@ export interface Company {
   status?: 'ACTIVE' | 'BLOCKED';
   latitude?: number;
   longitude?: number;
+  description?: string;
+  show_description?: boolean;
   mission?: string;
   vision?: string;
+  show_mission_vision?: boolean;
   booking_message?: string;
   business_type?: BusinessType;
   subscription_plan?: 'BASIC' | 'STANDARD' | 'PRO' | 'APPROVED25';
+  background_enabled?: boolean;
+  background_url?: string;
+  background_orientation?: 'HORIZONTAL' | 'VERTICAL';
+  background_fit?: 'cover' | 'contain' | 'fill' | 'scale-down';
+  background_opacity?: number; // 0-100
+  video_enabled?: boolean;
+  video_url?: string;
+  video_placement?: 'MODAL' | 'HERO' | 'FOOTER';
   commune?: string;
   weekday_days?: string[];
   weekday_open_time?: string;
@@ -80,6 +91,18 @@ export interface Company {
   setup_completed: boolean;
   created_at: Date;
   updated_at: Date;
+  // Subscription limits
+  subscription?: {
+    maxProfessionals: number; // 1-60 based on plan
+    currentProfessionals?: number;
+  };
+  // Notifications settings
+  notifications?: {
+    emailEnabled: boolean;
+    toEmail?: string;
+  };
+  // Delivery settings
+  delivery_enabled?: boolean; // Activar pedidos a domicilio
 }
 
 export interface CompanyAppearance {
@@ -88,8 +111,11 @@ export interface CompanyAppearance {
   context: BusinessType;
   logo_url?: string;
   banner_url?: string;
+  logo_position?: 'left' | 'center' | 'right'; // Posición del logo en el header
   background_color?: string;
   card_color?: string;
+  background_opacity?: number;
+  card_opacity?: number;
   button_color?: string;
   button_text_color?: string;
   title_color?: string;
@@ -99,6 +125,19 @@ export interface CompanyAppearance {
   font_body?: string;
   font_button?: string;
   layout?: 'GRID' | 'LIST';
+  card_layout?: 1 | 2 | 3; // Layout premium para tarjetas (1: Grid Clásico, 2: Lista Circular, 3: Carrusel Fullscreen)
+  show_whatsapp_fab?: boolean;
+  // Personalización del calendario de agenda
+  calendar_card_color?: string; // Color de fondo de las tarjetas del calendario
+  calendar_card_opacity?: number; // Opacidad de las tarjetas del calendario (0-100)
+  calendar_text_color?: string; // Color del texto del calendario
+  calendar_title_color?: string; // Color de los títulos del calendario
+  calendar_button_color?: string; // Color de los botones del calendario
+  calendar_button_text_color?: string; // Color del texto de los botones
+  calendar_available_day_color?: string; // Color de borde para días con disponibilidad (verde)
+  calendar_low_slots_color?: string; // Color de borde para días con pocos slots (amarillo)
+  calendar_no_slots_color?: string; // Color de borde para días sin slots (rojo)
+  calendar_selected_day_color?: string; // Color de fondo para el día seleccionado
 }
 
 export interface ScheduleSlot {
@@ -119,6 +158,8 @@ export interface Service {
   image_url: string;
   estimated_duration_minutes: number;
   status: 'ACTIVE' | 'INACTIVE';
+  professional_ids?: string[];
+  hide_price?: boolean; // Si es true, no mostrar precio y mostrar mensaje de consulta por WhatsApp
 }
 
 export interface ServiceSchedule {
@@ -137,7 +178,9 @@ export interface Product {
   weight?: number;
   kcal?: number;
   tags?: string[];
+  stock?: number; // Cantidad disponible en inventario (opcional)
   status: 'ACTIVE' | 'INACTIVE';
+  hide_price?: boolean; // Si es true, no mostrar precio y mostrar mensaje de consulta por WhatsApp
 }
 
 export interface AppointmentRequest {
@@ -146,8 +189,13 @@ export interface AppointmentRequest {
   service_id: string;
   date: string;
   schedule_slot_id: string;
+  professional_id?: string;
+  start_time?: string;
+  end_time?: string;
   client_name: string;
   client_whatsapp: string;
+  client_email?: string;
+  client_rut?: string; // RUT del cliente (opcional)
   client_comment?: string;
   created_at: Date;
 }
@@ -177,4 +225,66 @@ export interface PublicPageEvent {
 export interface CartItem {
   product: Product;
   quantity: number;
+}
+
+// Professionals & Appointments System
+export enum AppointmentStatus {
+  REQUESTED = 'REQUESTED',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
+  NO_SHOW = 'NO_SHOW',
+}
+
+export interface Professional {
+  id: string;
+  company_id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+  specialties?: string[];
+  status: 'ACTIVE' | 'INACTIVE';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Appointment {
+  id: string;
+  company_id: string;
+  service_id: string;
+  professional_id: string;
+  client_name: string;
+  client_phone: string;
+  client_email?: string;
+  client_rut?: string; // RUT del cliente (opcional)
+  appointment_date: Date;
+  start_time: string; // HH:mm format
+  end_time: string; // HH:mm format
+  status: AppointmentStatus;
+  notes?: string;
+  created_by_user_id?: string; // for manual appointments
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ProfessionalAvailability {
+  id: string;
+  professional_id: string;
+  company_id: string;
+  day_of_week: number; // 0=Sunday, 6=Saturday
+  start_time: string; // HH:mm format
+  end_time: string; // HH:mm format
+  is_available: boolean;
+  created_at: Date;
+}
+
+export interface NotificationSettings {
+  id: string;
+  user_id: string;
+  company_id: string;
+  email_notifications_enabled: boolean;
+  notification_email?: string;
+  created_at: Date;
+  updated_at: Date;
 }

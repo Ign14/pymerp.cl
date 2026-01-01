@@ -1,203 +1,139 @@
-import LanguageToggle from '../../components/LanguageToggle';
-import ThemeToggle from '../../components/ThemeToggle';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { motion } from 'framer-motion';
 import SEO from '../../components/SEO';
 
+const sections = [
+  {
+    title: 'Aceptación y alcance',
+    items: [
+      'Al crear una cuenta o usar PyM-ERP aceptas estos Términos y nuestra Política de Privacidad.',
+      'El servicio se presta en modalidad SaaS para Chile; algunos módulos pueden requerir acuerdos adicionales.',
+      'Usuario debe ser mayor de 18 años y entregar información veraz para cumplir con normativas locales.'
+    ]
+  },
+  {
+    title: 'Planes, pagos y facturación',
+    items: [
+      'Precios expresados en CLP salvo indicación distinta. Emitimos documentos tributarios conforme al SII.',
+      'Se puede ajustar el valor de planes; te avisaremos con 15 días corridos de anticipación.',
+      'Derecho de retracto online conforme Ley 19.496: 10 días desde la contratación si no has usado el servicio.',
+      'Renovaciones mensuales o anuales según plan; puedes cancelar en cualquier momento antes del siguiente ciclo.'
+    ]
+  },
+  {
+    title: 'Uso permitido',
+    items: [
+      'Prohibido cargar datos ilícitos, infringir derechos de terceros o vulnerar seguridad del servicio.',
+      'No se permite revender, sublicenciar o realizar ingeniería inversa del software.',
+      'Podemos suspender cuentas ante uso abusivo, impago, fraude o incumplimiento contractual.'
+    ]
+  },
+  {
+    title: 'Propiedad intelectual',
+    items: [
+      'PyM-ERP mantiene derechos sobre el software, marca y contenidos. Otorgamos una licencia limitada, no exclusiva y revocable para usar la plataforma.',
+      'El usuario conserva titularidad de sus datos y contenidos. Solo los usamos para prestar el servicio y cumplir obligaciones legales.',
+      'Las integraciones y bibliotecas de terceros mantienen sus respectivas licencias, detalladas en la sección de Licencias.'
+    ]
+  },
+  {
+    title: 'Limitación de responsabilidad',
+    items: [
+      'El servicio se entrega “tal cual” y con esfuerzos razonables de continuidad; puede sufrir interrupciones programadas o de fuerza mayor.',
+      'Nuestra responsabilidad total frente al usuario se limita al monto efectivamente pagado en los últimos 3 meses previos al reclamo.',
+      'Nada limita derechos irrenunciables del consumidor bajo la Ley 19.496 o normas imperativas chilenas.'
+    ]
+  },
+  {
+    title: 'Datos y confidencialidad',
+    items: [
+      'Custodiamos la información siguiendo políticas de seguridad y privacidad alineadas a la Ley 19.628.',
+      'Si tratamos datos personales como encargado, podemos firmar un anexo de tratamiento y confidencialidad.',
+      'Avisaremos incidentes de seguridad relevantes y colaboraremos con las autoridades cuando corresponda.'
+    ]
+  }
+];
+
 export default function Terminos() {
-  const { t } = useLanguage();
-
-  const translate = (key: string, fallback: string) => {
-    const value = t(key);
-    return typeof value === 'string' && value !== key ? value : fallback;
-  };
-
-  const fallbackContent = {
-    title: '3. Contenido y propiedad',
-    items: [
-      'Sigues siendo dueño del contenido que subas (textos, imágenes, precios), pero nos concedes una licencia limitada para mostrarlo dentro del servicio.',
-      'Está prohibido copiar, clonar o reutilizar la plataforma, su código, diseño, layouts o catálogos sin autorización expresa de PYMERP.',
-      'Queda prohibida la extracción masiva de datos, scraping o ingeniería inversa de la plataforma.',
-    ],
-  };
-
-  const fallbackResponsibility = {
-    title: '5. Responsabilidades',
-    items: [
-      'El usuario es responsable de la veracidad de la información publicada (precios, descripciones, horarios).',
-      'PYMERP no se hace responsable por pérdidas indirectas o lucro cesante derivado del uso o imposibilidad de uso del servicio.',
-    ],
-  };
-
-  const fallbackIP = {
-    title: '7. Propiedad intelectual y anti copia',
-    items: [
-      'PYMERP y sus logos, layouts, plantillas y software están protegidos por derechos de autor y propiedad intelectual.',
-      'Está prohibida la reproducción, redistribución o adaptación del software sin autorización escrita.',
-      'Detectar o intentar vulnerar medidas de seguridad, duplicar el servicio o reutilizar componentes de forma no autorizada constituye una violación contractual y podrá derivar en acciones legales.',
-    ],
-  };
-
-  const rawContent = t('transparencyPages.terms.sections.content', { returnObjects: true }) as unknown;
-  const contentSection =
-    rawContent && typeof rawContent === 'object' && Array.isArray((rawContent as any).items)
-      ? (rawContent as { title: string; items: string[] })
-      : fallbackContent;
-
-  const rawResponsibility = t('transparencyPages.terms.sections.responsibility', { returnObjects: true }) as unknown;
-  const responsibilitySection =
-    rawResponsibility && typeof rawResponsibility === 'object' && Array.isArray((rawResponsibility as any).items)
-      ? (rawResponsibility as { title: string; items: string[] })
-      : fallbackResponsibility;
-
-  const rawIP = t('transparencyPages.terms.sections.ip', { returnObjects: true }) as unknown;
-  const ipSection =
-    rawIP && typeof rawIP === 'object' && Array.isArray((rawIP as any).items)
-      ? (rawIP as { title: string; items: string[] })
-      : fallbackIP;
-
   return (
     <>
       <SEO
-        title={`PYMERP | ${translate('transparencyPages.terms.seoTitle', 'Términos y Condiciones - PYMERP')}`}
-        description={translate(
-          'transparencyPages.terms.seoDescription',
-          'Reglas de uso de PYMERP: cuentas, contenido, propiedad intelectual, responsabilidades y pagos.'
-        )}
-        keywords="términos, condiciones, uso, legal, pymerp, contrato"
-        robots="index, follow"
+        title="Términos y Condiciones | PyM-ERP"
+        description="Condiciones de uso del servicio SaaS PyM-ERP bajo la legislación chilena."
+        canonical="/terms"
       />
-      <div className="relative min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="fixed top-4 left-4 right-4 z-10 flex items-center justify-between gap-2">
-          <div className="flex gap-2">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-blue-600 shadow hover:text-blue-700"
-            >
-              ← {translate('transparencyPages.navigation.backHome', 'Ir al inicio')}
-            </a>
-            <a
-              href="/transparencia"
-              className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-blue-600 shadow hover:text-blue-700"
-            >
-              {translate('transparencyPages.navigation.back', 'Volver')}
-            </a>
-          </div>
-          <div className="flex gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
-        </div>
-        <div className="max-w-3xl mx-auto bg-white shadow rounded-lg p-8 space-y-4 mt-12">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {translate('transparencyPages.terms.title', 'Términos y Condiciones')}
-          </h1>
-          <p className="text-gray-700">
-            {translate(
-              'transparencyPages.terms.intro',
-              'Estos Términos regulan el uso de la plataforma PYMERP (agenda/catálogo web) por parte de emprendedores y usuarios finales.'
-            )}
-          </p>
-
-          <div className="space-y-3 text-gray-700">
+      <div className="min-h-screen bg-gray-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.acceptance.title', '1. Aceptación y uso')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.acceptance.body',
-                  'Al registrarte aceptas estos Términos y te comprometes a usar la plataforma conforme a la ley y a las buenas prácticas comerciales.'
-                )}
+              <p className="text-sm text-cyan-400 font-semibold uppercase tracking-wide mb-2">
+                Actualizado: julio 2024 · Vigente en Chile
+              </p>
+              <h1 className="text-4xl md:text-5xl font-bold text-white">Términos y Condiciones</h1>
+              <p className="mt-4 text-lg text-cyan-100 leading-relaxed">
+                Este acuerdo regula tu relación con PyM-ERP. Queremos que tengas claridad total sobre qué puedes
+                esperar del servicio, cuáles son tus obligaciones y cómo resolvemos disputas.
               </p>
             </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.accounts.title', '2. Cuentas y credenciales')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.accounts.body',
-                  'Eres responsable de mantener la confidencialidad de tus credenciales y de toda actividad realizada con tu cuenta. Debes notificarnos cualquier uso no autorizado.'
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sections.map((section) => (
+                <div key={section.title} className="bg-gray-700 border border-gray-600 rounded-xl p-6 shadow-sm">
+                  <h3 className="text-xl md:text-2xl font-semibold text-white mb-4">{section.title}</h3>
+                  <ul className="space-y-3 text-base md:text-lg text-cyan-100 leading-relaxed">
+                    {section.items.map((item) => (
+                      <li key={item}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 shadow-sm">
+                <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">Duración y término</h3>
+                <p className="text-base md:text-lg text-cyan-100 leading-relaxed">
+                  El contrato es de tracto sucesivo mientras mantengas una suscripción activa. Puedes terminarlo en
+                  cualquier momento desde tu panel o escribiendo a soporte. Si hay obligaciones pendientes (pagos o
+                  entrega de información tributaria), deberás cumplirlas incluso después del término.
+                </p>
+              </div>
+              <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 shadow-sm">
+                <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">Ley aplicable y solución de controversias</h3>
+                <p className="text-base md:text-lg text-cyan-100 leading-relaxed">
+                  Este contrato se rige por las leyes de la República de Chile. Cualquier disputa se somete a los
+                  tribunales ordinarios de justicia de Santiago. Antes de llegar a ese punto, te invitamos a activar un
+                  proceso de solución directa con nuestro equipo legal.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 text-white rounded-2xl p-8">
+              <h3 className="text-2xl font-bold mb-2">¿Tienes dudas legales o necesitas un contrato a medida?</h3>
+              <p className="text-gray-100 mb-4">
+                Ajustamos anexos, cláusulas sectoriales y políticas de datos según tu industria en Chile. Nuestro objetivo
+                es que cumplas tus obligaciones regulatorias sin fricción.
               </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  className="px-5 py-3 bg-white text-gray-900 rounded-lg font-semibold text-center"
+                  href="mailto:legal@pym-erp.com"
+                >
+                  legal@pym-erp.com
+                </a>
+                <a
+                  className="px-5 py-3 border border-white/40 text-white rounded-lg font-semibold text-center hover:bg-white hover:text-gray-900 transition"
+                  href="/contacto"
+                >
+                  Coordinar con el equipo
+                </a>
+              </div>
             </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{contentSection.title}</h2>
-              <ul className="list-disc list-inside space-y-1">
-                {contentSection.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.availability.title', '4. Disponibilidad y servicio')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.availability.body',
-                  'Trabajamos para mantener la plataforma disponible, pero pueden existir interrupciones programadas o incidentes. No garantizamos disponibilidad ininterrumpida.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{responsibilitySection.title}</h2>
-              <ul className="list-disc list-inside space-y-1">
-                {responsibilitySection.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.payments.title', '6. Pagos y planes')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.payments.body',
-                  'Los planes y límites de uso (productos, servicios, horarios) se detallan en la sección de costos. Los cambios de plan pueden modificar dichos límites.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{ipSection.title}</h2>
-              <ul className="list-disc list-inside space-y-1">
-                {ipSection.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.termination.title', '8. Terminación')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.termination.body',
-                  'Podemos suspender o terminar el acceso ante incumplimiento de estos Términos. Puedes cancelar en cualquier momento; es posible que conservemos datos conforme a obligaciones legales.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {translate('transparencyPages.terms.sections.changes.title', '9. Cambios a los Términos')}
-              </h2>
-              <p>
-                {translate(
-                  'transparencyPages.terms.sections.changes.body',
-                  'Podemos actualizar estos Términos; notificaremos cambios relevantes. El uso continuado implica aceptación de las modificaciones.'
-                )}
-              </p>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </>

@@ -1,0 +1,131 @@
+{
+  "requestAccess": {
+    "title": "Solicitar acceso",
+    "subtitle": "Completa el formulario para solicitar acceso",
+    "fullNameLabel": "Nombre completo",
+    "businessNameLabel": "Nombre del negocio",
+    "businessNameHint": "Ejemplo: Panadería La Estrella",
+    "whatsappLabel": "WhatsApp",
+    "planLabel": "Plan",
+    "plans": {
+      "basic": "Básico",
+      "standard": "Estándar",
+      "pro": "Pro"
+    },
+    "acceptBetaLabel": "Acepto los términos beta",
+    "betaTermsLink": "Ver términos beta",
+    "submitButton": "Enviar solicitud",
+    "sendingButton": "Enviando...",
+    "checkingButton": "Verificando...",
+    "checkingEmail": "Verificando email...",
+    "emailAlreadyRegistered": "Este email ya está registrado",
+    "emailAlreadyRegisteredLong": "Este correo electrónico ya está registrado. Por favor, inicia sesión o usa otro email.",
+    "goToLogin": "Ir a iniciar sesión",
+    "fixEmailError": "Por favor, corrige el error en el email",
+    "submitError": "Error al enviar la solicitud. Por favor, verifica todos los campos.",
+    "invalidWhatsapp": "El número de WhatsApp debe tener entre 9 y 15 dígitos",
+    "acceptBetaTerms": "Debes aceptar los términos beta para continuar",
+    "requestAlreadySubmitted": "Ya existe una solicitud con este email",
+    "cannotSubmitWithRegisteredEmail": "No puedes enviar la solicitud con un email ya registrado",
+    "successTitle": "¡Solicitud enviada!",
+    "successMessage": "Hemos recibido tu solicitud. Te enviaremos un correo con las instrucciones para establecer tu contraseña.",
+    "betaConditionsTitle": "Condiciones de la versión Beta",
+    "betaCondition1": "Esta es una versión beta del producto, por lo que pueden existir errores o funcionalidades incompletas.",
+    "betaCondition2": "Tus datos y contenido pueden ser eliminados o modificados sin previo aviso durante el período beta.",
+    "betaCondition3": "El acceso al servicio puede ser interrumpido en cualquier momento para mantenimiento o mejoras.",
+    "betaCondition4": "No nos hacemos responsables por pérdidas de datos o problemas derivados del uso del servicio en esta fase.",
+    "betaCondition5": "Al aceptar estos términos, confirmas que entiendes y aceptas las limitaciones de una versión beta."
+  },
+  "appointments": {
+    "title": "Citas",
+    "newAppointment": "Nueva cita",
+    "manualAppointment": "Agenda manual",
+    "viewSchedule": "Horarios y pendientes",
+    "noAppointments": "No hay citas para este día",
+    "noPending": "No hay citas pendientes",
+    "createAppointment": "Crear cita",
+    "editAppointment": "Editar cita",
+    "confirmAppointment": "Confirmar cita",
+    "cancelAppointment": "Cancelar cita",
+    "appointmentConfirmed": "Cita confirmada",
+    "appointmentCancelled": "Cita cancelada",
+    "appointmentCreated": "Cita creada exitosamente",
+    "clientInfo": "Información del cliente",
+    "appointmentDetails": "Detalles de la cita",
+    "clientName": "Nombre completo",
+    "clientPhone": "Teléfono",
+    "clientEmail": "Email (opcional)",
+    "service": "Servicio",
+    "professional": "Profesional",
+    "date": "Fecha",
+    "startTime": "Hora inicio",
+    "endTime": "Hora fin",
+    "notes": "Notas adicionales",
+    "status": {
+      "requested": "Solicitada",
+      "confirmed": "Confirmada",
+      "cancelled": "Cancelada",
+      "completed": "Completada",
+      "noShow": "No asistió"
+    },
+    "viewModes": {
+      "day": "Día",
+      "week": "Semana"
+    },
+    "filters": {
+      "allProfessionals": "Todos los profesionales",
+      "byProfessional": "Filtrar por profesional"
+    },
+    "errors": {
+      "slotTaken": "El horario seleccionado ya está ocupado. Por favor elige otro.",
+      "noServices": "No hay servicios disponibles",
+      "noProfessionals": "No hay profesionales disponibles",
+      "createServiceFirst": "Debes crear al menos un servicio antes de agendar citas.",
+      "createProfessionalFirst": "Debes crear al menos un profesional antes de agendar citas."
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "emailNotifications": "Notificaciones por correo",
+    "emailNotificationsDesc": "Recibe un correo electrónico cuando haya nuevas solicitudes de cita o cambios en tu agenda.",
+    "emailDestination": "Email de destino",
+    "emailReadOnly": "Solo lectura. Este es tu email de cuenta.",
+    "enabled": "Activadas",
+    "disabled": "Desactivadas",
+    "whenYouReceive": "¿Cuándo recibirás notificaciones?",
+    "newRequest": "Cuando un cliente solicite una nueva cita",
+    "cancelled": "Cuando un cliente cancele una cita",
+    "reminder": "Recordatorios de citas próximas (24h antes)",
+    "moreOptions": "Más opciones de notificación",
+    "comingSoon": "Próximamente: notificaciones push, SMS y preferencias de horario."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "quickActions": "Acciones rápidas",
+    "appointmentsQuickActions": "Acciones rápidas - Citas",
+    "manualAppointment": "Agenda manual",
+    "manualAppointmentDesc": "Crear nueva cita",
+    "viewSchedule": "Horarios y pendientes",
+    "viewScheduleDesc": "Revisar agenda"
+  },
+  "common": {
+    "email": "Correo electrónico",
+    "backHome": "Volver al inicio",
+    "back": "Volver",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "today": "Hoy"
+  },
+  "language": {
+    "toggle": "Cambiar idioma"
+  },
+  "brand": "PYM-ERP",
+  "tagline": "",
+  "loginTitle": "Iniciar sesión",
+  "loginSubmit": "Iniciar sesión"
+}

@@ -8,18 +8,16 @@ import {
   getServiceSchedules,
   setServiceSchedules,
   getScheduleSlots,
-  getCompany,
-  getServices,
 } from '../../../services/firestore';
+import { listProfessionals } from '../../../services/professionals';
 import { uploadImage } from '../../../services/storage';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import {
   DEFAULT_IMAGE_UPLOAD_CONFIG,
-  getPlanLabel,
-  getSubscriptionLimit,
   IMAGE_UPLOAD_RECOMMENDATION,
 } from '../../../utils/constants';
+import { Professional } from '../../../types';
 
 export default function ServiceNew() {
   const { id } = useParams();
@@ -41,10 +39,13 @@ export default function ServiceNew() {
   });
   const [scheduleSlots, setScheduleSlots] = useState<any[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [selectedProfessionals, setSelectedProfessionals] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [company, setCompany] = useState<any | null>(null);
-  const [serviceCount, setServiceCount] = useState<number>(0);
+  // Variables comentadas (no necesarias sin validación de límites)
+  // const [company, setCompany] = useState<any | null>(null);
+  // const [serviceCount, setServiceCount] = useState<number>(0);
 
   useEffect(() => {
     loadData();
@@ -74,14 +75,17 @@ export default function ServiceNew() {
     setLoading(true);
 
     try {
-      const [companyData, slots, servicesList] = await Promise.all([
-        getCompany(firestoreUser.company_id),
+      const [slots, professionalsList] = await Promise.all([
         getScheduleSlots(firestoreUser.company_id),
-        getServices(firestoreUser.company_id),
+        listProfessionals(firestoreUser.company_id),
       ]);
-      setCompany(companyData);
+      // Carga simplificada (sin validación de límites)
+      // const companyData = await getCompany(firestoreUser.company_id);
+      // const servicesList = await getServices(firestoreUser.company_id);
+      // setCompany(companyData);
+      // setServiceCount(servicesList.length);
       setScheduleSlots(slots);
-      setServiceCount(servicesList.length);
+      setProfessionals(professionalsList);
 
       if (id) {
         const service = await getService(id);
@@ -97,6 +101,7 @@ export default function ServiceNew() {
 
           const serviceSchedules = await getServiceSchedules(id);
           setSelectedSlots(serviceSchedules.map(ss => ss.schedule_slot_id));
+          setSelectedProfessionals(service.professional_ids || []);
         }
       }
     } catch (error) {
@@ -130,13 +135,20 @@ export default function ServiceNew() {
       return;
     }
 
-    const serviceLimit = getSubscriptionLimit('services', company?.subscription_plan);
+    if (selectedProfessionals.length === 0) {
+      toast.error('Debes asignar al menos un profesional');
+      return;
+    }
 
+    // LÍMITES DESHABILITADOS: Sin restricciones hasta implementar sistema de cobro
+    /* VALIDACIÓN DE LÍMITES COMENTADA:
+    const serviceLimit = getSubscriptionLimit('services', company?.subscription_plan);
     if (!id && serviceCount >= serviceLimit) {
       const planLabel = getPlanLabel(company?.subscription_plan);
       toast.error(`Tu plan ${planLabel} no permite más servicios`);
       return;
     }
+    */
 
     setSaving(true);
     try {
@@ -148,22 +160,33 @@ export default function ServiceNew() {
         image_url: formData.image_url,
         estimated_duration_minutes: parseInt(formData.estimated_duration_minutes),
         status: formData.status,
+        professional_ids: selectedProfessionals,
       };
+
+      console.log('🔵 SERVICE DATA:', serviceData);
+      console.log('🔵 FIRESTORE USER:', firestoreUser);
 
       let serviceId: string;
       if (id) {
+        console.log('🔵 Updating service:', id);
         await updateService(id, serviceData);
         serviceId = id;
         toast.success('Servicio actualizado');
       } else {
+        console.log('🔵 Creating new service...');
         serviceId = await createService(serviceData);
+        console.log('✅ Service created with ID:', serviceId);
         toast.success('Servicio creado');
         if (draftKey) localStorage.removeItem(draftKey);
       }
 
+      console.log('🔵 Setting schedules for service:', serviceId, selectedSlots);
       await setServiceSchedules(serviceId, selectedSlots);
       navigate('/dashboard/services');
     } catch (error) {
+      console.error('❌ ERROR AL GUARDAR:', error);
+      console.error('❌ ERROR CODE:', (error as any)?.code);
+      console.error('❌ ERROR MESSAGE:', (error as any)?.message);
       toast.error('Error al guardar');
       handleError(error);
     } finally {
@@ -178,6 +201,15 @@ export default function ServiceNew() {
       setSelectedSlots([...selectedSlots, slotId]);
     }
   };
+
+  const toggleProfessionalSelection = (professionalId: string) => {
+    if (selectedProfessionals.includes(professionalId)) {
+      setSelectedProfessionals(selectedProfessionals.filter(id => id !== professionalId));
+    } else {
+      setSelectedProfessionals([...selectedProfessionals, professionalId]);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -216,10 +248,12 @@ export default function ServiceNew() {
         
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="service-name" className="block text-sm font-medium text-gray-700 mb-1">
               Nombre *
             </label>
             <input
+              id="service-name"
+              name="name"
               type="text"
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -229,10 +263,12 @@ export default function ServiceNew() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="service-description" className="block text-sm font-medium text-gray-700 mb-1">
               Descripción *
             </label>
             <textarea
+              id="service-description"
+              name="description"
               rows={4}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -243,10 +279,12 @@ export default function ServiceNew() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="service-price" className="block text-sm font-medium text-gray-700 mb-1">
                 Valor *
               </label>
               <input
+                id="service-price"
+                name="price"
                 type="number"
                 required
                 min="0"
@@ -257,10 +295,12 @@ export default function ServiceNew() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="service-duration" className="block text-sm font-medium text-gray-700 mb-1">
                 Duración estimada (minutos) *
               </label>
               <input
+                id="service-duration"
+                name="estimated_duration_minutes"
                 type="number"
                 required
                 min="1"
@@ -272,7 +312,7 @@ export default function ServiceNew() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="service-image" className="block text-sm font-medium text-gray-700 mb-1">
               Imagen *
             </label>
             <p className="text-xs text-gray-500 mb-1">{IMAGE_UPLOAD_RECOMMENDATION}</p>
@@ -280,6 +320,8 @@ export default function ServiceNew() {
               <img src={formData.image_url} alt="Preview" className="h-48 mb-2 rounded" />
             )}
             <input
+              id="service-image"
+              name="image"
               type="file"
               accept="image/*"
               onChange={(e) => {
@@ -291,10 +333,12 @@ export default function ServiceNew() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="service-status" className="block text-sm font-medium text-gray-700 mb-1">
               Estado
             </label>
             <select
+              id="service-status"
+              name="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -302,6 +346,46 @@ export default function ServiceNew() {
               <option value="ACTIVE">Activo</option>
               <option value="INACTIVE">Inactivo</option>
             </select>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Profesionales asignados *
+              </label>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/professionals/new')}
+                className="text-sm text-blue-700 hover:underline"
+              >
+                Crear profesional
+              </button>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto border rounded-md p-4">
+              {professionals.map((pro) => (
+                <label key={pro.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedProfessionals.includes(pro.id)}
+                    onChange={() => toggleProfessionalSelection(pro.id)}
+                    className="accent-blue-600"
+                  />
+                  <div>
+                    <div className="font-medium text-gray-900">{pro.name}</div>
+                    {(pro.email || pro.phone) && (
+                      <div className="text-xs text-gray-600">
+                        {[pro.email, pro.phone].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              ))}
+              {professionals.length === 0 && (
+                <p className="text-gray-500 text-sm">
+                  No hay profesionales registrados. Puedes crearlos aquí mismo.
+                </p>
+              )}
+            </div>
           </div>
 
           <div>

@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://pymerp.cl",
+      "https://www.pymerp.cl",
+      "http://localhost:5173"
+    ],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
+    "responseHeader": ["Authorization", "Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]

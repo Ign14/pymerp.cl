@@ -109,6 +109,7 @@ export const createAccessRequest = async (
     ...requestData,
     status: AccessRequestStatus.PENDING,
     created_at: Timestamp.now(),
+    // processed_at se agregará cuando se apruebe/rechace
   });
   return docRef.id;
 };
@@ -203,6 +204,7 @@ export const getCompanyBySlug = async (slug: string): Promise<Company | null> =>
 export const createCompany = async (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<string> => {
   const docRef = await addDoc(collection(db, 'companies'), {
     ...companyData,
+    business_type: (companyData as any).business_type || 'SERVICES',
     created_at: Timestamp.now(),
     updated_at: Timestamp.now(),
   });
@@ -289,6 +291,7 @@ export const getServices = async (companyId: string): Promise<Service[]> => {
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
+    professional_ids: (doc.data() as any)?.professional_ids || [],
   })) as Service[];
 };
 
@@ -296,7 +299,12 @@ export const getService = async (serviceId: string): Promise<Service | null> => 
   const docRef = doc(db, 'services', serviceId);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as Service;
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      professional_ids: (data as any)?.professional_ids || [],
+    } as Service;
   }
   return null;
 };
@@ -382,6 +390,7 @@ export const createAppointmentRequest = async (
 ): Promise<string> => {
   const docRef = await addDoc(collection(db, 'appointmentRequests'), {
     ...requestData,
+    client_email: (requestData as any).client_email,
     created_at: Timestamp.now(),
   });
   return docRef.id;

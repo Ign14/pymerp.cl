@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getProduct, createProduct, updateProduct, getCompany, getProducts } from '../../../services/firestore';
+import { getProduct, createProduct, updateProduct } from '../../../services/firestore';
 import { uploadImage } from '../../../services/storage';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import {
   DEFAULT_IMAGE_UPLOAD_CONFIG,
-  getPlanLabel,
-  getSubscriptionLimit,
   IMAGE_UPLOAD_RECOMMENDATION,
 } from '../../../utils/constants';
 
@@ -29,8 +27,9 @@ export default function ProductNew() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [company, setCompany] = useState<any | null>(null);
-  const [productCount, setProductCount] = useState<number>(0);
+  // Variables comentadas (no necesarias sin validación de límites)
+  // const [company, setCompany] = useState<any | null>(null);
+  // const [productCount, setProductCount] = useState<number>(0);
 
   useEffect(() => {
     loadData();
@@ -43,12 +42,13 @@ export default function ProductNew() {
     }
 
     try {
-      const [companyData, products] = await Promise.all([
-        getCompany(firestoreUser.company_id),
-        getProducts(firestoreUser.company_id),
-      ]);
-      setCompany(companyData);
-      setProductCount(products.length);
+      // Carga de datos simplificada (sin validación de límites)
+      // const [companyData, products] = await Promise.all([
+      //   getCompany(firestoreUser.company_id),
+      //   getProducts(firestoreUser.company_id),
+      // ]);
+      // setCompany(companyData);
+      // setProductCount(products.length);
 
       if (id) {
         const product = await getProduct(id);
@@ -91,13 +91,15 @@ export default function ProductNew() {
 
     if (!firestoreUser?.company_id) return;
 
+    // LÍMITES DESHABILITADOS: Sin restricciones hasta implementar sistema de cobro
+    /* VALIDACIÓN DE LÍMITES COMENTADA:
     const productLimit = getSubscriptionLimit('products', company?.subscription_plan);
-
     if (!id && productCount >= productLimit) {
       const planLabel = getPlanLabel(company?.subscription_plan);
       toast.error(`Tu plan ${planLabel} no permite más productos`);
       return;
     }
+    */
 
     setSaving(true);
     try {

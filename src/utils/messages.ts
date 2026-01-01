@@ -218,8 +218,8 @@ export const COMPONENT_TEXTS = {
   pwaUpdate: {
     newVersion: 'Nueva versión disponible',
     offlineReady: 'Listo para usar sin conexión',
-    descriptionUpdate: 'Hay una actualización de AgendaWeb. Actualiza ahora para obtener las últimas mejoras.',
-    descriptionOffline: 'AgendaWeb ya está disponible sin conexión. Puedes usarla en cualquier momento.',
+    descriptionUpdate: 'Hay una actualización de pymerp.cl. Actualiza ahora para obtener las últimas mejoras.',
+    descriptionOffline: 'pymerp.cl ya está disponible sin conexión. Puedes usarla en cualquier momento.',
     buttonUpdate: 'Actualizar Ahora',
     buttonClose: 'Cerrar',
   },

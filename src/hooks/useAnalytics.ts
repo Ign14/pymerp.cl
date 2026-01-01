@@ -16,6 +16,7 @@ import {
 } from '../config/analytics';
 import { addBreadcrumb } from '../config/sentry';
 import { logger } from '../utils/logger';
+import { buildAnalyticsEvent, type AnalyticsEventName } from '../config/analyticsEvents';
 
 /**
  * Hook para trackear pageviews automáticamente
@@ -99,8 +100,8 @@ export function useScrollTracking() {
  * Hook para trackear clicks en elementos específicos
  */
 export function useClickTracking(
-  elementName: string,
-  eventAction: GAEventAction = GAEventAction.CLICK,
+ elementName: string,
+  eventAction: GAEventAction | string = GAEventAction.CLICK,
   category: GAEventCategory = GAEventCategory.ENGAGEMENT
 ) {
   return useCallback((additionalData?: Record<string, any>) => {
@@ -272,12 +273,61 @@ export function useAnalytics() {
   // Auto-tracking de scroll
   useScrollTracking();
 
+  // Crear funciones estables con useCallback
+  const trackEventWrapper = useCallback((action: GAEventAction | string, params?: Record<string, any>) => {
+    trackEvent(action, params || {});
+    addBreadcrumb('Event tracked', { action, ...params });
+    logger.debug('Event tracked:', action);
+  }, []);
+
+  const trackNamedEvent = useCallback(
+    (name: AnalyticsEventName, params?: Record<string, any>) => {
+      const { action, params: finalParams } = buildAnalyticsEvent(name, params);
+      trackEvent(action, finalParams);
+      addBreadcrumb('Named event tracked', { name, action, ...finalParams });
+      logger.debug('Named event tracked:', name);
+    },
+    []
+  );
+
+  // trackClick debe retornar una función (currying pattern)
+  const trackClickWrapper = useCallback((elementName: string) => {
+    return (additionalData?: Record<string, any>) => {
+      trackEvent(GAEventAction.CLICK, {
+        category: GAEventCategory.ENGAGEMENT,
+        element_name: elementName,
+        ...additionalData,
+      });
+      addBreadcrumb('Element clicked', { element: elementName, ...additionalData });
+      logger.debug('Click tracked:', elementName);
+    };
+  }, []);
+
+  // trackConversion debe retornar una función (currying pattern)
+  const trackConversionWrapper = useCallback(() => {
+    return (action: GAEventAction, value?: number, additionalData?: Record<string, any>) => {
+      trackEvent(action, {
+        category: GAEventCategory.CONVERSION,
+        value,
+        currency: 'CLP',
+        ...additionalData,
+      });
+      addBreadcrumb('Conversion tracked', { action, value, ...additionalData });
+      logger.debug('Conversion tracked:', action, value);
+    };
+  }, []);
+
+  const searchTracker = useSearchTracking();
+  const errorTracker = useErrorTracking();
+
   return {
-    trackClick: useClickTracking,
-    trackConversion: useConversionTracking,
-    trackSearch: useSearchTracking,
+    trackEvent: trackEventWrapper,
+    trackNamedEvent,
+    trackClick: trackClickWrapper,
+    trackConversion: trackConversionWrapper,
+    trackSearch: searchTracker,
     trackForm: useFormTracking,
     trackVideo: useVideoTracking,
-    trackError: useErrorTracking,
+    trackError: errorTracker,
   };
 }
