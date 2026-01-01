@@ -8,6 +8,7 @@ interface CartModalProps {
   cart: CartItem[];
   orderForm: OrderForm;
   theme: AppearanceTheme;
+  deliveryEnabled?: boolean;
   onClose: () => void;
   onQuantityChange: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
@@ -20,6 +21,7 @@ export function CartModal({
   cart,
   orderForm,
   theme,
+  deliveryEnabled = false,
   onClose,
   onQuantityChange,
   onRemove,
@@ -28,6 +30,7 @@ export function CartModal({
 }: CartModalProps) {
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const hasHiddenPrices = cart.some((item) => item.product.hide_price === true);
 
   return (
     <AnimatedCart isOpen={isOpen} onClose={onClose}>
@@ -61,7 +64,9 @@ export function CartModal({
                   />
                   <div className="flex-1">
                     <h4 className="font-semibold">{item.product.name}</h4>
-                    <p className="text-sm text-gray-600">${item.product.price.toLocaleString()}</p>
+                    {!item.product.hide_price && (
+                      <p className="text-sm text-gray-600">${item.product.price.toLocaleString()}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -91,12 +96,14 @@ export function CartModal({
               ))}
             </div>
 
-            <div className="mb-6">
-              <div className="flex justify-between font-bold text-lg mb-4">
-                <span>Total:</span>
-                <span>${totalAmount.toLocaleString()}</span>
+            {!hasHiddenPrices && (
+              <div className="mb-6">
+                <div className="flex justify-between font-bold text-lg mb-4">
+                  <span>Total:</span>
+                  <span>${totalAmount.toLocaleString()}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-4">
               <div>
@@ -130,6 +137,89 @@ export function CartModal({
                   onChange={(e) => onFormChange('client_comment', e.target.value)}
                 />
               </div>
+
+              {deliveryEnabled && (
+                <div className="border-t pt-4 mt-4 space-y-4 bg-blue-50 -mx-4 px-4 py-4">
+                  <div className="space-y-3">
+                    <span className="text-sm font-bold text-gray-900 block">TIPO DE ENTREGA *</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onFormChange('delivery_type', 'PICKUP')}
+                        className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                          orderForm.delivery_type === 'PICKUP' || !orderForm.delivery_type
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">📍</div>
+                          <div className="text-sm">Retiro en local</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onFormChange('delivery_type', 'DELIVERY')}
+                        className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                          orderForm.delivery_type === 'DELIVERY'
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">🏠</div>
+                          <div className="text-sm">A Domicilio</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {orderForm.delivery_type === 'DELIVERY' && (
+                    <div className="space-y-4 pt-3 border-t border-blue-200">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-900 mb-2">📍 DIRECCION DE ENTREGA *</label>
+                        <textarea
+                          rows={2}
+                          required
+                          placeholder="Ej: Av. Principal 123, Dpto 45, Comuna"
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          value={orderForm.delivery_address || ''}
+                          onChange={(e) => onFormChange('delivery_address', e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-900 mb-2">
+                          📌 UBICACION (Google Maps) - Opcional
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://maps.google.com/..."
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          value={orderForm.delivery_location || ''}
+                          onChange={(e) => onFormChange('delivery_location', e.target.value)}
+                        />
+                        <p className="text-xs text-gray-600 mt-1 bg-yellow-50 p-2 rounded">
+                          💡 Tip: Comparte tu ubicación desde Google Maps para una entrega más precisa
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-900 mb-2">
+                          📝 NOTAS DE ENTREGA - Opcional
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Ej: Timbre en el 2do piso, horario preferido entre 14:00 y 18:00"
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          value={orderForm.delivery_notes || ''}
+                          onChange={(e) => onFormChange('delivery_notes', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2 mt-6">

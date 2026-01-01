@@ -19,7 +19,7 @@ export default function LogoutCorner() {
     <button
       type="button"
       onClick={handleLogout}
-      className="fixed top-4 right-4 z-50 px-4 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow"
+      className="fixed top-4 right-4 z-30 px-4 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow"
     >
       Cerrar sesión
     </button>

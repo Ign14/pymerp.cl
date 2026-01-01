@@ -17,7 +17,7 @@ vi.mock('i18next-http-backend', () => ({
             email: 'Email',
             password: 'Contraseña',
             backHome: 'Volver al inicio',
-            tagline: 'Plataforma para que tu emprendimiento muestre servicios o productos.'
+            tagline: ''
           },
           login: {
             title: 'Iniciar sesión',
@@ -29,12 +29,14 @@ vi.mock('i18next-http-backend', () => ({
             subtitle: 'Completa el formulario y recibirás tu acceso.',
             fullNameLabel: 'Nombre completo',
             businessNameLabel: 'Nombre del negocio',
-            businessNameHint: 'Ingresa el nombre de tu negocio',
-            whatsappLabel: 'WhatsApp',
-            planLabel: 'Plan',
-            acceptBetaLabel: 'Aceptar términos beta',
-            betaTermsLink: 'Ver términos',
-            submitButton: 'Enviar solicitud'
+          businessNameHint: 'Ingresa el nombre de tu negocio',
+          whatsappLabel: 'WhatsApp',
+          planLabel: 'Plan',
+          invalidWhatsapp: 'WhatsApp inválido',
+          requestAlreadySubmitted: 'Solicitud ya enviada',
+          acceptBetaLabel: 'Aceptar términos beta',
+          betaTermsLink: 'Ver términos',
+          submitButton: 'Enviar solicitud'
           },
           language: { toggle: 'Cambiar idioma' },
           landing: {
@@ -53,7 +55,7 @@ vi.mock('i18next-http-backend', () => ({
             email: 'Email',
             password: 'Password',
             backHome: 'Back to home',
-            tagline: 'Platform for your business to showcase services or products.'
+            tagline: ''
           },
           login: {
             title: 'Sign in',
@@ -65,12 +67,14 @@ vi.mock('i18next-http-backend', () => ({
             subtitle: 'Complete the form and you will receive your access.',
             fullNameLabel: 'Full name',
             businessNameLabel: 'Business name',
-            businessNameHint: 'Enter your business name',
-            whatsappLabel: 'WhatsApp',
-            planLabel: 'Plan',
-            acceptBetaLabel: 'Accept beta terms',
-            betaTermsLink: 'View terms',
-            submitButton: 'Send request'
+          businessNameHint: 'Enter your business name',
+          whatsappLabel: 'WhatsApp',
+          planLabel: 'Plan',
+          invalidWhatsapp: 'Invalid WhatsApp',
+          requestAlreadySubmitted: 'Request already submitted',
+          acceptBetaLabel: 'Accept beta terms',
+          betaTermsLink: 'View terms',
+          submitButton: 'Send request'
           },
           language: { toggle: 'Toggle language' },
           landing: {
@@ -115,7 +119,7 @@ expect.extend(toHaveNoViolations);
 const esTranslations = {
   loginTitle: 'Iniciar sesión',
   loginSubmit: 'Iniciar sesión',
-  tagline: 'Plataforma para que tu emprendimiento muestre servicios o productos.',
+  tagline: '',
   backHome: 'Volver al inicio',
   email: 'Email',
   password: 'Contraseña',
@@ -128,7 +132,7 @@ const esTranslations = {
   landingRequest: 'Solicitar acceso',
   language: { toggle: 'Cambiar idioma' },
   common: {
-    tagline: 'Plataforma para que tu emprendimiento muestre servicios o productos.',
+  tagline: '',
     email: 'Email',
     password: 'Contraseña',
     backHome: 'Volver al inicio',
@@ -162,6 +166,8 @@ const esTranslations = {
     businessNameLabel: 'Nombre del emprendimiento',
     businessNameHint: 'Usaremos este nombre en tu perfil público',
     whatsappLabel: 'WhatsApp',
+    invalidWhatsapp: 'WhatsApp inválido',
+    requestAlreadySubmitted: 'Solicitud ya enviada',
     planLabel: 'Plan',
     acceptBetaLabel: 'Aceptar condiciones beta',
     betaTermsLink: 'Ver condiciones',
@@ -172,7 +178,7 @@ const esTranslations = {
 const enTranslations = {
   loginTitle: 'Sign in',
   loginSubmit: 'Sign in',
-  tagline: 'Platform to showcase services or products.',
+  tagline: '',
   backHome: 'Back to home',
   email: 'Email',
   password: 'Password',
@@ -219,6 +225,8 @@ const enTranslations = {
     businessNameLabel: 'Business name',
     businessNameHint: 'We will use this name on your public profile',
     whatsappLabel: 'WhatsApp',
+    invalidWhatsapp: 'Invalid WhatsApp',
+    requestAlreadySubmitted: 'Request already submitted',
     planLabel: 'Plan',
     acceptBetaLabel: 'Accept beta terms',
     betaTermsLink: 'View terms',

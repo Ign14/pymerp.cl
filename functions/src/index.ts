@@ -2,18 +2,91 @@ import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import sgMail from '@sendgrid/mail';
 import cors from 'cors';
+import {
+  getAccessRequestEmailTemplate,
+  getUserCreationEmailTemplate,
+} from './emailTemplates';
 
 // Cargar variables de entorno desde .env (solo en desarrollo/emulador)
 // En producción, las variables se cargan automáticamente desde firebase.json o secrets
-if (process.env.NODE_ENV !== 'production' && !process.env.FUNCTIONS_EMULATOR) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  require('dotenv').config();
+// NO ejecutar durante discovery del CLI de Firebase
+if (process.env.NODE_ENV !== 'production' && 
+    !process.env.FUNCTIONS_EMULATOR && 
+    process.env.GCLOUD_PROJECT) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('dotenv').config();
+  } catch (err) {
+    // Silently ignore durante discovery
+  }
 }
+
+// Evitar fallos de carga cuando GCLOUD_PROJECT/FIREBASE_CONFIG no vienen seteadas (por ejemplo, en discovery del CLI)
+// Esta función se ejecuta de forma lazy solo cuando es necesario, no en el nivel superior
+const ensureProjectEnv = () => {
+  // Si ya están configuradas, no hacer nada
+  if (process.env.GCLOUD_PROJECT && process.env.FIREBASE_CONFIG) {
+    return;
+  }
+
+  try {
+    const getProjectIdFromConfig = () => {
+      try {
+        const cfg = process.env.FIREBASE_CONFIG ? JSON.parse(process.env.FIREBASE_CONFIG) : {};
+        return cfg.projectId as string | undefined;
+      } catch (err) {
+        // Silently ignore durante discovery
+        return undefined;
+      }
+    };
+
+    const projectId =
+      process.env.GCLOUD_PROJECT ||
+      process.env.GCP_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      getProjectIdFromConfig() ||
+      'local-dev';
+
+    if (!process.env.GCLOUD_PROJECT) {
+      process.env.GCLOUD_PROJECT = projectId;
+    }
+    if (!process.env.GCP_PROJECT) {
+      process.env.GCP_PROJECT = projectId;
+    }
+    if (!process.env.GOOGLE_CLOUD_PROJECT) {
+      process.env.GOOGLE_CLOUD_PROJECT = projectId;
+    }
+
+    if (!process.env.FIREBASE_CONFIG) {
+      process.env.FIREBASE_CONFIG = JSON.stringify({ projectId });
+    }
+  } catch (err) {
+    // Silently ignore durante discovery - no lanzar errores
+    console.warn('Warning: Could not set project env vars during discovery:', err);
+  }
+};
+
+// NO ejecutar en el nivel superior - solo cuando sea necesario
+// ensureProjectEnv() se llamará dentro de las funciones cuando sea necesario
 
 // Inline security middleware (simplified para evitar timeouts)
 const requestLogger = (req: any, res: any, next: () => void) => {
   console.log(`${req.method} ${req.url} from ${req.ip}`);
   next();
+};
+
+// Simple in-memory rate limiter (por IP/uid) - best effort
+const rateMap: Record<string, { count: number; reset: number }> = {};
+const isRateLimited = (key: string, limit: number, windowMs: number) => {
+  const now = Date.now();
+  const entry = rateMap[key] || { count: 0, reset: now + windowMs };
+  if (now > entry.reset) {
+    entry.count = 0;
+    entry.reset = now + windowMs;
+  }
+  entry.count += 1;
+  rateMap[key] = entry;
+  return entry.count > limit;
 };
 
 const strictRateLimiter = (req: any, res: any, next: () => void) => {
@@ -55,7 +128,37 @@ const sanitizePhoneNumber = (phone: string): string | null => {
   return cleaned;
 };
 
-admin.initializeApp();
+// Lazy initialization de Firebase Admin para evitar timeouts en deployment
+let _adminInitialized = false;
+const ensureAdminInitialized = () => {
+  if (!_adminInitialized) {
+    ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
+    try {
+      admin.initializeApp();
+      _adminInitialized = true;
+    } catch (error: any) {
+      // Si ya está inicializado, ignorar el error
+      if (error.code !== 'app/already-initialized') {
+        throw error;
+      }
+      _adminInitialized = true;
+    }
+  }
+};
+
+// Helper para obtener Firestore con lazy initialization
+const getFirestore = () => {
+  ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
+  ensureAdminInitialized();
+  return admin.firestore();
+};
+
+// Helper para obtener Auth con lazy initialization
+const getAuth = () => {
+  ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
+  ensureAdminInitialized();
+  return admin.auth();
+};
 
 // CORS configurado de forma segura - lazy initialization
 let _corsHandler: any;
@@ -139,6 +242,13 @@ export const sendAccessRequestEmailHttp = functions
     getCorsHandler()(req, res, async () => {
       // Logging
       requestLogger(req, res, () => {});
+
+      // Rate limit básico por IP
+      const limiterKey = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      if (isRateLimited(String(limiterKey), 20, 60_000)) {
+        res.status(429).json({ success: false, error: 'Too many requests' });
+        return;
+      }
       
       // Validar método
       if (req.method === 'OPTIONS') {
@@ -216,35 +326,39 @@ export const sendAccessRequestEmailHttp = functions
               const t = translations[lang];
               const adminEmail = getAdminEmail();
 
+              // Generar template HTML profesional
+              const htmlTemplate = getAccessRequestEmailTemplate({
+                name: sanitizedName,
+                email: sanitizedEmail,
+                business: sanitizedBusiness,
+                whatsapp: sanitizedPhone,
+                plan: sanitizedPlan || undefined,
+                date: new Date().toLocaleString(lang === 'es' ? 'es-CL' : 'en-US'),
+                language: lang,
+              });
+
+              // Versión texto plano para clientes de email que no soportan HTML
+              const textVersion = `
+${t.title}
+
+${t.intro}
+
+${t.name}: ${sanitizedName}
+${t.email}: ${sanitizedEmail}
+${t.business}: ${sanitizedBusiness}
+${t.whatsapp}: ${sanitizedPhone}
+${t.plan}: ${sanitizedPlan || t.notSpecified}
+${t.date}: ${new Date().toLocaleString(lang === 'es' ? 'es-CL' : 'en-US')}
+
+${t.footer}
+              `.trim();
+
               const msg = {
                 to: adminEmail,
                 from: 'ignacio@datakomerz.com',
                 subject: t.subject,
-                html: `
-                  <h2>${t.title}</h2>
-                  <p>${t.intro}</p>
-                  <ul>
-                    <li><strong>${t.name}:</strong> ${sanitizedName}</li>
-                    <li><strong>${t.email}:</strong> ${sanitizedEmail}</li>
-                    <li><strong>${t.business}:</strong> ${sanitizedBusiness}</li>
-                    <li><strong>${t.whatsapp}:</strong> ${sanitizedPhone}</li>
-                    <li><strong>${t.plan}:</strong> ${sanitizedPlan || t.notSpecified}</li>
-                    <li><strong>${t.date}:</strong> ${new Date().toLocaleString(lang === 'es' ? 'es-CL' : 'en-US')}</li>
-                  </ul>
-                  <p>${t.footer}</p>
-                `,
-                text: `
-                  ${t.title}
-                  
-                  ${t.name}: ${sanitizedName}
-                  ${t.email}: ${sanitizedEmail}
-                  ${t.business}: ${sanitizedBusiness}
-                  ${t.whatsapp}: ${sanitizedPhone}
-                  ${t.plan}: ${sanitizedPlan || t.notSpecified}
-                  ${t.date}: ${new Date().toLocaleString(lang === 'es' ? 'es-CL' : 'en-US')}
-                  
-                  ${t.footer}
-                `,
+                html: htmlTemplate,
+                text: textVersion,
               };
 
               await sgMail.send(msg);
@@ -296,11 +410,12 @@ export const setUserPassword = functions
     }
 
     try {
+      ensureAdminInitialized();
       // Buscar usuario por email
-      const userRecord = await admin.auth().getUserByEmail(email);
+      const userRecord = await getAuth().getUserByEmail(email);
       
       // Actualizar contraseña
-      await admin.auth().updateUser(userRecord.uid, {
+      await getAuth().updateUser(userRecord.uid, {
         password: password,
       });
 
@@ -312,7 +427,7 @@ export const setUserPassword = functions
       // Si el usuario no existe, intentar crearlo
       if (error.code === 'auth/user-not-found') {
         try {
-          await admin.auth().createUser({
+          await getAuth().createUser({
             email: email,
             password: password,
             emailVerified: false,
@@ -408,46 +523,41 @@ export const sendUserCreationEmailHttp = functions
       
       const t = translations[lang];
       
+      // Generar template HTML profesional
+      const htmlTemplate = getUserCreationEmailTemplate({
+        email: data.email,
+        password: data.password,
+        loginUrl: data.loginUrl,
+        language: lang,
+      });
+
+      // Versión texto plano
+      const textVersion = `
+${t.welcome}
+
+${t.approved}
+
+${t.credentials}
+${t.email}: ${data.email}
+${t.tempPassword}: ${data.password}
+
+${t.important} ${t.changePassword}
+
+${t.accessButton}: ${data.loginUrl}
+
+${t.questions}
+
+${t.regards}
+${t.team}
+      `.trim();
+      
       // IMPORTANTE: El email "from" debe coincidir EXACTAMENTE con el sender verificado en SendGrid
       const msg = {
         to: data.email,
         from: 'ignacio@datakomerz.com', // Debe coincidir exactamente con el sender verificado
         subject: t.subject,
-        html: `
-          <h2>${t.welcome}</h2>
-          <p>${t.approved}</p>
-          <p><strong>${t.credentials}</strong></p>
-          <ul>
-            <li><strong>${t.email}:</strong> ${data.email}</li>
-            <li><strong>${t.tempPassword}:</strong> ${data.password}</li>
-          </ul>
-          <p><strong>${t.important}</strong> ${t.changePassword}</p>
-          <p>
-            <a href="${data.loginUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-              ${t.accessButton}
-            </a>
-          </p>
-          <p>${t.questions}</p>
-          <p>${t.regards}<br>${t.team}</p>
-        `,
-        text: `
-          ${t.welcome}
-          
-          ${t.approved}
-          
-          ${t.credentials}
-          ${t.email}: ${data.email}
-          ${t.tempPassword}: ${data.password}
-          
-          ${t.important} ${t.changePassword}
-          
-          ${t.accessButton}: ${data.loginUrl}
-          
-          ${t.questions}
-          
-          ${t.regards}
-          ${t.team}
-        `,
+        html: htmlTemplate,
+        text: textVersion,
       };
 
       await sgMail.send(msg);
@@ -496,15 +606,16 @@ export const deleteUserAccountHttp = functions
     return;
   }
 
-  const firestore = admin.firestore();
+  ensureAdminInitialized();
+  const firestore = getFirestore();
   const deletedPaths: string[] = [];
   let authDeleted = false;
   let authUid: string | null = null;
 
   try {
-    const userRecord = await admin.auth().getUserByEmail(data.email);
+    const userRecord = await getAuth().getUserByEmail(data.email);
     authUid = userRecord.uid;
-    await admin.auth().deleteUser(userRecord.uid);
+    await getAuth().deleteUser(userRecord.uid);
     authDeleted = true;
     console.log('Usuario de Auth eliminado:', data.email);
   } catch (error: any) {
@@ -572,7 +683,8 @@ export const setCompanyClaimHttp = functions
       return;
     }
 
-    const decoded = await admin.auth().verifyIdToken(idToken);
+    ensureAdminInitialized();
+    const decoded = await getAuth().verifyIdToken(idToken);
     const uid = data?.uid || decoded.uid;
     const companyId = data?.companyId;
 
@@ -582,7 +694,7 @@ export const setCompanyClaimHttp = functions
     }
 
     // Validar que el usuario realmente pertenezca a la compañía (según Firestore)
-    const firestore = admin.firestore();
+    const firestore = getFirestore();
     const userDocUid = await firestore.doc(`users/${uid}`).get();
     const userDocEmail = decoded.email
       ? await firestore.doc(`users/${decoded.email}`).get()
@@ -598,7 +710,7 @@ export const setCompanyClaimHttp = functions
       return;
     }
 
-    await admin.auth().setCustomUserClaims(uid, { company_id: companyId });
+    await getAuth().setCustomUserClaims(uid, { company_id: companyId });
     res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Error estableciendo claim:', error);
@@ -642,8 +754,7 @@ export const generateSitemap = functions
       ];
 
       // Obtener empresas activas con slug público
-      const companiesSnapshot = await admin
-        .firestore()
+      const companiesSnapshot = await getFirestore()
         .collection('companies')
         .where('slug', '!=', null)
         .where('deleted_at', '==', null)
@@ -697,3 +808,105 @@ export const generateSitemap = functions
     }
   }
 );
+
+// Booking system exports - Import lazy para evitar timeouts en discovery
+// Los exports se hacen de forma explícita para evitar cargar todo el módulo durante discovery
+export {
+  createProfessional,
+  createAppointmentRequest,
+  cancelAppointment,
+  rescheduleAppointment,
+  onAppointmentCreated,
+  cleanExpiredLocks,
+} from './booking';
+
+/**
+ * Callable: obtiene/actualiza la configuración de notificaciones de un usuario de la empresa.
+ * Útil para el dashboard/settings/notifications cuando las reglas de Firestore bloquean al cliente.
+ */
+export const getNotificationSettingsSafe = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Requiere inicio de sesión');
+    }
+
+    // Usar userId del data si está disponible, sino usar el uid del contexto
+    const userId: string = (data && data.userId) || context.auth.uid;
+    const companyId: string | undefined =
+      (data && data.companyId) ||
+      (context.auth.token.company_id as string | undefined) ||
+      undefined;
+
+    if (!companyId) {
+      throw new functions.https.HttpsError('invalid-argument', 'companyId requerido');
+    }
+
+    ensureAdminInitialized();
+    const snap = await getFirestore()
+      .collection('notification_settings')
+      .where('company_id', '==', companyId)
+      .where('user_id', '==', userId)
+      .limit(1)
+      .get();
+
+    if (snap.empty) return null;
+    const doc = snap.docs[0];
+    const dataDoc = doc.data();
+    return {
+      id: doc.id,
+      user_id: dataDoc.user_id,
+      company_id: dataDoc.company_id,
+      email_notifications_enabled: dataDoc.email_notifications_enabled ?? false,
+      notification_email: dataDoc.notification_email || null,
+      created_at: dataDoc.created_at,
+      updated_at: dataDoc.updated_at,
+    };
+  });
+
+export const setNotificationSettingsSafe = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Requiere inicio de sesión');
+    }
+
+    const uid = context.auth.uid;
+    const companyId: string | undefined =
+      (data && data.companyId) ||
+      (context.auth.token.company_id as string | undefined) ||
+      undefined;
+    const enabled: boolean | undefined = data?.enabled;
+    const notificationEmail: string | undefined = data?.notificationEmail;
+
+    if (!companyId || typeof enabled !== 'boolean') {
+      throw new functions.https.HttpsError('invalid-argument', 'companyId y enabled son requeridos');
+    }
+
+    ensureAdminInitialized();
+    const col = getFirestore().collection('notification_settings');
+    const existing = await col
+      .where('company_id', '==', companyId)
+      .where('user_id', '==', uid)
+      .limit(1)
+      .get();
+
+    const payload = {
+      user_id: uid,
+      company_id: companyId,
+      email_notifications_enabled: enabled,
+      notification_email: notificationEmail || context.auth.token.email || null,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (existing.empty) {
+      await col.add({
+        ...payload,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      await existing.docs[0].ref.set(payload, { merge: true });
+    }
+
+    return { success: true };
+  });

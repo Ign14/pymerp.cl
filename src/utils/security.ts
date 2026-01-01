@@ -214,6 +214,7 @@ export function generateCSP(): string {
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.googleapis.com https://*.google-analytics.com https://*.sentry.io",
+    "frame-src 'self' https://www.google.com https://www.youtube.com https://youtube.com",
     "frame-ancestors 'none'",
   ].join('; ');
 }

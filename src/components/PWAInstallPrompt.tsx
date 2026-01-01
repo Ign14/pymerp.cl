@@ -8,11 +8,16 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function PWAInstallPrompt() {
+  // Feature flag: temporarily disable until store links are ready
+  const INSTALL_PROMPT_ENABLED = false;
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    if (!INSTALL_PROMPT_ENABLED) return;
+
     // No mostrar en tests automáticos
     if (navigator.userAgent.includes('Headless') || navigator.userAgent.includes('PWA-Test')) {
       return;
@@ -77,8 +82,8 @@ export default function PWAInstallPrompt() {
     localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
   };
 
-  // No mostrar si ya está instalado o no hay prompt
-  if (isInstalled || !deferredPrompt) return null;
+  // No mostrar si está deshabilitado, ya está instalado o no hay prompt
+  if (!INSTALL_PROMPT_ENABLED || isInstalled || !deferredPrompt) return null;
 
   return (
     <AnimatePresence>
@@ -176,4 +181,3 @@ export default function PWAInstallPrompt() {
     </AnimatePresence>
   );
 }
-

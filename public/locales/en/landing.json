@@ -1,0 +1,46 @@
+{
+  "seoTitle": "PYM-ERP - Management System for SMEs",
+  "tagline": "Management System for SMEs - Organize services, products, and connect with customers",
+  "seoKeywords": "sme, erp, business management, online scheduling, services, products, bookings, chile, entrepreneurs, small business",
+  "brandName": "PYM-ERP",
+  "ogImageAlt": "PYM-ERP Logo",
+  
+  "betaOverlay": {
+    "title": "Free Beta Version",
+    "message": "All active accounts created until February 28, 2026",
+    "offer": "Will have free access to all app features and post-launch benefits.",
+    "launch": "🎁 Beta launch 2025–2026",
+    "closeButton": "Close beta announcement"
+  },
+  
+  "navigation": {
+    "topBar": "Top navigation",
+    "alreadyAccount": "Already have an account?",
+    "alreadyAccountLink": "Go to login"
+  },
+  
+  "hero": {
+    "title": "PYM-ERP - Management System for SMEs",
+    "subtitle": "Management System for SMEs - Organize services, products, and connect with customers",
+    "logoAlt": "PYM-ERP - Management System for SMEs"
+  },
+  
+  "ctas": {
+    "ariaLabel": "Main actions",
+    "loginButton": "Login",
+    "loginAriaLabel": "Sign in to your account",
+    "requestButton": "Request access",
+    "requestAriaLabel": "Request access as a new user",
+    "nearbyButton": "Find nearby SMEs",
+    "nearbyAriaLabel": "Find businesses near your location"
+  },
+  
+  "footer": {
+    "ariaLabel": "Footer",
+    "transparency": "Transparency",
+    "instagramHandle": "@pymerp",
+    "instagramAriaLabel": "Follow us on Instagram @pymerp",
+    "version": "Beta v 0.0.1",
+    "versionAriaLabel": "Application version"
+  }
+}

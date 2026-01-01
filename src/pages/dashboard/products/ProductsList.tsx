@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getProducts, deleteProduct } from '../../../services/firestore';
+import { getProducts, deleteProduct, updateProduct } from '../../../services/firestore';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../../components/animations/LoadingSpinner';
 import AnimatedButton from '../../../components/animations/AnimatedButton';
@@ -43,6 +43,17 @@ export default function ProductsList() {
       await loadProducts();
     } catch (error) {
       toast.error('Error al eliminar');
+      handleError(error);
+    }
+  };
+
+  const handleToggleHidePrice = async (productId: string, currentValue: boolean) => {
+    try {
+      await updateProduct(productId, { hide_price: !currentValue });
+      toast.success(currentValue ? 'Precio visible' : 'Precio oculto - consulta por WhatsApp');
+      await loadProducts();
+    } catch (error) {
+      toast.error('Error al actualizar');
       handleError(error);
     }
   };
@@ -103,6 +114,18 @@ export default function ProductsList() {
                   {product.weight && (
                     <span className="text-sm text-gray-500">{product.weight}g</span>
                   )}
+                </div>
+                <div className="mb-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`hide-price-${product.id}`}
+                    checked={product.hide_price || false}
+                    onChange={() => handleToggleHidePrice(product.id, product.hide_price || false)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor={`hide-price-${product.id}`} className="text-sm text-gray-700 cursor-pointer">
+                    Consulta precio por WhatsApp
+                  </label>
                 </div>
                 {product.tags && product.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-4">

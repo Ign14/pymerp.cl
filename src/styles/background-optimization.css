@@ -1,0 +1,182 @@
+/**
+ * Estilos avanzados para optimización de imágenes de fondo
+ * Mantiene la mejor calidad e integridad visual en todos los dispositivos
+ */
+
+/* Contenedor de fondo con pseudo-elemento para mejor control */
+.background-container {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: transparent !important; /* Eliminar cualquier fondo azul en iOS */
+  -webkit-background-color: transparent !important;
+}
+
+.background-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -10;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  
+  /* Optimizaciones de renderizado */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: high-quality;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+  
+  /* Prevenir parpadeo en carga */
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.background-container.loaded::before {
+  opacity: 1;
+}
+
+/* Móviles: usar scroll en lugar de fixed para mejor performance */
+@media (max-width: 768px) {
+  .background-container::before {
+    position: absolute;
+    background-attachment: scroll;
+  }
+  
+  /* iOS específico: eliminar cualquier fondo azul */
+  .background-container {
+    background-color: transparent !important;
+    -webkit-background-color: transparent !important;
+  }
+  
+  /* Asegurar que el body no tenga fondo en iOS */
+  body {
+    background-color: transparent !important;
+    -webkit-background-color: transparent !important;
+  }
+}
+
+/* Fix específico para iPhone/Safari */
+@supports (-webkit-touch-callout: none) {
+  .background-container {
+    background-color: transparent !important;
+    -webkit-background-color: transparent !important;
+  }
+  
+  body {
+    background-color: transparent !important;
+    -webkit-background-color: transparent !important;
+  }
+}
+
+/* Tablets: ajuste intermedio */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .background-container::before {
+    background-attachment: scroll;
+  }
+}
+
+/* Alta densidad de píxeles (Retina, etc.) */
+@media (-webkit-min-device-pixel-ratio: 2),
+       (min-resolution: 192dpi) {
+  .background-container::before {
+    /* Mejor calidad en pantallas Retina */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Optimización para diferentes aspect ratios */
+.background-container[data-orientation="horizontal"]::before {
+  background-size: cover;
+  background-position: center center;
+}
+
+.background-container[data-orientation="vertical"]::before {
+  background-size: cover;
+  background-position: center top;
+}
+
+/* Diferentes modos de ajuste */
+.background-container[data-fit="cover"]::before {
+  background-size: cover;
+}
+
+.background-container[data-fit="contain"]::before {
+  background-size: contain;
+  background-color: inherit; /* Usar color de fondo si hay espacios */
+}
+
+.background-container[data-fit="fill"]::before {
+  background-size: 100% 100%;
+}
+
+.background-container[data-fit="scale-down"]::before {
+  background-size: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Preload de imagen para evitar FOUC (Flash of Unstyled Content) */
+.background-preload {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Lazy loading mejorado */
+.background-container[data-loading="true"]::before {
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 0.5s ease-in-out, filter 0.5s ease-in-out;
+}
+
+.background-container[data-loading="false"]::before {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* Soporte para diferentes formatos modernos */
+@supports (background-image: image-set(url("test.webp") 1x)) {
+  .background-container::before {
+    /* Usar image-set para formatos modernos si están disponibles */
+    background-image: var(--bg-image);
+  }
+}
+
+/* Dark mode: ajustar opacidad si es necesario */
+@media (prefers-color-scheme: dark) {
+  .background-container::before {
+    /* Mantener opacidad configurada por usuario */
+    opacity: var(--bg-opacity, 1);
+  }
+}
+
+/* Reduced motion: desactivar animaciones */
+@media (prefers-reduced-motion: reduce) {
+  .background-container::before {
+    transition: none;
+  }
+  
+  .background-container[data-loading="true"]::before,
+  .background-container[data-loading="false"]::before {
+    transition: none;
+  }
+}
+
+/* Optimización para impresión */
+@media print {
+  .background-container::before {
+    display: none;
+  }
+}
+

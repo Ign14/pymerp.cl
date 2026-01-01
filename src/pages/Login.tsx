@@ -7,12 +7,9 @@ import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageToggle from '../components/LanguageToggle';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getCurrentLanguage } from '../config/i18n';
 import { usePageMeta } from '../utils/usePageMeta';
-import { sendUserCreationEmail } from '../services/email';
-import { resetUserPassword } from '../services/admin';
-import { generateRandomPassword } from '../utils/password';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { requestPasswordReset } from '../services/auth';
 
 import AnimatedButton from '../components/animations/AnimatedButton';
 import AnimatedModal from '../components/animations/AnimatedModal';
@@ -95,6 +92,7 @@ export default function Login() {
                   name="email"
                   type="email"
                   required
+                  autoComplete="email"
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder={t('common.email')}
                   value={email}
@@ -110,6 +108,7 @@ export default function Login() {
                   name="password"
                   type="password"
                   required
+                  autoComplete="current-password"
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder={t('common.password')}
                   value={password}
@@ -188,57 +187,86 @@ export default function Login() {
                   e.preventDefault();
                   setResetLoading(true);
                   try {
-                    const emailToReset = resetEmail.trim();
-                    const [user, request] = await Promise.all([
-                      getUserByEmail(emailToReset),
-                      getAccessRequestByEmail(emailToReset),
-                    ]);
+                    const emailToReset = resetEmail.trim().toLowerCase();
 
-                    if (!user && !request) {
-                      toast.error(t('login.resetEmailNotFound'));
-                      return;
+                    // Intentar leer datos de Firestore (opcional, puede fallar por permisos)
+                    // No bloqueamos el flujo si falla - Firebase Auth validará el email
+                    let user = null;
+                    let request = null;
+                    
+                    try {
+                      [user, request] = await Promise.all([
+                        getUserByEmail(emailToReset).catch(() => null),
+                        getAccessRequestByEmail(emailToReset).catch(() => null),
+                      ]);
+                    } catch (readError) {
+                      // Ignorar errores de lectura - no es crítico
+                      console.warn('No se pudieron leer datos de Firestore (no crítico):', readError);
                     }
 
                     const targetEmail = user?.email || request?.email || emailToReset;
-                    const newPass = generateRandomPassword();
 
-                    await resetUserPassword(targetEmail, newPass);
+                    // Enviar email de recuperación de contraseña
+                    // Firebase Auth manejará la validación del email automáticamente
+                    await requestPasswordReset(targetEmail);
 
-                    if (user?.id) {
-                      await updateUser(user.id, { status: UserStatus.FORCE_PASSWORD_CHANGE });
+                    // Intentar actualizar documentos (opcional, no crítico si falla)
+                    // Estas actualizaciones pueden fallar si el usuario no está autenticado
+                    // pero no deben bloquear el envío del email de recuperación
+                    try {
+                      if (user?.id) {
+                        await updateUser(user.id, { status: UserStatus.ACTIVE });
+                      }
+                    } catch (updateError) {
+                      // Ignorar errores de actualización - no es crítico
+                      console.warn('No se pudo actualizar el estado del usuario (no crítico):', updateError);
                     }
 
-                    if (request?.id) {
-                      await updateAccessRequest(request.id, { last_password_reset: new Date() });
+                    try {
+                      if (request?.id) {
+                        await updateAccessRequest(request.id, { last_password_reset: new Date() });
+                      }
+                    } catch (updateError) {
+                      // Ignorar errores de actualización - no es crítico
+                      console.warn('No se pudo actualizar la solicitud de acceso (no crítico):', updateError);
                     }
-
-                    await sendUserCreationEmail(
-                      targetEmail,
-                      newPass,
-                      'https://www.pymerp.cl/login',
-                      getCurrentLanguage()
-                    );
 
                     setResetSent(true);
                     setResetLoading(false);
                     setTimeout(() => {
                       setShowResetModal(false);
+                      setResetSent(false);
+                      navigate('/login');
+                    }, 1200);
+                  } catch (error: any) {
+                    // Manejar errores específicos de Firebase Auth
+                    if (error.code === 'auth/user-not-found') {
+                      // Firebase Auth no encontró el usuario, pero no mostramos error específico
+                      // por seguridad (evita enumeración de emails)
+                      setResetSent(true);
+                      setResetLoading(false);
+                      setTimeout(() => {
+                        setShowResetModal(false);
                         setResetSent(false);
                         navigate('/login');
                       }, 1200);
-                    } catch (error) {
+                    } else {
+                      // Otros errores se muestran normalmente
                       handleError(error);
                       toast.error(t('login.resetSendError'));
-                    } finally {
                       setResetLoading(false);
                     }
-                  }}
+                  } finally {
+                    setResetLoading(false);
+                  }
+                }}
                 >
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.email')}</label>
                     <input
                       type="email"
                       required
+                      autoComplete="email"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}

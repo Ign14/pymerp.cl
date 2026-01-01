@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getServices, deleteService } from '../../../services/firestore';
+import { getServices, deleteService, updateService } from '../../../services/firestore';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 
@@ -39,6 +39,17 @@ export default function ServicesList() {
       await loadServices();
     } catch (error) {
       toast.error('Error al eliminar');
+      handleError(error);
+    }
+  };
+
+  const handleToggleHidePrice = async (serviceId: string, currentValue: boolean) => {
+    try {
+      await updateService(serviceId, { hide_price: !currentValue });
+      toast.success(currentValue ? 'Precio visible' : 'Precio oculto - consulta por WhatsApp');
+      await loadServices();
+    } catch (error) {
+      toast.error('Error al actualizar');
       handleError(error);
     }
   };
@@ -97,6 +108,18 @@ export default function ServicesList() {
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-xl font-bold text-blue-600">${service.price.toLocaleString()}</span>
                   <span className="text-sm text-gray-500">{service.estimated_duration_minutes} min</span>
+                </div>
+                <div className="mb-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`hide-price-${service.id}`}
+                    checked={service.hide_price || false}
+                    onChange={() => handleToggleHidePrice(service.id, service.hide_price || false)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor={`hide-price-${service.id}`} className="text-sm text-gray-700 cursor-pointer">
+                    Consulta precio por WhatsApp
+                  </label>
                 </div>
                 <div className="flex gap-2">
                   <Link

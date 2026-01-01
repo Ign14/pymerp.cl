@@ -2,12 +2,15 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   updatePassword,
+  type ActionCodeSettings,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { getUser, getUserByEmail, createUser, updateUser } from './firestore';
 import { UserRole, UserStatus } from '../types';
 import { logger } from '../utils/logger';
+import { getResetPasswordActionCodeSettings, setAuthLanguage } from '../utils/actionCodeSettings';
 
 /**
  * Registra un nuevo usuario en Firebase Authentication y Firestore
@@ -66,16 +69,62 @@ export const logOut = async () => {
   await signOut(auth);
 };
 
+export const signOutAuth = async () => {
+  await signOut(auth);
+};
+
 export const changePassword = async (newPassword: string) => {
   const user = auth.currentUser;
   if (!user) throw new Error('No user logged in');
   await updatePassword(user, newPassword);
   
-  // Update Firestore user status
-  const firestoreUser = await getUserByEmail(user.email!);
-  if (firestoreUser) {
-    await updateUser(firestoreUser.id, { status: UserStatus.ACTIVE });
+  // Sincronizar documento de usuario por UID (reglas requieren que coincida con request.auth.uid)
+  const userEmail = user.email || '';
+  let firestoreUser = await getUser(user.uid);
+
+  if (!firestoreUser && userEmail) {
+    const byEmail = await getUserByEmail(userEmail.toLowerCase());
+    if (byEmail) {
+      // Replica el documento existente bajo el UID para cumplir reglas
+      await createUser(
+        {
+          email: byEmail.email,
+          status: byEmail.status,
+          role: byEmail.role,
+          company_id: byEmail.company_id,
+        },
+        user.uid
+      );
+      firestoreUser = { ...byEmail, id: user.uid };
+    }
   }
+
+  // Si no existe, crea un documento mínimo bajo el UID
+  if (!firestoreUser) {
+    await createUser(
+      {
+        email: userEmail.toLowerCase(),
+        status: UserStatus.FORCE_PASSWORD_CHANGE,
+        role: UserRole.ENTREPRENEUR,
+      },
+      user.uid
+    );
+  }
+
+  await updateUser(user.uid, { status: UserStatus.ACTIVE });
+};
+
+export const createAuthUser = async (email: string, password: string) => {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  return userCredential.user;
+};
+
+export const requestPasswordReset = async (
+  email: string,
+  actionCodeSettings?: ActionCodeSettings
+) => {
+  setAuthLanguage(auth);
+  await sendPasswordResetEmail(auth, email, actionCodeSettings || getResetPasswordActionCodeSettings());
 };
 
 /**

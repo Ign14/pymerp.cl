@@ -22,7 +22,7 @@ type TranslationKeys =
 export const translations: Record<Locale, Record<TranslationKeys, string>> = {
   es: {
     brand: 'AgendaEmprendimiento',
-    tagline: 'Plataforma para que tu emprendimiento muestre servicios o productos y conecte con clientes a través de WhatsApp.',
+    tagline: '',
     loginTitle: 'Iniciar sesión',
     loginSubmit: 'Iniciar sesión',
     backHome: 'Volver al inicio',

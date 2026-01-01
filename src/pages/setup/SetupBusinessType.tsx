@@ -5,11 +5,13 @@ import { getCompany, updateCompany } from '../../services/firestore';
 import { BusinessType } from '../../types';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 export default function SetupBusinessType() {
   const { firestoreUser } = useAuth();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
+  const { trackNamedEvent } = useAnalytics();
   const [businessType, setBusinessType] = useState<BusinessType | ''>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,6 +55,11 @@ export default function SetupBusinessType() {
           setup_completed: true,
         });
         toast.success('Configuración completada');
+
+        trackNamedEvent('companies.setupCompleted', {
+          company_id: firestoreUser.company_id,
+          business_type: businessType,
+        });
         
         if (businessType === BusinessType.SERVICES) {
           navigate('/dashboard/services');

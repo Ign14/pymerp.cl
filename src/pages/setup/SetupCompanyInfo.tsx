@@ -10,8 +10,11 @@ export default function SetupCompanyInfo() {
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
   const [formData, setFormData] = useState({
+    description: '',
+    show_description: true,
     mission: '',
     vision: '',
+    show_mission_vision: true,
     booking_message: '',
   });
   const [loading, setLoading] = useState(true);
@@ -31,8 +34,11 @@ export default function SetupCompanyInfo() {
       const company = await getCompany(firestoreUser.company_id);
       if (company) {
         setFormData({
+          description: company.description || '',
+          show_description: company.show_description ?? true,
           mission: company.mission || '',
           vision: company.vision || '',
+          show_mission_vision: company.show_mission_vision ?? true,
           booking_message: company.booking_message || '',
         });
       }
@@ -50,8 +56,11 @@ export default function SetupCompanyInfo() {
     try {
       if (firestoreUser?.company_id) {
         await updateCompany(firestoreUser.company_id, {
+          description: formData.description,
+          show_description: formData.show_description,
           mission: formData.mission,
           vision: formData.vision,
+          show_mission_vision: formData.show_mission_vision,
           booking_message: formData.booking_message,
         });
         toast.success('Información guardada');
@@ -91,6 +100,33 @@ export default function SetupCompanyInfo() {
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              📋 Descripción de la empresa
+            </label>
+            <textarea
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Describe tu empresa, qué hace, qué ofrece, su historia, valores, etc."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+            <p className="mt-1 text-sm text-gray-500">Esta descripción aparecerá en tu página pública antes de la misión y visión</p>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              id="show-description"
+              type="checkbox"
+              checked={formData.show_description}
+              onChange={(e) => setFormData({ ...formData, show_description: e.target.checked })}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="show-description" className="ml-2 block text-sm text-gray-700">
+              Mostrar descripción en la página pública
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Misión
             </label>
             <textarea
@@ -111,6 +147,19 @@ export default function SetupCompanyInfo() {
               value={formData.vision}
               onChange={(e) => setFormData({ ...formData, vision: e.target.value })}
             />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              id="show-mission-vision"
+              type="checkbox"
+              checked={formData.show_mission_vision}
+              onChange={(e) => setFormData({ ...formData, show_mission_vision: e.target.checked })}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="show-mission-vision" className="ml-2 block text-sm text-gray-700">
+              Mostrar misión y visión en la página pública
+            </label>
           </div>
 
           <div>

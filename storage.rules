@@ -55,6 +55,18 @@ service firebase.storage {
                       validImageType() &&
                       validSize(5000); // 5MB max
     }
+
+    // Backgrounds directory: /backgrounds/{companyId}/{filename}
+    match /backgrounds/{companyId}/{filename} {
+      // Public read
+      allow read: if true;
+      
+      // Write: Authenticated user que posee la compañía
+      allow write: if isAuthenticated() &&
+                      ownsCompany(companyId) &&
+                      validImageType() &&
+                      validSize(8000); // 8MB max
+    }
     
     // Products directory: /companies/{companyId}/products/{filename}
     match /companies/{companyId}/products/{filename} {

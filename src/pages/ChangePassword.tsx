@@ -1,13 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { confirmPasswordReset } from 'firebase/auth';
+import { auth } from '../config/firebase';
 import { changePassword } from '../services/auth';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
 export default function ChangePassword() {
   const { handleError } = useErrorHandler();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
+  const [actionCode, setActionCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Verificar si viene de un reset de contraseña
+    const mode = searchParams.get('mode');
+    const code = searchParams.get('oobCode');
+    
+    if (mode === 'resetPassword' && code) {
+      setIsPasswordReset(true);
+      setActionCode(code);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,10 +43,18 @@ export default function ChangePassword() {
     setLoading(true);
 
     try {
-      await changePassword(password);
-      toast.success('Contraseña cambiada exitosamente');
-      // Forzamos recarga para que el contexto lea el estado ACTIVO y vaya al setup básico
-      window.location.replace('/setup/company-basic');
+      // Si viene de un reset de contraseña, usar confirmPasswordReset
+      if (isPasswordReset && actionCode) {
+        await confirmPasswordReset(auth, actionCode, password);
+        toast.success('Contraseña restablecida exitosamente');
+        navigate('/login');
+      } else {
+        // Cambio de contraseña normal (usuario autenticado)
+        await changePassword(password);
+        toast.success('Contraseña cambiada exitosamente');
+        // Forzamos recarga para que el contexto lea el estado ACTIVO y vaya al setup básico
+        window.location.replace('/setup/company-basic');
+      }
     } catch (error: any) {
       handleError(error, {
         customMessage: 'Error al cambiar la contraseña',
@@ -44,10 +70,13 @@ export default function ChangePassword() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Cambiar contraseña
+            {isPasswordReset ? 'Restablecer contraseña' : 'Cambiar contraseña'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Debes cambiar tu contraseña antes de continuar
+            {isPasswordReset 
+              ? 'Ingresa tu nueva contraseña para restablecer tu cuenta'
+              : 'Debes cambiar tu contraseña antes de continuar'
+            }
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -61,6 +90,7 @@ export default function ChangePassword() {
                 name="password"
                 type="password"
                 required
+                autoComplete="new-password"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -75,6 +105,7 @@ export default function ChangePassword() {
                 name="confirmPassword"
                 type="password"
                 required
+                autoComplete="new-password"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
