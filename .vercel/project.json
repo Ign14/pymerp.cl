@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_FsciJ5Cqc4JPzPeIE7yePH3OAMK5",
+  "orgId": "team_AQuRoMMaa1Q3cVioKUqVGYVC",
+  "projectName": "pymerp",
+  "settings": {
+    "createdAt": 1767235403356,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}

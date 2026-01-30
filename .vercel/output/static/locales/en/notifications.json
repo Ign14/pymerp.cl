@@ -1,0 +1,30 @@
+{
+  "title": "Notifications",
+  "description": "Configure how and when to receive alerts",
+  "emailNotifications": {
+    "title": "Email Notifications",
+    "description": "Receive alerts about new appointments and changes",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "toggleLabel": "Enable email notifications",
+    "emailLabel": "Notification Email",
+    "emailPlaceholder": "email@example.com",
+    "emailHelp": "Notifications will be sent to this email"
+  },
+  "types": {
+    "newAppointment": "New appointment requested",
+    "appointmentConfirmed": "Appointment confirmed",
+    "appointmentCancelled": "Appointment cancelled",
+    "appointmentReminder": "Appointment reminder"
+  },
+  "messages": {
+    "saved": "Settings saved",
+    "enabledSuccess": "Notifications enabled",
+    "disabledSuccess": "Notifications disabled",
+    "error": "Error saving settings"
+  },
+  "buttons": {
+    "save": "Save Changes",
+    "cancel": "Cancel"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "form": {
+    "title": "Nueva cita",
+    "editTitle": "Editar cita",
+    "labels": {
+      "client": "Cliente",
+      "clientName": "Nombre del cliente",
+      "clientPhone": "Teléfono",
+      "clientEmail": "Email (opcional)",
+      "service": "Servicio",
+      "professional": "Profesional",
+      "date": "Fecha",
+      "startTime": "Hora inicio",
+      "endTime": "Hora fin",
+      "notes": "Notas (opcional)",
+      "status": "Estado"
+    },
+    "placeholders": {
+      "clientName": "Juan Pérez",
+      "clientPhone": "+56912345678",
+      "clientEmail": "juan@ejemplo.cl",
+      "selectService": "Seleccionar servicio",
+      "selectProfessional": "Seleccionar profesional",
+      "notes": "Información adicional sobre la cita"
+    },
+    "validation": {
+      "clientNameRequired": "El nombre del cliente es obligatorio",
+      "clientNameMinLength": "El nombre debe tener al menos {{min}} caracteres",
+      "clientPhoneRequired": "El teléfono es obligatorio",
+      "clientPhoneInvalid": "Formato de teléfono inválido",
+      "clientEmailInvalid": "Formato de email inválido",
+      "serviceRequired": "Debe seleccionar un servicio",
+      "professionalRequired": "Debe seleccionar un profesional",
+      "dateRequired": "La fecha es obligatoria",
+      "startTimeRequired": "La hora de inicio es obligatoria",
+      "endTimeRequired": "La hora de fin es obligatoria",
+      "invalidTimeRange": "La hora de fin debe ser posterior a la hora de inicio",
+      "notesMaxLength": "Las notas deben tener {{max}} caracteres o menos"
+    },
+    "buttons": {
+      "submit": "Crear cita",
+      "update": "Actualizar cita",
+      "cancel": "Cancelar",
+      "delete": "Eliminar cita"
+    }
+  },
+  "status": {
+    "requested": "Solicitada",
+    "confirmed": "Confirmada",
+    "cancelled": "Cancelada",
+    "completed": "Completada",
+    "noShow": "No asistió"
+  },
+  "messages": {
+    "created": "Cita creada exitosamente",
+    "updated": "Cita actualizada",
+    "deleted": "Cita eliminada",
+    "confirmed": "Cita confirmada",
+    "cancelled": "Cita cancelada"
+  },
+  "list": {
+    "title": "Citas",
+    "empty": "No hay citas programadas",
+    "filters": {
+      "all": "Todas",
+      "today": "Hoy",
+      "week": "Esta semana",
+      "month": "Este mes"
+    }
+  },
+  "errors": {
+    "slotTaken": "Este horario ya está ocupado",
+    "slotUnavailable": "El profesional no está disponible en este horario",
+    "invalidTimeRange": "Rango de horario inválido",
+    "proLimitReached": "Has alcanzado el límite de profesionales de tu plan. Actualiza para agregar más.",
+    "permissionDenied": "No tienes permiso para realizar esta acción",
+    "notFound": "Cita no encontrada",
+    "unknownError": "Error al procesar la solicitud. Intenta nuevamente."
+  }
+}

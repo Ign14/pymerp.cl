@@ -1,0 +1,36 @@
+{
+  "title": "Agenda",
+  "subtitle": "Revisa y gestiona la agenda de tu equipo en tiempo real",
+  "toolbar": {
+    "date": "Fecha",
+    "professional": "Profesional",
+    "allProfessionals": "Todos los profesionales",
+    "mode": "Modo",
+    "list": "Lista",
+    "grid": "Grilla",
+    "viewInGrid": "Ver en grilla"
+  },
+  "empty": {
+    "title": "No hay citas para este día",
+    "description": "Crea una reserva manual para completar tu agenda.",
+    "cta": "Agenda manual"
+  },
+  "labels": {
+    "hours": "Horas",
+    "unavailable": "No disponible {{range}}"
+  },
+  "details": {
+    "client": "Cliente",
+    "service": "Servicio",
+    "date": "Fecha",
+    "professional": "Profesional",
+    "phone": "Teléfono",
+    "email": "Email",
+    "status": "Estado",
+    "changeStatus": "Cambiar estado",
+    "cancel": "Cancelar cita",
+    "viewRecord": "Ver ficha",
+    "whatsapp": "Hablar por WhatsApp",
+    "timeRange": "Horario"
+  }
+}
