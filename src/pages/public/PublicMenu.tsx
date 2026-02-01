@@ -13,12 +13,12 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { useDebounce } from '../../hooks/useDebounce';
 import { filterProductsBySearch } from '../../utils/productSearch';
-import ProductDetailModal from './components/ProductDetailModal';
+import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartModal } from './components/CartModal';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 import '../../styles/horizontal-carousel.css';
 import type { Company, MenuCategory, Product, CompanyAppearance, FulfillmentConfig } from '../../types';
-import type { OrderForm } from './types';
+import type { AppearanceTheme, OrderForm } from './types';
 
 type CartLine = {
   product: Product;
@@ -103,7 +103,7 @@ export default function PublicMenu() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showProductModal, setShowProductModal] = useState(false);
+  const [productModalQuantity, setProductModalQuantity] = useState(1);
   const [showCartModal, setShowCartModal] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ id: string; link: string } | null>(null);
   const [orderForm, setOrderForm] = useState<OrderForm>({
@@ -793,7 +793,7 @@ export default function PublicMenu() {
                         style={{ backgroundColor: menuTheme.cardColor }}
                         onClick={() => {
                           setSelectedProduct(product);
-                          setShowProductModal(true);
+                            setProductModalQuantity(1);
                         }}
                       >
                         {/* Imagen del producto si existe - Evitar layout shift */}
@@ -876,7 +876,7 @@ export default function PublicMenu() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedProduct(product);
-                                setShowProductModal(true);
+                            setProductModalQuantity(1);
                               }}
                               className="flex-1 px-4 py-2.5 rounded-xl text-sm sm:text-base font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:scale-[0.98]"
                               aria-label={`Ver detalles de ${product.name}`}
@@ -1036,23 +1036,27 @@ export default function PublicMenu() {
       </main>
 
       {/* Modal de detalles del producto */}
-      <ProductDetailModal
-        product={selectedProduct}
-        isOpen={showProductModal}
-        onClose={() => {
-          setShowProductModal(false);
-          setSelectedProduct(null);
-        }}
-        onAddToCart={(product) => addToCart(product, 1)}
-        isAvailable={(selectedProduct as any)?.isAvailable !== false}
-        t={t}
-      />
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          theme={{ bgColor: menuTheme.backgroundColor ?? '#fff', cardColor: menuTheme.cardColor ?? '#fff', bgOpacity: 1, cardOpacity: 1, buttonColor: menuTheme.buttonColor ?? '#2563eb', buttonTextColor: menuTheme.buttonTextColor ?? '#fff', titleColor: menuTheme.titleColor ?? '#111', subtitleColor: menuTheme.textColor ?? '#666', textColor: menuTheme.textColor ?? '#374151', fontTitle: '', fontBody: '', fontButton: '' } as AppearanceTheme}
+          quantity={productModalQuantity}
+          onClose={() => {
+            setSelectedProduct(null);
+            setProductModalQuantity(1);
+          }}
+          onIncrement={() => setProductModalQuantity((q) => q + 1)}
+          onDecrement={() => setProductModalQuantity((q) => Math.max(0, q - 1))}
+          onAddToCart={() => selectedProduct && addToCart(selectedProduct, productModalQuantity)}
+        />
+      )}
 
       {/* Modal/Drawer del carrito */}
       <CartModal
         isOpen={showCartModal}
         cart={cart.map(line => ({ product: line.product, quantity: line.quantity }))}
         orderForm={orderForm}
+        theme={{ bgColor: menuTheme.backgroundColor ?? '#fff', cardColor: menuTheme.cardColor ?? '#fff', bgOpacity: 1, cardOpacity: 1, buttonColor: menuTheme.buttonColor ?? '#2563eb', buttonTextColor: menuTheme.buttonTextColor ?? '#fff', titleColor: menuTheme.titleColor ?? '#111', subtitleColor: menuTheme.textColor ?? '#666', textColor: menuTheme.textColor ?? '#374151', fontTitle: '', fontBody: '', fontButton: '' } as AppearanceTheme}
         orderChannel="MENU"
         menuQrTableCount={menuQrTableCount}
         deliveryEnabled={company?.delivery_enabled}

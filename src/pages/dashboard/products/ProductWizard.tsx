@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -296,14 +296,16 @@ export default function ProductWizard() {
     try {
       const payload = {
         variantId: selectedScopeVariantId,
-        steps: currentSteps.map((step) => ({
-          id: step.id || undefined,
-          modifierGroupId: step.modifierGroupId,
-          stepOrder: step.stepOrder,
-          minSelection: step.minSelection,
-          maxSelection: step.maxSelection,
-          isRequired: step.isRequired,
-        })),
+        steps: currentSteps
+          .filter((step): step is typeof step & { modifierGroupId: string } => Boolean(step.modifierGroupId))
+          .map((step) => ({
+            id: step.id || undefined,
+            modifierGroupId: step.modifierGroupId,
+            stepOrder: step.stepOrder,
+            minSelection: step.minSelection,
+            maxSelection: step.maxSelection,
+            isRequired: step.isRequired,
+          })),
       };
       const response = await saveProductSteps(productId, payload, companyId);
       const refreshed = response

@@ -6,6 +6,7 @@ import { useErrorHandler } from '../../hooks/useErrorHandler';
 import SubscriptionManager from '../../components/admin/SubscriptionManager';
 import LoadingSpinner from '../../components/animations/LoadingSpinner';
 import type { Company } from '../../types';
+import { SUBSCRIPTION_PLANS_DETAILS } from '../../utils/constants';
 import type { SubscriptionPlan } from '../../utils/constants';
 
 export default function ManageSubscriptions() {
@@ -81,11 +82,14 @@ export default function ManageSubscriptions() {
         <SubscriptionManager
           companyId={company.id}
           companyName={company.name}
-          currentPlan={(company.subscription_plan || 'BASIC') as SubscriptionPlan}
+          currentPlan={
+            ((company.subscription_plan || 'BASIC') in SUBSCRIPTION_PLANS_DETAILS
+              ? (company.subscription_plan as SubscriptionPlan)
+              : 'BASIC')
+          }
           onPlanUpdated={handlePlanUpdated}
         />
       </div>
     </div>
   );
 }
-

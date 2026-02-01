@@ -82,14 +82,16 @@ export const getEvent = async (
 export const createEvent = async (
   data: Omit<Event, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id);
+  const scopedCompany = assertCompanyScope(data.company_id as string);
   try {
     const now = Timestamp.now();
+    const startDate = data.start_date instanceof Date ? data.start_date : data.start_date ? new Date(data.start_date as string | number) : new Date();
+    const endDate = data.end_date instanceof Date ? data.end_date : data.end_date ? new Date(data.end_date as string | number) : undefined;
     const docRef = await addDoc(collection(db, EVENTS_COLLECTION), {
       ...data,
       company_id: scopedCompany,
-      start_date: data.start_date ? Timestamp.fromDate(data.start_date) : Timestamp.now(),
-      end_date: data.end_date ? Timestamp.fromDate(data.end_date) : undefined,
+      start_date: Timestamp.fromDate(startDate),
+      end_date: endDate ? Timestamp.fromDate(endDate) : undefined,
       created_at: now,
       updated_at: now,
     });
@@ -184,7 +186,7 @@ export const getEventReservation = async (
     // Validate company_id if provided
     if (companyId) {
       assertResourceBelongsToCompany(
-        reservation.company_id,
+        reservation.company_id as string | null | undefined,
         companyId,
         'EventReservation',
         reservationId
@@ -201,7 +203,7 @@ export const getEventReservation = async (
 export const createEventReservation = async (
   data: Omit<EventReservation, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id);
+  const scopedCompany = assertCompanyScope(data.company_id as string);
   try {
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, RESERVATIONS_COLLECTION), {

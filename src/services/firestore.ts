@@ -9,10 +9,13 @@ import {
   where,
   orderBy,
   limit,
+  startAt,
+  endAt,
   Timestamp,
   setDoc,
   deleteDoc,
 } from 'firebase/firestore';
+import { geohashQueryBounds, distanceBetween } from 'geofire-common';
 import { db } from '../config/firebase';
 import type {
   User,
@@ -27,6 +30,7 @@ import type {
   ProductOrderRequest,
   PublicPageEvent,
   BusinessType,
+  PublicCompany,
 } from '../types';
 import { AccessRequestStatus, EventType, UserStatus, UserRole } from '../types';
 
@@ -425,6 +429,128 @@ export const getProductOrderRequests = async (companyId: string): Promise<Produc
     ...doc.data(),
     created_at: doc.data().created_at?.toDate() || new Date(),
   })) as ProductOrderRequest[]).sort((a, b) => (b.created_at?.getTime?.() || 0) - (a.created_at?.getTime?.() || 0));
+};
+
+export const getProductOrderRequestById = async (orderId: string): Promise<ProductOrderRequest | null> => {
+  const docRef = doc(db, 'productOrderRequests', orderId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    ...data,
+    created_at: data.created_at?.toDate?.() || new Date(),
+  } as ProductOrderRequest;
+};
+
+export const updateProductOrderRequest = async (
+  companyId: string,
+  orderId: string,
+  updates: Partial<ProductOrderRequest>
+): Promise<void> => {
+  const existing = await getProductOrderRequestById(orderId);
+  if (!existing || existing.company_id !== companyId) {
+    throw new Error('Order not found for company');
+  }
+  const docRef = doc(db, 'productOrderRequests', orderId);
+  await updateDoc(docRef, updates as any);
+};
+
+export const advanceProductOrderStatus = async (
+  companyId: string,
+  orderId: string,
+  nextStatus: NonNullable<ProductOrderRequest['status']>
+): Promise<void> => {
+  const existing = await getProductOrderRequestById(orderId);
+  if (!existing || existing.company_id !== companyId) {
+    throw new Error('Order not found for company');
+  }
+  const currentStatus = existing.status || 'REQUESTED';
+  const status_history = [
+    ...(existing.status_history || []),
+    { from: currentStatus || null, to: nextStatus, created_at: new Date() },
+  ];
+  const docRef = doc(db, 'productOrderRequests', orderId);
+  await updateDoc(docRef, { status: nextStatus, status_history } as any);
+};
+
+export const getPublicCompanies = async (opts?: {
+  categoryId?: string;
+  comuna?: string;
+  bounds?: { center: [number, number]; radiusInM: number };
+}): Promise<PublicCompany[]> => {
+  const categoryId = opts?.categoryId;
+  const comuna = opts?.comuna;
+  const bounds = opts?.bounds;
+
+  const normalizeLocation = (data: any) => {
+    if (data?.location) {
+      const loc = data.location;
+      if (typeof loc === 'object') {
+        if ('latitude' in loc && 'longitude' in loc) {
+          return { latitude: loc.latitude, longitude: loc.longitude };
+        }
+        if ('lat' in loc && typeof loc.lat === 'function') {
+          return { latitude: loc.lat(), longitude: loc.lng() };
+        }
+      }
+    }
+    if (typeof data?.latitude === 'number' && typeof data?.longitude === 'number') {
+      return { latitude: data.latitude, longitude: data.longitude };
+    }
+    return undefined;
+  };
+
+  if (bounds) {
+    const [lat, lng] = bounds.center;
+    const queryBounds = geohashQueryBounds([lat, lng], bounds.radiusInM);
+    const snapshots = await Promise.all(
+      queryBounds.map(([start, end]) =>
+        getDocs(
+          query(
+            collection(db, 'companies_public'),
+            orderBy('geohash'),
+            startAt(start),
+            endAt(end)
+          )
+        )
+      )
+    );
+    const unique = new Map<string, PublicCompany>();
+    snapshots.forEach((snap) => {
+      snap.docs.forEach((docSnap) => {
+        const data = docSnap.data();
+        const location = normalizeLocation(data);
+        unique.set(docSnap.id, { id: docSnap.id, ...data, location } as PublicCompany);
+      });
+    });
+    let results = Array.from(unique.values()).filter((company) => {
+      if (!company.location?.latitude || !company.location?.longitude) return false;
+      const distanceKm = distanceBetween(
+        [company.location.latitude, company.location.longitude],
+        [lat, lng]
+      );
+      return distanceKm * 1000 <= bounds.radiusInM;
+    });
+    if (categoryId) results = results.filter((c) => (c as any).categoryId === categoryId);
+    if (comuna) results = results.filter((c) => (c as any).comuna === comuna);
+    return results.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
+  }
+
+  const constraints = [];
+  if (categoryId) constraints.push(where('categoryId', '==', categoryId));
+  if (comuna) constraints.push(where('comuna', '==', comuna));
+  const q = constraints.length
+    ? query(collection(db, 'companies_public'), ...constraints)
+    : query(collection(db, 'companies_public'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((docSnap) => {
+      const data = docSnap.data();
+      const location = normalizeLocation(data);
+      return { id: docSnap.id, ...data, location } as PublicCompany;
+    })
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
 };
 
 // Public Page Events

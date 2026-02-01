@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn } from '../services/auth';
 import { getUserByEmail, getCompany, getAccessRequestByEmail, updateUser, updateAccessRequest } from '../services/firestore';
@@ -10,6 +10,15 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { usePageMeta } from '../utils/usePageMeta';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { requestPasswordReset } from '../services/auth';
+import { auth } from '../config/firebase';
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithPopup,
+  signInWithRedirect,
+  type User as FirebaseUser,
+} from 'firebase/auth';
+import { logger } from '../utils/logger';
 
 import AnimatedButton from '../components/animations/AnimatedButton';
 import AnimatedModal from '../components/animations/AnimatedModal';
@@ -20,6 +29,9 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
+  const [authMethod, setAuthMethod] = useState<'email' | 'google'>('google');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -33,32 +45,94 @@ export default function Login() {
     image: '/logopymerp.png',
   });
 
+  const navigateAfterLogin = async (userEmail: string) => {
+    const user = await getUserByEmail(userEmail);
+
+    if (user?.status === UserStatus.FORCE_PASSWORD_CHANGE) {
+      navigate('/change-password');
+    } else if (user?.role === 'SUPERADMIN') {
+      navigate('/admin');
+    } else {
+      if (user?.company_id) {
+        const company = await getCompany(user.company_id);
+        if (company && !company.setup_completed) {
+          navigate('/setup/company-basic');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/setup/company-basic');
+      }
+    }
+    toast.success(t('login.successMessage'));
+  };
+
+  const syncGoogleLogin = async (user: FirebaseUser) => {
+    const userEmail = user.email?.toLowerCase();
+    if (!userEmail) {
+      toast.error('No pudimos obtener el email de Google.');
+      return;
+    }
+    await navigateAfterLogin(userEmail);
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      await syncGoogleLogin(result.user);
+    } catch (error: any) {
+      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user') {
+        toast.error('No pudimos abrir la ventana. Intentaremos redirigir...');
+        try {
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          logger.error('Error iniciando Google con redirect:', redirectError);
+        }
+      } else {
+        logger.error('Error en Google Sign-In:', error);
+        toast.error('No pudimos iniciar sesión con Google.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!mounted) return;
+        if (result?.user) {
+          await syncGoogleLogin(result.user);
+        }
+      } catch (error) {
+        logger.warn('Error procesando redirect de Google en login:', error);
+      } finally {
+        if (mounted) {
+          setCheckingRedirect(false);
+        }
+      }
+    };
+    checkRedirect();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       await signIn(email, password);
-      const user = await getUserByEmail(email);
-      
-      if (user?.status === UserStatus.FORCE_PASSWORD_CHANGE) {
-        navigate('/change-password');
-      } else if (user?.role === 'SUPERADMIN') {
-        navigate('/admin');
-      } else {
-        // Check if company is set up
-        if (user?.company_id) {
-          const company = await getCompany(user.company_id);
-          if (company && !company.setup_completed) {
-            navigate('/setup/company-basic');
-          } else {
-            navigate('/dashboard');
-          }
-        } else {
-          navigate('/setup/company-basic');
-        }
-      }
-      toast.success(t('login.successMessage'));
+      await navigateAfterLogin(email.toLowerCase());
     } catch (error: any) {
       handleAuthError(error);
     } finally {
@@ -77,79 +151,139 @@ export default function Login() {
                 <ThemeToggle />
               </div>
             </div>
+            <div className="flex justify-center mb-4">
+              <img
+                alt="PyM-ERP"
+                className="w-36 sm:w-40 object-contain"
+                loading="lazy"
+                decoding="async"
+                src="/logopymerp.png"
+              />
+            </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               {t('login.title')}
             </h2>
           </div>
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="rounded-md shadow-sm -space-y-px">
-              <div>
-                <label htmlFor="email" className="sr-only">
-                  {t('common.email')}
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder={t('common.email')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  {t('common.password')}
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder={t('common.password')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div>
+          <div className="mt-6 flex items-center justify-center gap-2 rounded-full border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setAuthMethod('email')}
+              className={`px-4 py-2 text-sm font-semibold rounded-full transition ${
+                authMethod === 'email'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Email y contraseña
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMethod('google')}
+              className={`px-4 py-2 text-sm font-semibold rounded-full transition ${
+                authMethod === 'google'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Google
+            </button>
+          </div>
+
+          {authMethod === 'google' && (
+            <div className="mt-6 space-y-4">
               <AnimatedButton
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading || checkingRedirect}
+                className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none fokus:ring-2 fokus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                {loading ? (
+                {googleLoading || checkingRedirect ? (
                   <span className="flex items-center gap-2">
-                    <LoadingSpinner size="sm" color="#ffffff" />
-                    {t('login.submittingButton')}...
+                    <LoadingSpinner size="sm" color="#1f2937" />
+                    Continuar con Google...
                   </span>
                 ) : (
-                  t('login.submitButton')
+                  'Continuar con Google'
                 )}
               </AnimatedButton>
+              <p className="text-xs text-center text-gray-500">
+                Inicia sesión con tu cuenta Google para ingresar más rápido.
+              </p>
               <AnimatedButton
                 type="button"
                 onClick={() => navigate('/')}
-                className="group relative w-full flex justify-center py-2 px-4 mt-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none fokus:ring-2 fokus:ring-offset-2 focus:ring-blue-500"
+                className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none fokus:ring-2 fokus:ring-offset-2 focus:ring-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                {t('common.backHome')}
+                Volver al inicio
               </AnimatedButton>
-              <div className="mt-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowResetModal(true)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  {t('login.forgotPassword')}
-                </button>
-              </div>
             </div>
-          </form>
+          )}
+
+          {authMethod === 'email' && (
+            <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+              <div className="rounded-md shadow-sm -space-y-px">
+                <div>
+                  <label htmlFor="email" className="sr-only">
+                    {t('common.email')}
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder={t('common.email')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="sr-only">
+                    {t('common.password')}
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder={t('common.password')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <AnimatedButton
+                  type="submit"
+                  disabled={loading}
+                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" color="#ffffff" />
+                      {t('login.submittingButton')}...
+                    </span>
+                  ) : (
+                    t('login.submitButton')
+                  )}
+                </AnimatedButton>
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetModal(true)}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    {t('login.forgotPassword')}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 

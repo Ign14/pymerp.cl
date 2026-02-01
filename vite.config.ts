@@ -61,6 +61,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -150,6 +151,26 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  optimizeDeps: {
+    entries: ['index.html', 'src/main.tsx'],
+  },
+  server: {
+    fs: {
+      deny: ['**/recovery/**'],
+    },
+    proxy: {
+      '/api': {
+        target: 'https://pymerp.cl',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/gastro': {
+        target: 'https://pymerp.cl',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   test: {

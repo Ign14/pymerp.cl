@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import SEO from '../../components/SEO';
 import { validateEmail, validateRequired, validateFields } from '../../services/errorHelpers';
-import toast from 'react-hot-toast';
+import { getAllPlans, type SubscriptionPlan, type PlanConfig } from '../../config/subscriptionPlans';
 
-type ContactType = 
+type ContactType =
+  | 'subscription-plan'
   | 'solution'
   | 'question'
   | 'internship-commercial'
@@ -14,12 +16,32 @@ type ContactType =
   | 'internship-designer'
   | 'other';
 
+const PLAN_GRADIENTS: Record<SubscriptionPlan, string> = {
+  BASIC: 'from-gray-500 to-gray-600',
+  STARTER: 'from-blue-500 to-blue-600',
+  PRO: 'from-purple-500 to-purple-600',
+  BUSINESS: 'from-indigo-500 to-indigo-600',
+  ENTERPRISE: 'from-green-500 to-green-600',
+};
+
+const PLAN_ORDER: SubscriptionPlan[] = ['STARTER', 'PRO', 'BUSINESS', 'ENTERPRISE'];
+
 export default function Contacto() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planParam = searchParams.get('plan');
+  const planOptions = useMemo<PlanConfig[]>(() => {
+    const plans = getAllPlans().filter((plan) => plan.planId !== 'BASIC');
+    return PLAN_ORDER.map((planId) => plans.find((plan) => plan.planId === planId)).filter(Boolean) as PlanConfig[];
+  }, []);
+
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    rut: '',
     contactType: '' as ContactType | '',
     message: '',
   });
@@ -27,7 +49,27 @@ export default function Contacto() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!planParam) return;
+    const normalized = planParam.trim().toUpperCase();
+    const isValid = planOptions.some((plan) => plan.planId === normalized);
+    if (isValid) {
+      setSelectedPlan(normalized as SubscriptionPlan);
+    }
+  }, [planOptions, planParam]);
+
+  useEffect(() => {
+    if (!selectedPlan) return;
+    setFormData((prev) => ({ ...prev, contactType: 'subscription-plan' }));
+  }, [selectedPlan]);
+
   const contactTypes = [
+    {
+      value: 'subscription-plan',
+      label: 'Solicitar plan de suscripción',
+      icon: '💳',
+      description: 'Activa un plan STARTER, PRO, BUSINESS o ENTERPRISE'
+    },
     {
       value: 'solution',
       label: 'Necesitas una solución digital específica en tu proyecto?',
@@ -73,15 +115,14 @@ export default function Contacto() {
   ];
 
   const getContactTypeLabel = (value: ContactType | '') => {
-    const type = contactTypes.find(t => t.value === value);
+    const type = contactTypes.find((entry) => entry.value === value);
     return type ? type.label : '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrors({});
 
-    // Validación con helpers
     const validationErrors = validateFields({
       name: {
         value: formData.name,
@@ -97,9 +138,18 @@ export default function Contacto() {
       },
       message: {
         value: formData.message,
-        validators: [validateRequired],
+        validators: formData.contactType === 'subscription-plan' ? [] : [validateRequired],
       },
     });
+
+    if (formData.contactType === 'subscription-plan') {
+      if (hasAccount === null) {
+        validationErrors.hasAccount = 'Por favor indica si ya tienes una cuenta';
+      }
+      if (hasAccount === true && (!formData.rut || !formData.rut.trim())) {
+        validationErrors.rut = 'El RUT es requerido para activar el plan en una cuenta existente';
+      }
+    }
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -110,55 +160,62 @@ export default function Contacto() {
     setLoading(true);
 
     try {
-      // Intentar enviar usando función HTTP si está disponible
-      const functionUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || '';
-      
-      if (functionUrl) {
-        try {
-          const response = await fetch(`${functionUrl}/sendContactEmailHttp`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: formData.name.trim(),
-              email: formData.email.trim(),
-              phone: formData.phone.trim() || 'No proporcionado',
-              contactType: getContactTypeLabel(formData.contactType),
-              message: formData.message.trim(),
-              date: new Date().toISOString(),
-            }),
-          });
+      let messageBody = formData.message.trim();
 
-          if (response.ok) {
-            setSubmitted(true);
-            setFormData({ name: '', email: '', phone: '', contactType: '' as ContactType | '', message: '' });
-            return;
-          }
-        } catch (err) {
-          console.warn('Error enviando por función HTTP, usando mailto:', err);
+      if (selectedPlan && formData.contactType === 'subscription-plan') {
+        const planConfig = planOptions.find((plan) => plan.planId === selectedPlan);
+        messageBody = `Solicitud de activación del plan ${planConfig?.label || selectedPlan}\n\n`;
+        messageBody += `Plan: ${planConfig?.label || selectedPlan}\n`;
+        messageBody += `Precio: ${planConfig?.price || 'Consultar'}\n\n`;
+
+        if (hasAccount === true) {
+          messageBody += '✅ Ya tengo una cuenta creada\n';
+          messageBody += `RUT de la empresa: ${formData.rut || 'No proporcionado'}\n`;
+          messageBody += `Correo de la cuenta: ${formData.email}\n\n`;
+          messageBody += `Por favor activar el plan ${planConfig?.label || selectedPlan} en esta cuenta existente.\n\n`;
+        } else if (hasAccount === false) {
+          messageBody += '🆕 No tengo cuenta, necesito crear una nueva\n';
+          messageBody += `Correo para la nueva cuenta: ${formData.email}\n\n`;
+          messageBody += `Por favor crear una nueva cuenta y activar el plan ${planConfig?.label || selectedPlan}.\n\n`;
+        }
+
+        if (formData.message.trim()) {
+          messageBody += `Mensaje adicional:\n${formData.message.trim()}`;
         }
       }
 
-      // Fallback: usar mailto
-      const subject = encodeURIComponent(`Contacto PyM-ERP: ${getContactTypeLabel(formData.contactType)}`);
-      const body = encodeURIComponent(
+      const subject = selectedPlan
+        ? `Solicitud Plan ${selectedPlan} - PyM-ERP`
+        : `Contacto PyM-ERP: ${getContactTypeLabel(formData.contactType)}`;
+
+      const body =
         `Nombre: ${formData.name}\n` +
         `Email: ${formData.email}\n` +
         `Teléfono: ${formData.phone || 'No proporcionado'}\n` +
-        `Tipo de consulta: ${getContactTypeLabel(formData.contactType)}\n\n` +
-        `Mensaje:\n${formData.message}`
-      );
-      window.location.href = `mailto:ignacio@datakomerz.com?subject=${subject}&body=${body}`;
-      
-      // Simular éxito después de un momento
+        (formData.rut ? `RUT: ${formData.rut}\n` : '') +
+        (formData.contactType === 'subscription-plan'
+          ? `Tiene cuenta: ${hasAccount ? 'Sí' : 'No'}\n`
+          : '') +
+        `\nMensaje:\n${messageBody}`;
+
+      window.location.href = `mailto:ignacio@datakomerz.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
       setTimeout(() => {
         setSubmitted(true);
-        setFormData({ name: '', email: '', phone: '', contactType: '' as ContactType | '', message: '' });
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          rut: '',
+          contactType: '' as ContactType | '',
+          message: '',
+        });
+        setSelectedPlan(null);
+        setHasAccount(null);
       }, 500);
-    } catch (err) {
+    } catch (error) {
       toast.error('Hubo un error al enviar tu mensaje. Por favor intenta nuevamente.');
-      console.error('Error:', err);
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -166,7 +223,6 @@ export default function Contacto() {
 
   const handleFieldChange = (field: keyof typeof formData, value: string) => {
     setFormData({ ...formData, [field]: value });
-    // Limpiar error del campo al editar
     if (errors[field]) {
       const newErrors = { ...errors };
       delete newErrors[field];
@@ -182,7 +238,7 @@ export default function Contacto() {
           description="Contáctanos para resolver tus dudas, solicitar soluciones digitales o unirte a nuestro equipo."
           canonical="/contacto"
         />
-        <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-purple-50 flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gradient-to-b from-blue-700 via-blue-800 to-indigo-900 flex items-center justify-center px-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -201,7 +257,16 @@ export default function Contacto() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setSubmitted(false);
-                  setFormData({ name: '', email: '', phone: '', contactType: '' as ContactType | '', message: '' });
+                  setFormData({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    rut: '',
+                    contactType: '' as ContactType | '',
+                    message: '',
+                  });
+                  setSelectedPlan(null);
+                  setHasAccount(null);
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
               >
@@ -211,7 +276,7 @@ export default function Contacto() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/')}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                className="px-6 py-3 bg-white text-blue-900 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
               >
                 Volver al inicio
               </motion.button>
@@ -229,13 +294,13 @@ export default function Contacto() {
         description="Contáctanos para resolver tus dudas, solicitar soluciones digitales o unirte a nuestro equipo."
         canonical="/contacto"
       />
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-b from-blue-700 via-blue-800 to-indigo-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={() => navigate('/')}
-            className="mb-8 text-indigo-600 hover:text-indigo-700 font-medium"
+            className="mb-8 text-blue-100 hover:text-white font-medium"
           >
             ← Volver al inicio
           </motion.button>
@@ -246,13 +311,77 @@ export default function Contacto() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Contáctanos
             </h1>
-            <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
               Estamos aquí para ayudarte. Cuéntanos qué necesitas y te responderemos lo antes posible.
             </p>
           </motion.div>
+
+          {!selectedPlan && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-12"
+            >
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center">
+                ¿Solicitas un plan de suscripción?
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {planOptions.map((plan) => (
+                  <motion.button
+                    key={plan.planId}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedPlan(plan.planId);
+                      setFormData((prev) => ({ ...prev, contactType: 'subscription-plan' }));
+                    }}
+                    className={`bg-gradient-to-r ${PLAN_GRADIENTS[plan.planId]} text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all text-left`}
+                  >
+                    <div className="font-bold text-xl mb-2">{plan.label}</div>
+                    <div className="text-sm opacity-90 mb-3">{plan.description}</div>
+                    <div className="font-semibold">{plan.price}</div>
+                  </motion.button>
+                ))}
+              </div>
+              <p className="text-center text-blue-100 mt-4 text-sm">
+                O continúa con el formulario general de contacto
+              </p>
+            </motion.div>
+          )}
+
+          {selectedPlan && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                    Plan seleccionado: {planOptions.find((plan) => plan.planId === selectedPlan)?.label}
+                  </h3>
+                  <p className="text-gray-700">
+                    {planOptions.find((plan) => plan.planId === selectedPlan)?.description}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlan(null);
+                    setHasAccount(null);
+                    setFormData((prev) => ({ ...prev, rut: '', contactType: '' }));
+                  }}
+                  className="px-4 py-2 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-colors border border-gray-300"
+                >
+                  Cambiar plan
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -261,7 +390,6 @@ export default function Contacto() {
             className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10"
           >
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Tipo de Consulta */}
               <div>
                 <label className="block text-lg font-semibold text-gray-900 mb-4">
                   ¿Cómo podemos ayudarte? <span className="text-red-500">*</span>
@@ -302,7 +430,113 @@ export default function Contacto() {
                 </div>
               </div>
 
-              {/* Información Personal */}
+              {selectedPlan && formData.contactType === 'subscription-plan' && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                  <label className="block text-lg font-semibold text-gray-900 mb-4">
+                    ¿Ya tienes una cuenta en PyM-ERP? <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setHasAccount(true)}
+                      className={`p-4 rounded-lg border-2 font-semibold transition-all ${
+                        hasAccount === true
+                          ? 'border-green-500 bg-green-50 text-green-900'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">✅</div>
+                      <div>Sí, ya tengo cuenta</div>
+                      <div className="text-sm font-normal mt-1 opacity-75">Activar plan en cuenta existente</div>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setHasAccount(false);
+                        setFormData((prev) => ({ ...prev, rut: '' }));
+                      }}
+                      className={`p-4 rounded-lg border-2 font-semibold transition-all ${
+                        hasAccount === false
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">🆕</div>
+                      <div>No, crear cuenta nueva</div>
+                      <div className="text-sm font-normal mt-1 opacity-75">Crear cuenta y activar plan</div>
+                    </motion.button>
+                  </div>
+
+                  {hasAccount === true && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mt-4 space-y-4"
+                    >
+                      <div>
+                        <label htmlFor="rut" className="block text-sm font-semibold text-gray-900 mb-2">
+                          RUT de la empresa <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="rut"
+                          value={formData.rut}
+                          onChange={(e) => handleFieldChange('rut', e.target.value)}
+                          className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                            errors.rut
+                              ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                              : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
+                          }`}
+                          placeholder="12.345.678-9"
+                          aria-invalid={!!errors.rut}
+                          aria-describedby={errors.rut ? 'rut-error' : undefined}
+                        />
+                        {errors.rut && (
+                          <p id="rut-error" className="mt-1 text-sm text-red-600" role="alert">
+                            {errors.rut}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Necesitamos tu RUT para identificar tu cuenta y activar el plan
+                        </p>
+                      </div>
+
+                      <div>
+                        <label htmlFor="account-email" className="block text-sm font-semibold text-gray-900 mb-2">
+                          Correo de la cuenta <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          id="account-email"
+                          value={formData.email}
+                          onChange={(e) => handleFieldChange('email', e.target.value)}
+                          className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                            errors.email
+                              ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                              : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
+                          }`}
+                          placeholder="correo@de-tu-cuenta.com"
+                          aria-invalid={!!errors.email}
+                          aria-describedby={errors.email ? 'email-error' : undefined}
+                        />
+                        {errors.email && (
+                          <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">
+                            {errors.email === 'required-field' ? 'Campo requerido' : 'Email inválido'}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          El correo con el que te registraste en PyM-ERP
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-semibold text-gray-900 mb-2">
@@ -329,30 +563,32 @@ export default function Contacto() {
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={formData.email}
-                    onChange={(e) => handleFieldChange('email', e.target.value)}
-                    className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
-                      errors.email
-                        ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
-                    }`}
-                    placeholder="tu@email.com"
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? 'email-error' : undefined}
-                  />
-                  {errors.email && (
-                    <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">
-                      {errors.email === 'required-field' ? 'Campo requerido' : 'Email inválido'}
-                    </p>
-                  )}
-                </div>
+                {(!selectedPlan || hasAccount === false || hasAccount === null) && (
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={formData.email}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                        errors.email
+                          ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
+                      }`}
+                      placeholder="tu@email.com"
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? 'email-error' : undefined}
+                    />
+                    {errors.email && (
+                      <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">
+                        {errors.email === 'required-field' ? 'Campo requerido' : 'Email inválido'}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -369,10 +605,12 @@ export default function Contacto() {
                 />
               </div>
 
-              {/* Mensaje */}
               <div>
                 <label htmlFor="message" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Mensaje <span className="text-red-500">*</span>
+                  {formData.contactType === 'subscription-plan' ? 'Mensaje adicional' : 'Mensaje'}
+                  {formData.contactType !== 'subscription-plan' && (
+                    <span className="text-red-500">*</span>
+                  )}
                 </label>
                 <textarea
                   id="message"
@@ -384,7 +622,11 @@ export default function Contacto() {
                       ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
                       : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
                   }`}
-                  placeholder="Cuéntanos más sobre tu consulta, proyecto o interés..."
+                  placeholder={
+                    formData.contactType === 'subscription-plan'
+                      ? '¿Alguna pregunta sobre el plan o información adicional que quieras compartir? (opcional)'
+                      : 'Cuéntanos más sobre tu consulta, proyecto o interés...'
+                  }
                   aria-invalid={!!errors.message}
                   aria-describedby={errors.message ? 'message-error' : undefined}
                 />
@@ -393,19 +635,33 @@ export default function Contacto() {
                     Campo requerido
                   </p>
                 )}
-                <p className="text-sm text-gray-500 mt-2">
-                  Mientras más detalles nos compartas, mejor podremos ayudarte
-                </p>
+                {formData.contactType === 'subscription-plan' ? (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Si tienes alguna pregunta específica sobre el plan o necesitas información adicional, compártela aquí.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Mientras más detalles nos compartas, mejor podremos ayudarte
+                  </p>
+                )}
               </div>
 
-              {/* Error Message - ahora solo para errores generales */}
               {Object.keys(errors).length > 0 && (
                 <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                  <p className="text-red-700 font-medium">Por favor corrige los errores en el formulario</p>
+                  <p className="text-red-700 font-medium mb-2">
+                    Por favor corrige los errores en el formulario:
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                    {errors.hasAccount && <li>{errors.hasAccount}</li>}
+                    {errors.rut && <li>{errors.rut}</li>}
+                    {errors.name && <li>Nombre completo es requerido</li>}
+                    {errors.email && <li>Email es requerido y debe ser válido</li>}
+                    {errors.contactType && <li>Tipo de consulta es requerido</li>}
+                    {errors.message && <li>Mensaje es requerido</li>}
+                  </ul>
                 </div>
               )}
 
-              {/* Submit Button */}
               <motion.button
                 type="submit"
                 disabled={loading}
@@ -423,6 +679,8 @@ export default function Contacto() {
                     </svg>
                     Enviando...
                   </span>
+                ) : formData.contactType === 'subscription-plan' && selectedPlan ? (
+                  `Solicitar Plan ${planOptions.find((plan) => plan.planId === selectedPlan)?.label || selectedPlan} →`
                 ) : (
                   'Enviar Mensaje →'
                 )}
@@ -434,7 +692,6 @@ export default function Contacto() {
             </form>
           </motion.div>
 
-          {/* Información Adicional */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

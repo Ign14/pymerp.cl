@@ -8,10 +8,12 @@ export interface AppearanceTheme {
   titleColor: string;
   subtitleColor: string;
   textColor: string;
+  descriptionColor?: string;
   fontTitle: string;
   fontBody: string;
   fontButton: string;
   cardLayout?: 1 | 2 | 3; // Layout premium para tarjetas (1: Grid Clásico, 2: Lista Circular, 3: Carrusel Fullscreen)
+  serviceCtaEmoji?: string;
   // Personalización del calendario
   calendarCardColor?: string;
   calendarCardOpacity?: number;
@@ -37,8 +39,10 @@ export interface OrderForm {
   client_name: string;
   client_whatsapp: string;
   client_comment: string;
-  delivery_type?: 'PICKUP' | 'DELIVERY'; // Retiro en local o Domicilio
+  delivery_type?: 'PICKUP' | 'DELIVERY' | 'TABLE'; // Retiro en local, Domicilio o Consumo en local
   delivery_address?: string; // Dirección de entrega
   delivery_location?: string; // URL de ubicación (Google Maps)
   delivery_notes?: string; // Notas adicionales de entrega
+  table_number?: string;
+  payment_method?: string;
 }

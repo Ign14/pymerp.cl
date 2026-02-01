@@ -69,7 +69,7 @@ export const getMenuCategory = async (
 export const createMenuCategory = async (
   data: Omit<MenuCategory, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id);
+  const scopedCompany = assertCompanyScope(data.company_id as string);
   try {
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, COLLECTION), {

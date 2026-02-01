@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ProductDraft } from './types';
 
 interface FieldErrors {

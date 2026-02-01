@@ -72,7 +72,7 @@ export const getDeliveryRoutes = async (companyId: string): Promise<DeliveryRout
 export const createDeliveryRoute = async (
   data: Omit<DeliveryRoute, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id, 'createDeliveryRoute');
+  const scopedCompany = assertCompanyScope(data.company_id as string, 'createDeliveryRoute');
   try {
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, ROUTES_COLLECTION), {

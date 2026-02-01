@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
 const sections = [
@@ -54,6 +55,8 @@ const sections = [
 ];
 
 export default function Terminos() {
+  const navigate = useNavigate();
+
   return (
     <>
       <SEO
@@ -70,6 +73,16 @@ export default function Terminos() {
             className="space-y-8"
           >
             <div>
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/60 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10 transition"
+                  aria-label="Volver"
+                >
+                  ← Volver
+                </button>
+              </div>
               <p className="text-sm text-cyan-400 font-semibold uppercase tracking-wide mb-2">
                 Actualizado: julio 2024 · Vigente en Chile
               </p>
@@ -121,9 +134,9 @@ export default function Terminos() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
                   className="px-5 py-3 bg-white text-gray-900 rounded-lg font-semibold text-center"
-                  href="mailto:legal@pym-erp.com"
+                  href="mailto:ignacio@datakomerz.com"
                 >
-                  legal@pym-erp.com
+                  ignacio@datakomerz.com
                 </a>
                 <a
                   className="px-5 py-3 border border-white/40 text-white rounded-lg font-semibold text-center hover:bg-white hover:text-gray-900 transition"

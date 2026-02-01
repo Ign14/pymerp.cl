@@ -129,7 +129,7 @@ export default function DeliveryRoutesPage() {
                 {route.vehicle && (
                   <p className="text-sm text-gray-600 mb-2">🚗 Vehículo: {route.vehicle}</p>
                 )}
-                <p className="text-sm text-gray-600 mb-4">📦 Pedidos: {route.orders.length}</p>
+                <p className="text-sm text-gray-600 mb-4">📦 Pedidos: {(route.orders ?? []).length}</p>
                 <div className="flex gap-2">
                   <button className="flex-1 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium text-sm">
                     Ver Detalles

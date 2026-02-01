@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { ProductKind } from '../../../../services/gastroProducts';
 import {
@@ -57,8 +57,6 @@ export default function PublicationPanel({
   companyId,
   onError,
 }: PublicationPanelProps) {
-  const [catalogs, setCatalogs] = useState<CatalogResponse[]>([]);
-  const [stateByCatalogId, setStateByCatalogId] = useState<Record<string, CatalogProductStateResponse>>({});
   const [loading, setLoading] = useState(true);
   const [errorBanner, setErrorBanner] = useState<{ message: string; traceId?: string } | null>(null);
   const [rows, setRows] = useState<RowState[]>([]);
@@ -72,12 +70,10 @@ export default function PublicationPanel({
         listCatalogs(companyId),
         getCatalogProductState(productId, companyId),
       ]);
-      setCatalogs(catalogList.filter((c) => c.active));
       const byId: Record<string, CatalogProductStateResponse> = {};
       productStates.forEach((s) => {
         byId[s.catalogId] = s;
       });
-      setStateByCatalogId(byId);
       const nextRows: RowState[] = catalogList
         .filter((c) => c.active)
         .map((catalog) => {
@@ -203,7 +199,7 @@ export default function PublicationPanel({
         }
 
         const payload: CatalogProductUpsertRequest = {
-          basePrice: hasVariantPrices ? null : parseDecimal(row.basePrice) ?? undefined,
+          basePrice: hasVariantPrices ? null : (parseDecimal(row.basePrice) ?? null),
           currency: row.currency.trim(),
           sortOrder: 0,
           available: row.available,
@@ -333,7 +329,6 @@ export default function PublicationPanel({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {rows.map((row) => {
-              const validation = validateRow(row);
               const hasVariantPrices =
                 productKind === 'CONFIGURABLE' &&
                 variants.some((v) => {

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
 const cookieTypes = [
@@ -25,6 +26,8 @@ const cookieTypes = [
 ];
 
 export default function Cookies() {
+  const navigate = useNavigate();
+
   return (
     <>
       <SEO
@@ -41,6 +44,16 @@ export default function Cookies() {
             className="space-y-8"
           >
             <div>
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/60 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10 transition"
+                  aria-label="Volver"
+                >
+                  ← Volver
+                </button>
+              </div>
               <p className="text-sm text-cyan-400 font-semibold uppercase tracking-wide mb-2">
                 Transparencia de datos · Cumplimiento Chile
               </p>
@@ -98,14 +111,14 @@ export default function Cookies() {
             <div className="bg-gray-700 border border-gray-600 rounded-xl p-6">
               <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">Ejercer tus derechos</h3>
               <p className="text-base md:text-lg text-cyan-100 mb-4 leading-relaxed">
-                Puedes solicitar acceso o eliminación de datos asociados a cookies contactando a legal@pym-erp.com. Si
+                Puedes solicitar acceso o eliminación de datos asociados a cookies contactando a ignacio@datakomerz.com. Si
                 usas identificadores publicitarios, gestionaremos la petición con los terceros correspondientes.
               </p>
               <a
-                href="mailto:legal@pym-erp.com"
+                href="mailto:ignacio@datakomerz.com"
                 className="inline-flex items-center text-base md:text-lg text-cyan-300 font-semibold hover:text-cyan-200"
               >
-                Escribir a legal@pym-erp.com →
+                Escribir a ignacio@datakomerz.com →
               </a>
             </div>
           </motion.div>

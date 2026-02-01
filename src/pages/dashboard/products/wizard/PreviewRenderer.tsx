@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { ModifierGroupResponse, ModifierItemResponse } from '../../../../services/gastroProducts';
 import type { StepDraft } from './types';
 import { canSelectMore, getEffectiveMin, getSelectedCount, isInvalidConfig, remainingToMin } from './previewRules';

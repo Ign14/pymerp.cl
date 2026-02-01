@@ -1,4 +1,4 @@
-export type SubscriptionPlan = 'BASIC' | 'STANDARD' | 'PRO' | 'APPROVED25';
+export type SubscriptionPlan = 'BASIC' | 'STARTER' | 'PRO' | 'BUSINESS' | 'ENTERPRISE';
 
 export const DEFAULT_FUNCTIONS_REGION = 'us-central1';
 
@@ -20,36 +20,41 @@ const PRO_FALLBACK_PLAN: SubscriptionPlan = 'PRO';
 // Todos los planes tienen límites ilimitados (Infinity)
 export const SUBSCRIPTION_PLAN_LIMITS = {
   products: {
-    BASIC: Infinity,
-    STANDARD: Infinity,
+    BASIC: 5,
+    STARTER: 40,
     PRO: Infinity,
-    APPROVED25: Infinity,
+    BUSINESS: Infinity,
+    ENTERPRISE: Infinity,
   },
   services: {
-    BASIC: Infinity,
-    STANDARD: Infinity,
+    BASIC: 5,
+    STARTER: 40,
     PRO: Infinity,
-    APPROVED25: Infinity,
+    BUSINESS: Infinity,
+    ENTERPRISE: Infinity,
   },
   serviceSchedules: {
-    BASIC: Infinity,
-    STANDARD: Infinity,
+    BASIC: 5,
+    STARTER: 40,
     PRO: Infinity,
-    APPROVED25: Infinity,
+    BUSINESS: Infinity,
+    ENTERPRISE: Infinity,
   },
   professionals: {
-    BASIC: Infinity,
-    STANDARD: Infinity,
-    PRO: Infinity,
-    APPROVED25: Infinity,
+    BASIC: 1,
+    STARTER: 6,
+    PRO: 10,
+    BUSINESS: 30,
+    ENTERPRISE: 60,
   },
 } as const satisfies Record<string, Record<SubscriptionPlan, number>>;
 
 export const SUBSCRIPTION_PLAN_LABELS: Record<SubscriptionPlan, string> = {
   BASIC: 'Basic',
-  STANDARD: 'Standard',
+  STARTER: 'Starter',
   PRO: 'Pro',
-  APPROVED25: 'Approved 25',
+  BUSINESS: 'Business',
+  ENTERPRISE: 'Enterprise',
 };
 
 export const getSubscriptionLimit = <T extends keyof typeof SUBSCRIPTION_PLAN_LIMITS>(
@@ -81,77 +86,95 @@ export interface PlanDetails {
 export const SUBSCRIPTION_PLANS_DETAILS: Record<SubscriptionPlan, PlanDetails> = {
   BASIC: {
     name: 'Basic',
-    description: 'Ideal para emprendedores individuales',
-    price: 'Gratis',
+    description: 'Plan esencial para comenzar con tu negocio',
+    price: '$0',
     features: [
       '1 profesional',
-      'Hasta 3 servicios o productos',
+      'Hasta 5 servicios o productos',
       '5 horarios de servicio',
       'Página pública personalizada',
       'Integración con WhatsApp',
     ],
     limits: {
       professionals: 1,
-      services: 3,
-      products: 3,
+      services: 5,
+      products: 5,
       serviceSchedules: 5,
     },
   },
-  STANDARD: {
-    name: 'Standard',
-    description: 'Para pequeños equipos en crecimiento',
-    price: '$9.990/mes',
+  STARTER: {
+    name: 'Starter',
+    description: 'Sistema de gestión sencillo para crecer',
+    price: '$27.900/mes',
     features: [
-      'Hasta 5 profesionales',
-      'Hasta 10 servicios',
-      'Hasta 15 productos',
-      '15 horarios de servicio',
+      'Hasta 6 profesionales',
+      'Hasta 40 servicios',
+      'Hasta 40 productos',
+      '40 horarios de servicio',
       'Todas las funciones de Basic',
       'Soporte prioritario',
     ],
     limits: {
-      professionals: 5,
-      services: 10,
-      products: 15,
-      serviceSchedules: 15,
+      professionals: 6,
+      services: 40,
+      products: 40,
+      serviceSchedules: 40,
     },
     recommended: true,
   },
   PRO: {
     name: 'Pro',
-    description: 'Sin límites para empresas establecidas',
-    price: '$29.990/mes',
+    description: 'Gestión empresarial pro con automatizaciones',
+    price: '$69.800/mes',
     features: [
-      'Hasta 60 profesionales',
+      'Hasta 10 profesionales',
       'Servicios ilimitados',
       'Productos ilimitados',
       'Horarios ilimitados',
-      'Todas las funciones de Standard',
+      'Todas las funciones de Starter',
       'Soporte premium 24/7',
       'Análisis avanzados',
     ],
     limits: {
-      professionals: 60,
+      professionals: 10,
       services: Infinity,
       products: Infinity,
       serviceSchedules: Infinity,
     },
   },
-  APPROVED25: {
-    name: 'Approved 25',
-    description: 'Plan especial para usuarios aprobados',
-    price: 'Personalizado',
+  BUSINESS: {
+    name: 'Business',
+    description: 'E-commerce y operaciones avanzadas para expansión',
+    price: '$247.900/mes',
     features: [
-      'Hasta 10 profesionales',
-      'Hasta 25 servicios',
-      'Hasta 25 productos',
+      'Hasta 30 profesionales',
+      'Servicios ilimitados',
+      'Productos ilimitados',
       'Horarios ilimitados',
-      'Todas las funciones incluidas',
+      'Todas las funciones de Pro',
     ],
     limits: {
-      professionals: 10,
-      services: 25,
-      products: 25,
+      professionals: 30,
+      services: Infinity,
+      products: Infinity,
+      serviceSchedules: Infinity,
+    },
+  },
+  ENTERPRISE: {
+    name: 'Enterprise',
+    description: 'Consultoría y desarrollo a medida',
+    price: 'Personalizado',
+    features: [
+      'Hasta 60 profesionales',
+      'Servicios ilimitados',
+      'Productos ilimitados',
+      'Horarios ilimitados',
+      'Todas las funciones de Business',
+    ],
+    limits: {
+      professionals: 60,
+      services: Infinity,
+      products: Infinity,
       serviceSchedules: Infinity,
     },
   },

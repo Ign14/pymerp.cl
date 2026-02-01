@@ -21,11 +21,13 @@ export default function SubscriptionManager({
   onPlanUpdated,
 }: SubscriptionManagerProps) {
   const { handleError } = useErrorHandler();
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(currentPlan);
+  const normalizedCurrentPlan: SubscriptionPlan =
+    currentPlan in SUBSCRIPTION_PLANS_DETAILS ? currentPlan : 'BASIC';
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(normalizedCurrentPlan);
   const [updating, setUpdating] = useState(false);
 
   const handleUpdatePlan = async () => {
-    if (selectedPlan === currentPlan) {
+    if (selectedPlan === normalizedCurrentPlan) {
       toast.error('Selecciona un plan diferente al actual');
       return;
     }
@@ -42,14 +44,15 @@ export default function SubscriptionManager({
     }
   };
 
-  const plans: SubscriptionPlan[] = ['BASIC', 'STANDARD', 'PRO', 'APPROVED25'];
+  const plans: SubscriptionPlan[] = ['BASIC', 'STARTER', 'PRO', 'BUSINESS', 'ENTERPRISE'];
 
   const getPlanColor = (plan: SubscriptionPlan) => {
     const colors = {
       BASIC: 'border-gray-300 bg-gray-50',
-      STANDARD: 'border-blue-300 bg-blue-50',
+      STARTER: 'border-blue-300 bg-blue-50',
       PRO: 'border-purple-300 bg-purple-50',
-      APPROVED25: 'border-green-300 bg-green-50',
+      BUSINESS: 'border-indigo-300 bg-indigo-50',
+      ENTERPRISE: 'border-green-300 bg-green-50',
     };
     return colors[plan];
   };
@@ -57,9 +60,10 @@ export default function SubscriptionManager({
   const getPlanBadgeColor = (plan: SubscriptionPlan) => {
     const colors = {
       BASIC: 'bg-gray-100 text-gray-800',
-      STANDARD: 'bg-blue-100 text-blue-800',
+      STARTER: 'bg-blue-100 text-blue-800',
       PRO: 'bg-purple-100 text-purple-800',
-      APPROVED25: 'bg-green-100 text-green-800',
+      BUSINESS: 'bg-indigo-100 text-indigo-800',
+      ENTERPRISE: 'bg-green-100 text-green-800',
     };
     return colors[plan];
   };
@@ -76,8 +80,8 @@ export default function SubscriptionManager({
         </p>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm text-gray-600">Plan actual:</span>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPlanBadgeColor(currentPlan)}`}>
-            {SUBSCRIPTION_PLANS_DETAILS[currentPlan].name}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPlanBadgeColor(normalizedCurrentPlan)}`}>
+            {SUBSCRIPTION_PLANS_DETAILS[normalizedCurrentPlan].name}
           </span>
         </div>
       </div>
@@ -87,7 +91,7 @@ export default function SubscriptionManager({
         {plans.map((plan) => {
           const details = SUBSCRIPTION_PLANS_DETAILS[plan];
           const isSelected = selectedPlan === plan;
-          const isCurrent = currentPlan === plan;
+          const isCurrent = normalizedCurrentPlan === plan;
 
           return (
             <motion.button
@@ -188,4 +192,3 @@ export default function SubscriptionManager({
     </div>
   );
 }
-

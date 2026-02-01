@@ -71,7 +71,7 @@ export interface Company {
   show_mission_vision?: boolean;
   booking_message?: string;
   business_type?: BusinessType;
-  subscription_plan?: 'BASIC' | 'STANDARD' | 'PRO' | 'APPROVED25';
+  subscription_plan?: 'BASIC' | 'STARTER' | 'PRO' | 'BUSINESS' | 'ENTERPRISE';
   background_enabled?: boolean;
   background_url?: string;
   background_orientation?: 'HORIZONTAL' | 'VERTICAL';
@@ -103,6 +103,33 @@ export interface Company {
   };
   // Delivery settings
   delivery_enabled?: boolean; // Activar pedidos a domicilio
+  // Categoría y módulos
+  category_id?: string | null;
+  categoryId?: string | null;
+  menu_qr_table_count?: number;
+  businessMode?: 'SERVICES' | 'PRODUCTS' | 'BOTH';
+  region?: string;
+  location?: { latitude: number; longitude: number };
+  shortDescription?: string;
+  comuna?: string;
+  externalWebsiteUrl?: string;
+  externalWebsiteEnabled?: boolean;
+  publicSlug?: string;
+  photos?: string[];
+  social_links?: Record<string, string> | null;
+  socialLinks?: Record<string, string> | null;
+  categoryGroup?: string;
+  fulfillment_config?: {
+    enabled?: boolean;
+    modes?: string[];
+    delivery_fee?: number;
+    minimum_order?: number;
+    delivery_time_minutes?: number;
+    preparation_time_minutes?: number;
+    title?: string;
+    description?: string;
+    note?: string;
+  };
 }
 
 export interface CompanyAppearance {
@@ -113,20 +140,44 @@ export interface CompanyAppearance {
   banner_url?: string;
   logo_position?: 'left' | 'center' | 'right'; // Posición del logo en el header
   background_color?: string;
+  menu_background_color?: string;
+  menu_background_image?: string;
   card_color?: string;
+  menu_card_color?: string;
   background_opacity?: number;
   card_opacity?: number;
+  menu_hero_card_opacity?: number;
+  menu_hero_card_color?: string;
+  menu_hero_logo_card_opacity?: number;
+  menu_hero_logo_card_color?: string;
   button_color?: string;
   button_text_color?: string;
+  menu_button_color?: string;
+  menu_button_text_color?: string;
   title_color?: string;
+  menu_title_color?: string;
   subtitle_color?: string;
   text_color?: string;
+  menu_text_color?: string;
   font_title?: string;
   font_body?: string;
   font_button?: string;
   layout?: 'GRID' | 'LIST';
   card_layout?: 1 | 2 | 3; // Layout premium para tarjetas (1: Grid Clásico, 2: Lista Circular, 3: Carrusel Fullscreen)
   show_whatsapp_fab?: boolean;
+  menu_category_image_default?: string;
+  hero_kicker?: string;
+  hero_title?: string;
+  hero_description?: string;
+  hero_card_color?: string;
+  hero_card_opacity?: number;
+  hero_background_image?: string;
+  hero_title_color?: string;
+  hero_text_color?: string;
+  hero_primary_button_color?: string;
+  hero_primary_button_text_color?: string;
+  hero_secondary_button_color?: string;
+  hero_secondary_button_text_color?: string;
   // Personalización del calendario de agenda
   calendar_card_color?: string; // Color de fondo de las tarjetas del calendario
   calendar_card_opacity?: number; // Opacidad de las tarjetas del calendario (0-100)
@@ -181,6 +232,9 @@ export interface Product {
   stock?: number; // Cantidad disponible en inventario (opcional)
   status: 'ACTIVE' | 'INACTIVE';
   hide_price?: boolean; // Si es true, no mostrar precio y mostrar mensaje de consulta por WhatsApp
+  menuCategoryId?: string;
+  menuOrder?: number;
+  isAvailable?: boolean;
 }
 
 export interface AppointmentRequest {
@@ -213,6 +267,17 @@ export interface ProductOrderRequest {
   client_whatsapp: string;
   client_comment?: string;
   created_at: Date;
+  status?: 'REQUESTED' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'PAID' | 'CANCELLED';
+  order_type?: 'TABLE' | 'PICKUP' | 'DELIVERY';
+  channel?: 'WHATSAPP' | 'MENU' | string;
+  table_number?: string;
+  payment_method?: string;
+  delivery_type?: 'PICKUP' | 'DELIVERY' | 'TABLE';
+  status_history?: Array<{
+    from?: ProductOrderRequest['status'] | null;
+    to: ProductOrderRequest['status'];
+    created_at: Date;
+  }>;
 }
 
 export interface PublicPageEvent {
@@ -285,6 +350,175 @@ export interface NotificationSettings {
   company_id: string;
   email_notifications_enabled: boolean;
   notification_email?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type PublicLayoutVariantChoice = 'classic' | 'modern' | 'compact' | 'immersive' | 'minimal';
+
+export interface MenuCategory {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  order?: number;
+  active?: boolean;
+  image_url?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface FulfillmentConfig {
+  enabled?: boolean;
+  modes?: string[];
+  delivery_fee?: number;
+  minimum_order?: number;
+  delivery_time_minutes?: number;
+  preparation_time_minutes?: number;
+  title?: string;
+  description?: string;
+  note?: string;
+}
+
+export interface PublicCompany extends Company {
+  location?: { latitude: number; longitude: number };
+}
+
+export interface Event {
+  id: string;
+  company_id: string;
+  title: string;
+  description?: string;
+  start_date: Date | string;
+  end_date?: Date | string;
+  location?: string;
+  capacity?: number;
+  status?: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EventReservation {
+  id: string;
+  company_id: string;
+  event_id: string;
+  attendee_name?: string;
+  attendee_email?: string;
+  attendee_phone?: string;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  tickets?: number;
+  guests?: number;
+  status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Property {
+  id: string;
+  company_id: string;
+  title: string;
+  description?: string;
+  address?: string;
+  location?: string;
+  capacity?: number;
+  amenities?: string[];
+  price_per_night?: number;
+  currency?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PropertyBooking {
+  id: string;
+  company_id: string;
+  property_id: string;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  check_in?: Date | string;
+  check_out?: Date | string;
+  guests?: number;
+  total_price?: number;
+  status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface DeliveryRoute {
+  id: string;
+  company_id: string;
+  name?: string;
+  description?: string;
+  notes?: string;
+  driver?: string;
+  vehicle?: string;
+  orders?: string[];
+  start_date?: Date | string;
+  end_date?: Date | string;
+  status?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PaymentCollection {
+  id: string;
+  company_id: string;
+  title?: string;
+  client_name?: string;
+  client_whatsapp?: string;
+  payment_method?: string;
+  amount?: number;
+  due_date?: Date | string;
+  paid_date?: Date | string;
+  status?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DeliveryLocation {
+  id: string;
+  company_id: string;
+  driver_id?: string;
+  client_name?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  timestamp?: Date | string;
+  status?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ClinicResource {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  notes?: string;
+  quantity?: number;
+  active?: boolean;
+  status?: 'ACTIVE' | 'INACTIVE';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface Lead {
+  id: string;
+  company_id: string;
+  intent?: string;
+  name?: string;
+  whatsapp?: string;
+  email?: string;
+  message?: string;
+  property_id?: string;
+  property_title?: string;
+  preferred_date?: Date | string;
+  preferred_time?: string;
+  source?: string;
   created_at: Date;
   updated_at: Date;
 }

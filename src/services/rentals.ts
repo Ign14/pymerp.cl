@@ -82,7 +82,7 @@ export const getProperty = async (
 export const createProperty = async (
   data: Omit<Property, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id);
+  const scopedCompany = assertCompanyScope(data.company_id as string);
   try {
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, PROPERTIES_COLLECTION), {
@@ -175,7 +175,7 @@ export const getPropertyBooking = async (
     // Validate company_id if provided
     if (companyId) {
       assertResourceBelongsToCompany(
-        booking.company_id,
+        booking.company_id as string | null | undefined,
         companyId,
         'PropertyBooking',
         bookingId
@@ -192,14 +192,14 @@ export const getPropertyBooking = async (
 export const createPropertyBooking = async (
   data: Omit<PropertyBooking, 'id' | 'created_at' | 'updated_at'>
 ): Promise<string> => {
-  const scopedCompany = assertCompanyScope(data.company_id);
+  const scopedCompany = assertCompanyScope(data.company_id as string);
   try {
     const now = Timestamp.now();
     const docRef = await addDoc(collection(db, BOOKINGS_COLLECTION), {
       ...data,
       company_id: scopedCompany,
-      check_in: data.check_in ? Timestamp.fromDate(data.check_in) : undefined,
-      check_out: data.check_out ? Timestamp.fromDate(data.check_out) : undefined,
+      check_in: data.check_in ? Timestamp.fromDate(data.check_in instanceof Date ? data.check_in : new Date(data.check_in as string | number)) : undefined,
+      check_out: data.check_out ? Timestamp.fromDate(data.check_out instanceof Date ? data.check_out : new Date(data.check_out as string | number)) : undefined,
       created_at: now,
       updated_at: now,
     });

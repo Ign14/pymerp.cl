@@ -33,3 +33,13 @@ firebase.json
 .env
 .env.local
 
+# Google Cloud credentials
+*-f195f5318a8d.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.node.json
+!firebase.json
+!firestore.indexes.json
+
