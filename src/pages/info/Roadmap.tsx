@@ -8,53 +8,62 @@ export default function Roadmap() {
   const phases = [
     {
       status: 'completed',
-      title: 'Fase 1: Lanzamiento Beta',
-      period: '2024 Q4',
+      title: 'Fase 1: Arquitectura y Modelamiento',
+      period: 'Agosto - Septiembre 2025',
       features: [
-        'Plataforma web básica',
-        'Sistema de registro y autenticación',
-        'Catálogo de productos/servicios',
-        'Integración con WhatsApp',
-        'Búsqueda por comuna y categoría'
+        'Arquitectura de módulos base (agenda, catálogo, clientes)',
+        'Modelamiento de datos multirubro y permisos',
+        'Diseño de flujos de onboarding y setup',
+        'Definición de métricas operativas y KPIs',
+        'Lineamientos de UI/UX y accesibilidad'
+      ]
+    },
+    {
+      status: 'completed',
+      title: 'Fase 2: MVP Operativo',
+      period: 'Octubre - Diciembre 2025',
+      features: [
+        'Agenda con disponibilidad y bloqueo de horarios',
+        'Gestión de servicios y profesionales',
+        'Landing pública por negocio y contacto directo',
+        'WhatsApp automático para confirmaciones',
+        'Panel básico de métricas y reportes'
       ]
     },
     {
       status: 'current',
-      title: 'Fase 2: Expansión de Funcionalidades',
-      period: '2026 Q1-Q2',
+      title: 'Fase 3: Estabilización y Lanzamiento Público',
+      period: 'Enero - Marzo 2026',
       features: [
-        'Lanzamiento de PyM-ERP APP móvil',
-        'Planes Lite, Standard y Enterprise',
-        'Sistema de estadísticas básicas',
-        'Gestión de inventario',
-        'Notificaciones automáticas',
-        'Plantillas de diseño premium'
+        'Optimización de rendimiento y UX móvil',
+        'Refuerzo de seguridad, permisos y auditoría',
+        'Plantillas visuales por categoría',
+        'Automatizaciones de notificaciones',
+        'Mejoras de soporte y onboarding'
       ]
     },
     {
       status: 'planned',
-      title: 'Fase 3: ERP Completo',
-      period: '2026 Q3-Q4',
+      title: 'Fase 4: Comercialización y Facturación',
+      period: 'Abril - Agosto 2026',
       features: [
-        'ERP modular multiusuario',
-        'Facturación electrónica integrada',
-        'Reportes avanzados y analítica',
-        'Sistema de roles y permisos',
-        'Integraciones con plataformas externas',
-        'API pública para desarrolladores'
+        'Planes y suscripciones',
+        'Pagos integrados y control de ingresos',
+        'Facturación electrónica y documentos',
+        'Inventario y stock avanzado',
+        'Integraciones con servicios externos'
       ]
     },
     {
       status: 'future',
-      title: 'Fase 4: Inteligencia Artificial',
-      period: '2027',
+      title: 'Fase 5: Inteligencia y Automatización',
+      period: 'Septiembre - Diciembre 2026',
       features: [
-        'Asistente IA personalizado',
-        'Predicción de demanda',
-        'Recomendaciones automáticas',
-        'Optimización de precios',
-        'Análisis de sentimiento de clientes',
-        'Automatización inteligente'
+        'IA para predicción de demanda',
+        'Recomendaciones de horarios y precios',
+        'Automatización de campañas y recordatorios',
+        'Reportes avanzados por segmento',
+        'Asistente inteligente para gestión diaria'
       ]
     }
   ];
@@ -173,4 +182,3 @@ export default function Roadmap() {
     </>
   );
 }
-

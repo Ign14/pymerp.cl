@@ -140,5 +140,13 @@ class Logger {
 // Exportar instancia única (singleton)
 export const logger = new Logger();
 
+export const logEvent = (...args: any[]): void => {
+  logger.log(...args);
+};
+
+export const logError = (...args: any[]): void => {
+  logger.error(...args);
+};
+
 // Export por defecto
 export default logger;

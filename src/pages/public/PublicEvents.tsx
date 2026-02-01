@@ -31,8 +31,8 @@ export default function PublicEvents() {
         }
         setCompanyName(company.name);
         setEvents(evs.filter((e) => e.status === 'PUBLISHED').sort((a, b) => {
-          const aDate = (a.start_date as any)?.getTime?.() || new Date(a.start_date).getTime();
-          const bDate = (b.start_date as any)?.getTime?.() || new Date(b.start_date).getTime();
+          const aDate = (a.start_date as any)?.getTime?.() || new Date(a.start_date ?? 0).getTime();
+          const bDate = (b.start_date as any)?.getTime?.() || new Date(b.start_date ?? 0).getTime();
           return aDate - bDate;
         }));
         trackEvent('EVENTS_VIEW', { category: GAEventCategory.NAVIGATION, company_id: company.id });

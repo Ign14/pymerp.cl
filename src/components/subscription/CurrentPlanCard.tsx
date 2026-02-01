@@ -49,15 +49,18 @@ export default function CurrentPlanCard({ companyId, onUpgradeClick }: CurrentPl
   const getPlanColor = (plan: SubscriptionPlan) => {
     const colors = {
       BASIC: 'bg-gray-100 text-gray-800 border-gray-300',
-      STANDARD: 'bg-blue-100 text-blue-800 border-blue-300',
+      STARTER: 'bg-blue-100 text-blue-800 border-blue-300',
       PRO: 'bg-purple-100 text-purple-800 border-purple-300',
-      APPROVED25: 'bg-green-100 text-green-800 border-green-300',
+      BUSINESS: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+      ENTERPRISE: 'bg-green-100 text-green-800 border-green-300',
     };
     return colors[plan];
   };
 
   const getPlanIcon = (plan: SubscriptionPlan) => {
-    if (plan === 'PRO') return <Crown className="w-5 h-5" />;
+    if (plan === 'PRO' || plan === 'BUSINESS' || plan === 'ENTERPRISE') {
+      return <Crown className="w-5 h-5" />;
+    }
     return <CheckCircle className="w-5 h-5" />;
   };
 
@@ -146,7 +149,7 @@ export default function CurrentPlanCard({ companyId, onUpgradeClick }: CurrentPl
       )}
 
       {/* Already on highest plan */}
-      {!recommendedUpgrade && currentPlan === 'PRO' && (
+      {!recommendedUpgrade && currentPlan === 'ENTERPRISE' && (
         <div className="px-6 pb-6">
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex items-start gap-3">
             <Crown className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
@@ -164,4 +167,3 @@ export default function CurrentPlanCard({ companyId, onUpgradeClick }: CurrentPl
     </motion.div>
   );
 }
-

@@ -43,7 +43,7 @@ const normalizeExternalUrl = (value?: string | null) => {
 
 const getCompanyPublicLink = (company: PublicCompany) => {
   if (company.externalWebsiteEnabled === true) {
-    const normalized = normalizeExternalUrl(company.externalWebsiteUrl);
+    const normalized = normalizeExternalUrl(company.externalWebsiteUrl as string | null | undefined);
     if (normalized) {
       try {
         const parsed = new URL(normalized);
@@ -169,7 +169,7 @@ export default function NearbyCompaniesPage() {
       });
 
       console.log('[NearbyCompanies] Empresas encontradas en radio:', data.length, data);
-      setCompanies(data);
+      setCompanies(data as unknown as PublicCompany[]);
       setSearchCenter(center);
       setSearchRadius(radiusKm);
     } catch (error) {
@@ -206,7 +206,7 @@ export default function NearbyCompaniesPage() {
             lng: withPositions[0].location!.longitude,
           });
         }
-        setCompanies(data);
+        setCompanies(data as unknown as PublicCompany[]);
         console.log('[NearbyCompanies] Estado actualizado, companies.length:', data.length);
       } catch (error) {
         console.error('[NearbyCompanies] Error al cargar empresas:', error);

@@ -1,13 +1,15 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import SEO from '../../components/SEO';
 
 const infoCards = [
   {
     title: 'Responsable y contacto',
     items: [
-      'PyM-ERP, plataforma operada desde Chile para pymes y profesionales.',
-      'Correo de contacto legal y privacidad: legal@pym-erp.com.',
-      'Domicilio referencial para efectos legales: Santiago, Chile.'
+      'PYMERP PLATAFORMA DIGITAL SpA, operada desde Chile para pymes y profesionales.',
+      'Correo de contacto legal y privacidad: ignacio@datakomerz.com.',
+      'Domicilio referencial para efectos legales: Romeral, Región del Maule, Chile.',
+      'RUT: 78.340.269-6.'
     ]
   },
   {
@@ -48,6 +50,8 @@ const rights = [
 ];
 
 export default function Privacidad() {
+  const navigate = useNavigate();
+
   return (
     <>
       <SEO
@@ -64,6 +68,16 @@ export default function Privacidad() {
             className="space-y-8"
           >
             <div>
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/60 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10 transition"
+                  aria-label="Volver"
+                >
+                  ← Volver
+                </button>
+              </div>
               <p className="text-sm text-cyan-400 font-semibold uppercase tracking-wide mb-2">
                 Actualizado: julio 2024 · Cobertura Chile
               </p>
@@ -92,7 +106,7 @@ export default function Privacidad() {
             <div className="bg-gray-700 border border-gray-600 rounded-xl p-6 shadow-sm">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Tus derechos de privacidad</h2>
               <p className="text-base md:text-lg text-cyan-100 mb-5 leading-relaxed">
-                Puedes ejercerlos escribiendo a legal@pym-erp.com. Respondemos dentro de los plazos legales y siempre
+                Puedes ejercerlos escribiendo a ignacio@datakomerz.com. Respondemos dentro de los plazos legales y siempre
                 validamos identidad para proteger tu información.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -148,9 +162,9 @@ export default function Privacidad() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
                   className="px-5 py-3 bg-white text-gray-900 rounded-lg font-semibold text-center"
-                  href="mailto:legal@pym-erp.com"
+                  href="mailto:ignacio@datakomerz.com"
                 >
-                  legal@pym-erp.com
+                  ignacio@datakomerz.com
                 </a>
                 <a
                   className="px-5 py-3 border border-white/40 text-white rounded-lg font-semibold text-center hover:bg-white hover:text-gray-900 transition"

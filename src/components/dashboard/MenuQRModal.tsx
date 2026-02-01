@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { X, Copy, Check, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Company } from '../../types';
-import { updateCompany, updateCompanyPublic } from '../../services/firestore';
+import { updateCompany } from '../../services/firestore';
 
 interface MenuQRModalProps {
   company: Company | null;
@@ -154,10 +154,7 @@ export default function MenuQRModal({ company, isOpen, onClose, onCompanyUpdate 
       const updates: Partial<Company> = {
         menu_qr_table_count: normalizedCount,
       };
-      await Promise.all([
-        updateCompany(company.id, updates),
-        updateCompanyPublic(company.id, updates),
-      ]);
+      await updateCompany(company.id, updates);
       onCompanyUpdate?.(updates);
       toast.success(
         normalizedCount > 0

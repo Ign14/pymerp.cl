@@ -12,11 +12,15 @@ import LogoutCorner from '../../components/LogoutCorner';
 import LoadingSpinner from '../../components/animations/LoadingSpinner';
 import DashboardQuickActions from '../../components/dashboard/DashboardQuickActions';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import MenuQRModal from '../../components/dashboard/MenuQRModal';
+import { getCategoryConfig, isModuleEnabled, resolveCategoryId } from '../../config/categories';
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardOverview() {
   const { firestoreUser } = useAuth();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
   const [company, setCompany] = useState<any>(null);
   const [stats, setStats] = useState({
     totalViews: 0,
@@ -36,6 +40,7 @@ export default function DashboardOverview() {
     topProfessionalCount: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [showMenuQr, setShowMenuQr] = useState(false);
 
   useEffect(() => {
     if (firestoreUser?.company_id) {
@@ -145,6 +150,18 @@ export default function DashboardOverview() {
     return null;
   }
 
+  const categoryId = resolveCategoryId(company);
+  const categoryConfig = getCategoryConfig(categoryId);
+  const categoryLabel = t(categoryConfig.labelKey, categoryId);
+  const hasAppointments =
+    isModuleEnabled(categoryId, 'appointments') || isModuleEnabled(categoryId, 'appointments-lite');
+  const hasSchedule = isModuleEnabled(categoryId, 'schedule');
+  const hasProfessionals = isModuleEnabled(categoryId, 'professionals');
+  const hasCatalog = isModuleEnabled(categoryId, 'catalog');
+  const hasOrders = isModuleEnabled(categoryId, 'orders');
+  const hasMenuCategories = isModuleEnabled(categoryId, 'menu-categories');
+  const hasMenuQr = isModuleEnabled(categoryId, 'menu-qr');
+
   const publicUrl = `${window.location.origin}/${company.slug}`;
 
   const copyPublicUrl = async () => {
@@ -178,6 +195,12 @@ export default function DashboardOverview() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 relative">
       <LogoutCorner />
+      <MenuQRModal
+        company={company}
+        isOpen={showMenuQr}
+        onClose={() => setShowMenuQr(false)}
+        onCompanyUpdate={(updates) => setCompany((prev: any) => ({ ...prev, ...updates }))}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with Back Button */}
         <div className="mb-6 flex items-center gap-3">
@@ -278,7 +301,7 @@ export default function DashboardOverview() {
 
         {/* Quick Actions - Main Dashboard Actions */}
         <div className="mb-8">
-          <DashboardQuickActions />
+          <DashboardQuickActions onOpenMenuQr={() => setShowMenuQr(true)} />
         </div>
 
         {/* Configuration Section */}
@@ -292,6 +315,12 @@ export default function DashboardOverview() {
             >
               📝 Editar datos básicos
             </button>
+            <Link
+              to="/change-password"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors inline-flex items-center gap-2"
+            >
+              🔒 Cambiar contraseña
+            </Link>
             <Link
               to="/dashboard/branding/background"
               className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors inline-flex items-center gap-2"
@@ -308,54 +337,97 @@ export default function DashboardOverview() {
         </div>
 
         {/* Services/Products Management */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8 border border-gray-200">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">
-            {company.business_type === 'SERVICES' ? 'Gestión de Servicios' : 'Gestión de Productos'}
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {company.business_type === 'SERVICES' && (
-              <>
-                <Link
-                  to="/dashboard/services"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-                >
-                  📋 Servicios
-                </Link>
-                <Link
-                  to="/dashboard/services/schedules"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-                >
-                  🕐 Horarios disponibles
-                </Link>
-                <Link
-                  to="/dashboard/services/settings"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-                >
-                  🎨 Apariencia
-                </Link>
-              </>
+        {(hasAppointments || hasCatalog) && (
+          <div className="bg-white shadow-md rounded-lg p-6 mb-8 border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">
+              {hasAppointments ? 'Gestión de Servicios' : 'Gestión de Productos'}
+            </h2>
+            {hasCatalog && (
+              <p className="text-sm text-gray-600 mb-4">Categoría: {categoryLabel}</p>
             )}
-            {company.business_type === 'PRODUCTS' && (
-              <>
-                <Link
-                  to="/dashboard/products"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-                >
-                  📦 Productos
-                </Link>
-                <Link
-                  to="/dashboard/products/settings"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
-                >
-                  🎨 Apariencia
-                </Link>
-              </>
-            )}
+            <div className="flex flex-wrap gap-3">
+              {hasAppointments && (
+                <>
+                  <Link
+                    to="/dashboard/services"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                  >
+                    📋 Servicios
+                  </Link>
+                  {hasSchedule && (
+                    <Link
+                      to="/dashboard/services/schedules"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                    >
+                      🕐 Horarios disponibles
+                    </Link>
+                  )}
+                  <Link
+                    to="/dashboard/services/settings"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                  >
+                    🎨 Apariencia
+                  </Link>
+                </>
+              )}
+              {hasCatalog && (
+                <>
+                  <Link
+                    to="/dashboard/products"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                  >
+                    📦 Productos
+                  </Link>
+                  <Link
+                    to="/dashboard/products/settings"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+                  >
+                    🎨 Apariencia
+                  </Link>
+                  {hasMenuCategories && (
+                    <Link
+                      to="/dashboard/catalog/menu-categories"
+                      className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium transition-colors"
+                    >
+                      📋 Categorías de Menú
+                    </Link>
+                  )}
+                  {hasMenuQr && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMenuQr(true)}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 text-sm font-medium transition-colors"
+                    >
+                      📱 Menú QR
+                    </button>
+                  )}
+                  {hasMenuCategories && (
+                    <a
+                      href={`${publicUrl}/menu`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium transition-colors inline-flex items-center gap-2"
+                      title="Ver menú público con productos categorizados"
+                    >
+                      📖 Menú
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Professionals Management */}
-        {company.business_type === 'SERVICES' && (
+        {hasProfessionals && (
           <div className="bg-white shadow-md rounded-lg p-6 mb-8 border border-gray-200">
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Gestión de Profesionales</h2>
             <div className="flex flex-wrap gap-3">
@@ -382,7 +454,7 @@ export default function DashboardOverview() {
             total={stats.totalViews}
             last30Days={stats.last30DaysViews}
           />
-          {company.business_type === 'SERVICES' && (
+          {hasAppointments && (
             <AppointmentsKpiCard
               total={appointmentsByProfessional.total}
               topProfessionalName={appointmentsByProfessional.topProfessionalName}
@@ -394,14 +466,14 @@ export default function DashboardOverview() {
             total={stats.totalWhatsAppClicks}
             last30Days={stats.last30DaysWhatsAppClicks}
           />
-          {company.business_type === 'SERVICES' && (
+          {hasAppointments && (
             <StatCard
               title="Clics en Agendar"
               total={stats.totalServiceBookClicks}
               last30Days={stats.last30DaysServiceBookClicks}
             />
           )}
-          {company.business_type === 'PRODUCTS' && (
+          {hasCatalog && (
             <StatCard
               title="Clics en Solicitar"
               total={stats.totalProductOrderClicks}

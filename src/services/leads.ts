@@ -18,14 +18,14 @@ const mapLead = (docSnap: any): Lead => {
 };
 
 export const createLead = async (data: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<string> => {
-  const scopedCompanyId = assertCompanyScope(data.company_id);
+  const scopedCompanyId = assertCompanyScope(data.company_id as string);
 
-  const whatsapp = data.whatsapp.replace(/\D/g, '');
+  const whatsapp = String(data.whatsapp ?? '').replace(/\D/g, '');
   if (!isValidPhone(whatsapp)) {
     throw new Error('INVALID_PHONE');
   }
 
-  if (data.email && !isValidEmail(data.email)) {
+  if (data.email && !isValidEmail(String(data.email))) {
     throw new Error('INVALID_EMAIL');
   }
 
@@ -34,10 +34,10 @@ export const createLead = async (data: Omit<Lead, 'id' | 'created_at' | 'updated
     const payload: any = {
       company_id: scopedCompanyId,
       intent: data.intent ?? 'general',
-      name: sanitizeText(data.name, 120),
+      name: sanitizeText(String(data.name ?? ''), 120),
       whatsapp,
-      email: data.email?.trim() || undefined,
-      message: data.message ? sanitizeText(data.message, 800) : undefined,
+      email: data.email ? String(data.email).trim() || undefined : undefined,
+      message: data.message ? sanitizeText(String(data.message), 800) : undefined,
       property_id: data.property_id,
       property_title: data.property_title,
       preferred_time: data.preferred_time,

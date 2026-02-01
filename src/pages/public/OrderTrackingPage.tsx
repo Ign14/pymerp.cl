@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<NonNullable<ProductOrderRequest['status']>, string> 
   REQUESTED: 'Pedido recibido',
   CONFIRMED: 'Pedido confirmado',
   PREPARING: 'En preparación',
+  READY: 'Listo para retiro',
   DELIVERED: 'En camino / Listo para retiro',
   PAID: 'Entregado / Retirado',
   CANCELLED: 'Cancelado',
@@ -29,6 +30,7 @@ const STATUS_BADGES: Record<NonNullable<ProductOrderRequest['status']>, string> 
   REQUESTED: 'bg-blue-100 text-blue-800 border border-blue-200',
   CONFIRMED: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
   PREPARING: 'bg-amber-100 text-amber-800 border border-amber-200',
+  READY: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
   DELIVERED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
   PAID: 'bg-green-100 text-green-800 border border-green-200',
   CANCELLED: 'bg-rose-100 text-rose-800 border border-rose-200',
@@ -57,7 +59,7 @@ export default function OrderTrackingPage() {
     }
     if (order.status_history && order.status_history.length > 0) {
       return [...order.status_history].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
       );
     }
     return [

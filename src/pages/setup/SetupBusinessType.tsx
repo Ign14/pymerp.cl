@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCompany, updateCompany } from '../../services/firestore';
@@ -6,19 +6,81 @@ import { BusinessType } from '../../types';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { useAnalytics } from '../../hooks/useAnalytics';
+import { getAllCategories, getCategoryConfig, type DashboardModule } from '../../config/categories';
+import { useTranslation } from 'react-i18next';
 
 export default function SetupBusinessType() {
   const { firestoreUser } = useAuth();
   const navigate = useNavigate();
   const { handleError } = useErrorHandler();
   const { trackNamedEvent } = useAnalytics();
+  const { t } = useTranslation();
   const [businessType, setBusinessType] = useState<BusinessType | ''>('');
+  const [categoryId, setCategoryId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const moduleLabels: Record<DashboardModule, string> = {
+    appointments: 'Citas',
+    'appointments-lite': 'Citas (lite)',
+    patients: 'Pacientes',
+    'patients-lite': 'Pacientes (lite)',
+    catalog: 'Catálogo',
+    orders: 'Pedidos',
+    'work-orders': 'Órdenes de trabajo',
+    'work-orders-lite': 'Órdenes de trabajo (lite)',
+    inventory: 'Inventario',
+    professionals: 'Profesionales',
+    schedule: 'Agenda',
+    reports: 'Reportes',
+    notifications: 'Notificaciones',
+    'menu-categories': 'Categorías de menú',
+    'menu-qr': 'Menú QR',
+    'clinic-resources': 'Recursos clínicos',
+    events: 'Eventos',
+    'event-reservations': 'Reservas de eventos',
+    properties: 'Propiedades',
+    'property-bookings': 'Reservas de propiedades',
+    'delivery-routes': 'Rutas de reparto',
+    collections: 'Cobranza',
+    geolocation: 'Geolocalización',
+  };
+
+  const filteredCategories = useMemo(() => {
+    if (!businessType) return [];
+    const mode = businessType === BusinessType.SERVICES ? 'SERVICES' : 'PRODUCTS';
+    return getAllCategories().filter(
+      (category) =>
+        category.businessModesAllowed.includes(mode) ||
+        category.businessModesAllowed.includes('BOTH')
+    );
+  }, [businessType]);
+
+  const categoriesByGroup = useMemo(() => {
+    const grouped = new Map<string, typeof filteredCategories>();
+    filteredCategories.forEach((category) => {
+      const groupLabel = t(category.groupLabelKey, { defaultValue: category.group });
+      const existing = grouped.get(groupLabel) || [];
+      grouped.set(groupLabel, [...existing, category]);
+    });
+    return Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0], 'es'));
+  }, [filteredCategories, t]);
+
+  const selectedCategoryConfig = useMemo(() => {
+    if (!categoryId) return null;
+    return getCategoryConfig(categoryId);
+  }, [categoryId]);
 
   useEffect(() => {
     loadCompany();
   }, []);
+
+  useEffect(() => {
+    if (!categoryId || filteredCategories.length === 0) return;
+    if (!filteredCategories.some((category) => category.id === categoryId)) {
+      setCategoryId('');
+    }
+  }, [businessType, filteredCategories, categoryId]);
 
   const loadCompany = async () => {
     if (!firestoreUser?.company_id) {
@@ -30,6 +92,10 @@ export default function SetupBusinessType() {
       const company = await getCompany(firestoreUser.company_id);
       if (company?.business_type) {
         setBusinessType(company.business_type);
+      }
+      const existingCategory = company?.category_id || company?.categoryId;
+      if (existingCategory) {
+        setCategoryId(existingCategory);
       }
     } catch (error) {
       handleError(error, { context: { action: 'loadCompany' } });
@@ -46,12 +112,22 @@ export default function SetupBusinessType() {
       return;
     }
 
+    if (!categoryId) {
+      toast.error('Debes seleccionar una subcategoría');
+      return;
+    }
+
     setSaving(true);
 
     try {
       if (firestoreUser?.company_id) {
+        const selectedCategory = getCategoryConfig(categoryId);
         await updateCompany(firestoreUser.company_id, {
           business_type: businessType,
+          businessMode: businessType,
+          category_id: categoryId,
+          categoryId: categoryId,
+          categoryGroup: selectedCategory.group,
           setup_completed: true,
         });
         toast.success('Configuración completada');
@@ -59,6 +135,7 @@ export default function SetupBusinessType() {
         trackNamedEvent('companies.setupCompleted', {
           company_id: firestoreUser.company_id,
           business_type: businessType,
+          category_id: categoryId,
         });
         
         if (businessType === BusinessType.SERVICES) {
@@ -152,6 +229,61 @@ export default function SetupBusinessType() {
             </div>
           </div>
 
+          <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subcategoría elegible *
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={!businessType}
+              >
+                <option value="">
+                  {businessType ? 'Selecciona una subcategoría' : 'Selecciona primero el tipo de negocio'}
+                </option>
+                {categoriesByGroup.map(([groupLabel, categories]) => (
+                  <optgroup key={groupLabel} label={groupLabel}>
+                    {categories
+                      .slice()
+                      .sort((a, b) =>
+                        t(a.labelKey, { defaultValue: a.id }).localeCompare(
+                          t(b.labelKey, { defaultValue: b.id }),
+                          'es',
+                          { sensitivity: 'base' }
+                        )
+                      )
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {t(category.labelKey, { defaultValue: category.id })}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">
+                Esta subcategoría define los módulos de gestión disponibles para tu negocio.
+              </p>
+            </div>
+
+            {selectedCategoryConfig && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="text-sm font-semibold text-gray-800 mb-2">Módulos de gestión activados</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategoryConfig.dashboardModules.map((module) => (
+                    <span
+                      key={module}
+                      className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-800"
+                    >
+                      {moduleLabels[module] || module}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between">
             <button
               type="button"
@@ -162,7 +294,7 @@ export default function SetupBusinessType() {
             </button>
             <button
               type="submit"
-              disabled={saving || !businessType}
+              disabled={saving || !businessType || !categoryId}
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Finalizar'}

@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { ReactNode, CSSProperties } from 'react';
+import type { ReactNode, CSSProperties, MouseEventHandler } from 'react';
 
 interface AnimatedButtonProps {
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
   className?: string;
   style?: CSSProperties;
   type?: 'button' | 'submit' | 'reset';
@@ -40,4 +40,3 @@ export default function AnimatedButton({
     </motion.button>
   );
 }
-

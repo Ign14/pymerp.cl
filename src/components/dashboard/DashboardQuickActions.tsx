@@ -4,7 +4,8 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { getCompany } from '../../services/firestore';
-import { Calendar, Bell, Plus, UserPlus } from 'lucide-react';
+import { Calendar, Bell, Plus, UserPlus, Menu, QrCode, ShoppingBag } from 'lucide-react';
+import { resolveCategoryId, isModuleEnabled } from '../../config/categories';
 
 interface QuickAction {
   icon: any;
@@ -14,15 +15,15 @@ interface QuickAction {
   ariaLabel: string;
   onClick: () => void;
   colorClass: string;
-  showFor?: 'SERVICES' | 'PRODUCTS' | 'BOTH';
+  module?: string;
 }
 
-export default function DashboardQuickActions() {
+export default function DashboardQuickActions({ onOpenMenuQr }: { onOpenMenuQr?: () => void }) {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { trackClick } = useAnalytics();
   const { firestoreUser } = useAuth();
-  const [businessType, setBusinessType] = useState<'SERVICES' | 'PRODUCTS' | null>(null);
+  const [categoryId, setCategoryId] = useState<string>('otros');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function DashboardQuickActions() {
       if (firestoreUser?.company_id) {
         try {
           const company = await getCompany(firestoreUser.company_id);
-          setBusinessType(company?.business_type || null);
+          setCategoryId(resolveCategoryId(company));
         } catch (error) {
           console.error('Error loading business type:', error);
         } finally {
@@ -63,6 +64,24 @@ export default function DashboardQuickActions() {
     navigate('/dashboard/professionals/new');
   };
 
+  const handleMenuCategories = () => {
+    trackClick('quick_action_menu_categories')();
+    navigate('/dashboard/catalog/menu-categories');
+  };
+
+  const handleMenuQr = () => {
+    trackClick('quick_action_menu_qr')();
+    if (onOpenMenuQr) {
+      onOpenMenuQr();
+      return;
+    }
+  };
+
+  const handleOrders = () => {
+    trackClick('quick_action_orders')();
+    navigate('/dashboard/orders');
+  };
+
   const allActions: QuickAction[] = [
     {
       icon: Plus,
@@ -72,7 +91,7 @@ export default function DashboardQuickActions() {
       ariaLabel: t('quickActions.manualBooking.ariaLabel'),
       onClick: handleManualBooking,
       colorClass: 'bg-blue-600 hover:bg-blue-700',
-      showFor: 'SERVICES',
+      module: 'appointments',
     },
     {
       icon: Calendar,
@@ -82,7 +101,7 @@ export default function DashboardQuickActions() {
       ariaLabel: t('quickActions.reviewSchedule.ariaLabel'),
       onClick: handleReviewSchedule,
       colorClass: 'bg-green-600 hover:bg-green-700',
-      showFor: 'SERVICES',
+      module: 'schedule',
     },
     {
       icon: UserPlus,
@@ -92,7 +111,37 @@ export default function DashboardQuickActions() {
       ariaLabel: t('quickActions.createProfessional.ariaLabel'),
       onClick: handleCreateProfessional,
       colorClass: 'bg-orange-600 hover:bg-orange-700',
-      showFor: 'SERVICES',
+      module: 'professionals',
+    },
+    {
+      icon: Menu,
+      title: 'Categorías de Menú',
+      description: 'Organiza tus productos en categorías para tu menú digital',
+      buttonText: 'Gestionar Categorías',
+      ariaLabel: 'Gestionar categorías de menú',
+      onClick: handleMenuCategories,
+      colorClass: 'bg-amber-600 hover:bg-amber-700',
+      module: 'menu-categories',
+    },
+    {
+      icon: QrCode,
+      title: 'Menú QR',
+      description: 'Accede a tu menú digital con código QR para compartir con clientes',
+      buttonText: 'Ver Menú QR',
+      ariaLabel: 'Ver menú QR',
+      onClick: handleMenuQr,
+      colorClass: 'bg-teal-600 hover:bg-teal-700',
+      module: 'menu-qr',
+    },
+    {
+      icon: ShoppingBag,
+      title: 'Pedidos',
+      description: 'Revisa y gestiona los pedidos ingresados desde el menú o WhatsApp',
+      buttonText: 'Ir a Pedidos',
+      ariaLabel: 'Ir a la pantalla de pedidos',
+      onClick: handleOrders,
+      colorClass: 'bg-slate-700 hover:bg-slate-800',
+      module: 'orders',
     },
     {
       icon: Bell,
@@ -102,14 +151,20 @@ export default function DashboardQuickActions() {
       ariaLabel: t('quickActions.manageNotifications.ariaLabel'),
       onClick: handleManageNotifications,
       colorClass: 'bg-purple-600 hover:bg-purple-700',
-      showFor: 'BOTH',
+      module: 'notifications',
     },
   ];
 
-  // Filter actions based on business type
-  const visibleActions = allActions.filter(
-    (action) => action.showFor === 'BOTH' || action.showFor === businessType
-  );
+  const hasAppointments =
+    isModuleEnabled(categoryId, 'appointments') || isModuleEnabled(categoryId, 'appointments-lite');
+
+  const visibleActions = allActions.filter((action) => {
+    if (!action.module) return false;
+    if (action.module === 'appointments') {
+      return hasAppointments;
+    }
+    return isModuleEnabled(categoryId, action.module as any);
+  });
 
   // Show loading or nothing while determining business type
   if (loading) {

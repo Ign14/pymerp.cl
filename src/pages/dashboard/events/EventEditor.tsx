@@ -60,7 +60,7 @@ export default function EventEditor() {
 
   const handleSave = async () => {
     if (!firestoreUser?.company_id) return;
-    if (!form.title.trim()) {
+    if (!form.title?.trim()) {
       toast.error(t('eventsModule.requiredTitle'));
       return;
     }
@@ -69,7 +69,7 @@ export default function EventEditor() {
       const payload: any = {
         ...form,
         company_id: firestoreUser.company_id,
-        start_date: form.start_date instanceof Date ? form.start_date : new Date(form.start_date),
+        start_date: form.start_date instanceof Date ? form.start_date : form.start_date ? new Date(form.start_date) : new Date(),
         end_date: form.end_date ? (form.end_date instanceof Date ? form.end_date : new Date(form.end_date)) : undefined,
       };
 

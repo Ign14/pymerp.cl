@@ -47,6 +47,7 @@ import ServiceNew from './pages/dashboard/services/ServiceNew';
 import ProductsSettings from './pages/dashboard/products/ProductsSettings';
 import ProductsList from './pages/dashboard/products/ProductsList';
 import ProductNew from './pages/dashboard/products/ProductNew';
+import MenuCategories from './pages/dashboard/products/MenuCategories';
 import BrandingBackground from './pages/dashboard/BrandingBackground';
 import BrandingVideo from './pages/dashboard/BrandingVideo';
 
@@ -60,6 +61,7 @@ import ProfessionalForm from './pages/dashboard/professionals/ProfessionalForm';
 
 // Reports
 import AppointmentsReport from './pages/dashboard/reports/AppointmentsReport';
+import OrdersPage from './pages/dashboard/OrdersPage';
 
 // Public
 import PublicPage from './pages/public/PublicPage';
@@ -82,8 +84,8 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
-        <Route path="/landing-old" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/landing-old" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/auth/action" element={<PageTransition><AuthAction /></PageTransition>} />
         <Route path="/request-access" element={<PageTransition><RequestAccess /></PageTransition>} />
@@ -366,6 +368,36 @@ function AnimatedRoutes() {
               <PageTransition>
                 <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
                   <ProductNew />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/catalog/menu-categories"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <MenuCategories />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/orders"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <OrdersPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/pedidos"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <OrdersPage />
                 </ProtectedRoute>
               </PageTransition>
             }

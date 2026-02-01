@@ -23,6 +23,8 @@ export default function SetupCompanyBasic() {
     sector: '',
     seo_keyword: '',
     whatsapp: '',
+    externalWebsiteUrl: '',
+    externalWebsiteEnabled: false,
     slug: '',
   });
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,9 @@ export default function SetupCompanyBasic() {
           sector: company.sector || '',
           seo_keyword: company.seo_keyword || '',
           whatsapp: company.whatsapp || '',
+          externalWebsiteUrl: company.externalWebsiteUrl || '',
+          externalWebsiteEnabled:
+            company.externalWebsiteEnabled ?? Boolean(company.externalWebsiteUrl),
           slug: company.slug || '',
         });
       }
@@ -100,6 +105,9 @@ export default function SetupCompanyBasic() {
           sector: formData.sector,
           seo_keyword: formData.seo_keyword,
           whatsapp: formData.whatsapp.replace(/\D/g, ''),
+          externalWebsiteUrl: formData.externalWebsiteUrl.trim() || '',
+          externalWebsiteEnabled:
+            formData.externalWebsiteEnabled && Boolean(formData.externalWebsiteUrl.trim()),
           slug: formData.slug,
         });
       } else {
@@ -274,6 +282,42 @@ export default function SetupCompanyBasic() {
               </p>
             )}
         </div>
+
+          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center">
+              <input
+                id="external-website-enabled"
+                type="checkbox"
+                checked={formData.externalWebsiteEnabled}
+                onChange={(e) =>
+                  setFormData({ ...formData, externalWebsiteEnabled: e.target.checked })
+                }
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="external-website-enabled" className="ml-2 block text-sm text-gray-700">
+                Usar sitio web personal en mi ficha pública
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Link de tu sitio web personal
+              </label>
+              <input
+                type="url"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                placeholder="https://tusitio.com"
+                value={formData.externalWebsiteUrl}
+                onChange={(e) =>
+                  setFormData({ ...formData, externalWebsiteUrl: e.target.value })
+                }
+                disabled={!formData.externalWebsiteEnabled}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Si lo activas, en el mapa de PYMEs se abrirá tu sitio externo en lugar de la página pública.
+              </p>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

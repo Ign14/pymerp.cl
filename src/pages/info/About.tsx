@@ -35,7 +35,7 @@ export default function About() {
       description: 'Identificamos la necesidad de digitalizar las PYMEs chilenas con una solución simple y accesible.'
     },
     {
-      year: '2024 Q4',
+      year: '2025-2026 Q4',
       title: 'Lanzamiento Beta',
       description: 'Lanzamos nuestra plataforma básica con funcionalidades esenciales para emprendedores y pequeñas empresas.'
     },

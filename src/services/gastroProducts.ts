@@ -1,3 +1,5 @@
+import { auth } from '../config/firebase';
+
 export type ProductKind = 'SIMPLE' | 'CONFIGURABLE' | 'COMBO';
 
 export interface ProductSummaryResponse {
@@ -142,40 +144,61 @@ export interface VariantPriceBulkRequest {
   variantPrices: VariantPriceItemRequest[];
 }
 
-const buildHeaders = (companyId: string) => ({
-  'Content-Type': 'application/json',
-  'X-Company-Id': companyId,
-});
+const buildHeaders = async (companyId: string) => {
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+  return {
+    'Content-Type': 'application/json',
+    'X-Company-Id': companyId,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
-const parseApiError = async (response: Response): Promise<ApiErrorPayload> => {
-  let payload: any = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
+const API_BASE_URL = (() => {
+  const fromEnv = (import.meta as any).env?.VITE_GASTRO_API_BASE_URL as string | undefined;
+  if (fromEnv && fromEnv.trim()) return fromEnv.replace(/\/+$/, '');
+  return '';
+})();
+
+const withBaseUrl = (path: string) => `${API_BASE_URL}${path}`;
+
+const parseApiError = (payload: unknown, status: number): ApiErrorPayload => {
   if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
     return {
-      message: payload.message || 'Error en el servidor',
-      traceId: payload.traceId,
-      details: payload.details,
-      status: response.status,
+      message: (record.message as string) || 'Error en el servidor',
+      traceId: record.traceId as string | undefined,
+      details: record.details as ApiErrorPayload['details'],
+      status,
     };
   }
-  return { message: 'Error en el servidor', status: response.status };
+  return { message: 'Error en el servidor', status };
 };
 
 const handleJson = async <T>(response: Response): Promise<T> => {
-  if (response.ok) {
-    return response.json();
+  const text = await response.text();
+  if (!response.ok) {
+    let payload: unknown = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = null;
+    }
+    throw parseApiError(payload, response.status);
   }
-  throw await parseApiError(response);
+  try {
+    return text ? (JSON.parse(text) as T) : ({} as T);
+  } catch {
+    throw {
+      message: 'Respuesta inválida del servidor (no JSON). ¿Sesión expirada?',
+      status: response.status,
+    } satisfies ApiErrorPayload;
+  }
 };
 
 export const getProductEdit = async (id: string, companyId: string): Promise<ProductEditResponse> => {
-  const response = await fetch(`/gastro/products/${id}/edit`, {
+  const response = await fetch(withBaseUrl(`/gastro/products/${id}/edit`), {
     method: 'GET',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
   });
   return handleJson<ProductEditResponse>(response);
 };
@@ -185,9 +208,9 @@ export const updateProductBase = async (
   payload: ProductBaseRequest,
   companyId: string
 ): Promise<ProductSummaryResponse> => {
-  const response = await fetch(`/gastro/products/${id}`, {
+  const response = await fetch(withBaseUrl(`/gastro/products/${id}`), {
     method: 'PUT',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
     body: JSON.stringify(payload),
   });
   return handleJson<ProductSummaryResponse>(response);
@@ -197,9 +220,9 @@ export const createProduct = async (
   payload: ProductBaseRequest & { modifierSteps?: ModifierStepUpsertRequest[] },
   companyId: string
 ): Promise<ProductSummaryResponse> => {
-  const response = await fetch('/api/products', {
+  const response = await fetch(withBaseUrl('/api/products'), {
     method: 'POST',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
     body: JSON.stringify(payload),
   });
   return handleJson<ProductSummaryResponse>(response);
@@ -210,9 +233,9 @@ export const saveProductSteps = async (
   payload: ModifierStepBulkRequest,
   companyId: string
 ): Promise<ModifierStepResponse[]> => {
-  const response = await fetch(`/gastro/products/${productId}/steps`, {
+  const response = await fetch(withBaseUrl(`/gastro/products/${productId}/steps`), {
     method: 'PUT',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
     body: JSON.stringify(payload),
   });
   return handleJson<ModifierStepResponse[]>(response);
@@ -226,9 +249,9 @@ export const searchModifierGroups = async (
   if (query) {
     params.set('query', query);
   }
-  const response = await fetch(`/gastro/modifier-groups?${params.toString()}`, {
+  const response = await fetch(withBaseUrl(`/gastro/modifier-groups?${params.toString()}`), {
     method: 'GET',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
   });
   return handleJson<ModifierGroupResponse[]>(response);
 };
@@ -237,9 +260,9 @@ export const getModifierGroupItems = async (
   groupId: string,
   companyId: string
 ): Promise<ModifierItemResponse[]> => {
-  const response = await fetch(`/gastro/modifier-groups/${groupId}/items`, {
+  const response = await fetch(withBaseUrl(`/gastro/modifier-groups/${groupId}/items`), {
     method: 'GET',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
   });
   return handleJson<ModifierItemResponse[]>(response);
 };
@@ -254,10 +277,10 @@ export const listCatalogs = async (
     params.set('businessUnitId', businessUnitId);
   }
   const qs = params.toString();
-  const url = `/gastro/catalogs${qs ? `?${qs}` : ''}`;
+  const url = withBaseUrl(`/gastro/catalogs${qs ? `?${qs}` : ''}`);
   const response = await fetch(url, {
     method: 'GET',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
   });
   return handleJson<CatalogResponse[]>(response);
 };
@@ -267,10 +290,10 @@ export const getCatalogProductState = async (
   companyId: string
 ): Promise<CatalogProductStateResponse[]> => {
   const response = await fetch(
-    `/gastro/catalog-products?productId=${encodeURIComponent(productId)}`,
+    withBaseUrl(`/gastro/catalog-products?productId=${encodeURIComponent(productId)}`),
     {
       method: 'GET',
-      headers: buildHeaders(companyId),
+      headers: await buildHeaders(companyId),
     }
   );
   return handleJson<CatalogProductStateResponse[]>(response);
@@ -283,10 +306,10 @@ export const upsertCatalogProductPrice = async (
   companyId: string
 ): Promise<CatalogProductResponse> => {
   const response = await fetch(
-    `/gastro/catalog-products/${catalogId}/product/${productId}`,
+    withBaseUrl(`/gastro/catalog-products/${catalogId}/product/${productId}`),
     {
       method: 'PUT',
-      headers: buildHeaders(companyId),
+      headers: await buildHeaders(companyId),
       body: JSON.stringify({
         basePrice: payload.basePrice,
         currency: payload.currency,
@@ -304,10 +327,10 @@ export const setCatalogProductAvailability = async (
   companyId: string
 ): Promise<CatalogProductResponse> => {
   const response = await fetch(
-    `/gastro/catalog-products/${catalogProductId}/availability`,
+    withBaseUrl(`/gastro/catalog-products/${catalogProductId}/availability`),
     {
       method: 'PATCH',
-      headers: buildHeaders(companyId),
+      headers: await buildHeaders(companyId),
       body: JSON.stringify({ isAvailable }),
     }
   );
@@ -318,9 +341,9 @@ export const upsertVariantPrices = async (
   payload: VariantPriceBulkRequest,
   companyId: string
 ): Promise<void> => {
-  const response = await fetch('/gastro/variant-prices', {
+  const response = await fetch(withBaseUrl('/gastro/variant-prices'), {
     method: 'PUT',
-    headers: buildHeaders(companyId),
+    headers: await buildHeaders(companyId),
     body: JSON.stringify(payload),
   });
   if (!response.ok) {

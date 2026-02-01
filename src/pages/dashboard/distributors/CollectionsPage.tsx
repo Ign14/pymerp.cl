@@ -30,8 +30,8 @@ export default function CollectionsPage() {
       setCollections(data);
       
       // Calcular totales
-      const pending = data.filter(c => c.status === 'PENDING').reduce((sum, c) => sum + c.amount, 0);
-      const paid = data.filter(c => c.status === 'PAID').reduce((sum, c) => sum + c.amount, 0);
+      const pending = data.filter(c => c.status === 'PENDING').reduce((sum, c) => sum + (c.amount ?? 0), 0);
+      const paid = data.filter(c => c.status === 'PAID').reduce((sum, c) => sum + (c.amount ?? 0), 0);
       setTotalPending(pending);
       setTotalPaid(paid);
     } catch (error) {
@@ -157,7 +157,7 @@ export default function CollectionsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">${collection.amount.toLocaleString()}</div>
+                      <div className="text-sm font-semibold text-gray-900">${(collection.amount ?? 0).toLocaleString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${

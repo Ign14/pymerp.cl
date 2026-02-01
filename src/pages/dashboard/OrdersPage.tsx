@@ -13,6 +13,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   REQUESTED: 'Solicitado',
   CONFIRMED: 'Confirmado',
   PREPARING: 'En preparación',
+  READY: 'Listo',
   DELIVERED: 'Entregado',
   PAID: 'Pagado',
   CANCELLED: 'Cancelado',
@@ -33,6 +34,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   REQUESTED: 'bg-blue-100 text-black dark:bg-blue-500/20 dark:text-black',
   CONFIRMED: 'bg-indigo-100 text-black dark:bg-indigo-500/20 dark:text-black',
   PREPARING: 'bg-amber-100 text-black dark:bg-amber-500/20 dark:text-black',
+  READY: 'bg-emerald-100 text-black dark:bg-emerald-500/20 dark:text-black',
   DELIVERED: 'bg-emerald-100 text-black dark:bg-emerald-500/20 dark:text-black',
   PAID: 'bg-green-100 text-black dark:bg-green-500/20 dark:text-black',
   CANCELLED: 'bg-red-100 text-black dark:bg-red-500/20 dark:text-black',
@@ -255,10 +257,12 @@ export default function OrdersPage() {
       setUpdatingId(orderId);
       const targetOrder = orders.find((order) => order.id === orderId);
       const currentStatus = targetOrder?.status || 'REQUESTED';
+      const companyId = firestoreUser?.company_id;
+      if (!companyId) return;
       if (currentStatus !== next) {
-        await advanceProductOrderStatus(orderId, currentStatus, next);
+        await advanceProductOrderStatus(companyId, orderId, next);
       } else {
-        await updateProductOrderRequest(orderId, { status: next });
+        await updateProductOrderRequest(companyId, orderId, { status: next });
       }
       setOrders((prev) =>
         prev.map((o) =>
@@ -355,7 +359,7 @@ export default function OrdersPage() {
             return (
               <div
                 key={order.id}
-                className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col gap-3 dark:border-slate-700 dark:bg-slate-900"
+                className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col gap-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-1">

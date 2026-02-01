@@ -27,11 +27,23 @@ export function isValidPhone(phone?: string | null): boolean {
   return /^\+?[\d\s\-()]{6,20}$/.test(phone.trim());
 }
 
-export function assertCompanyScope(companyId?: string): string {
+export function assertCompanyScope(companyId?: string, _context?: string): string {
   if (!companyId) {
     throw new Error('company_id is required for multi-tenant operations');
   }
   return companyId;
+}
+
+export function assertResourceBelongsToCompany(
+  resourceCompanyId: string | null | undefined,
+  expectedCompanyId: string,
+  resourceLabel = 'Resource',
+  resourceId?: string
+): void {
+  if (!resourceCompanyId || resourceCompanyId !== expectedCompanyId) {
+    const suffix = resourceId ? ` (${resourceId})` : '';
+    throw new Error(`${resourceLabel}${suffix} does not belong to company ${expectedCompanyId}`);
+  }
 }
 
 export function coerceOptional<T>(value: T | undefined | null): T | undefined {

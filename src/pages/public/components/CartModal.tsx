@@ -8,7 +8,10 @@ interface CartModalProps {
   cart: CartItem[];
   orderForm: OrderForm;
   theme: AppearanceTheme;
+  orderChannel?: string;
+  menuQrTableCount?: number;
   deliveryEnabled?: boolean;
+  fulfillmentConfig?: unknown;
   onClose: () => void;
   onQuantityChange: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
@@ -16,18 +19,19 @@ interface CartModalProps {
   onSubmit: () => void;
 }
 
-export function CartModal({
-  isOpen,
-  cart,
-  orderForm,
-  theme,
-  deliveryEnabled = false,
-  onClose,
-  onQuantityChange,
-  onRemove,
-  onFormChange,
-  onSubmit,
-}: CartModalProps) {
+export function CartModal(props: CartModalProps) {
+  const {
+    isOpen,
+    cart,
+    orderForm,
+    theme,
+    deliveryEnabled = false,
+    onClose,
+    onQuantityChange,
+    onRemove,
+    onFormChange,
+    onSubmit,
+  } = props;
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const hasHiddenPrices = cart.some((item) => item.product.hide_price === true);

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createAccessRequest,
   createCompany,
   createUser,
   updateUser,
+  getCompany,
 } from '../services/firestore';
 import { sendAccessRequestEmail } from '../services/email';
 import toast from 'react-hot-toast';
@@ -21,7 +22,19 @@ import { generateRandomPassword } from '../utils/password';
 import { generateSlug } from '../utils/slug';
 import { UserRole, UserStatus, BusinessType } from '../types';
 import { auth } from '../config/firebase';
-import { createAuthUser, requestPasswordReset, signOutAuth } from '../services/auth';
+import {
+  createAuthUser,
+  getCurrentFirestoreUser,
+  requestPasswordReset,
+  signOutAuth,
+} from '../services/auth';
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithPopup,
+  signInWithRedirect,
+  type User as FirebaseUser,
+} from 'firebase/auth';
 
 export default function RequestAccess() {
   const { handleError } = useErrorHandler();
@@ -34,6 +47,10 @@ export default function RequestAccess() {
     acceptedBeta: false,
   });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'google' | 'email'>('google');
+  const [googleSession, setGoogleSession] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [showBetaModal, setShowBetaModal] = useState(false);
@@ -50,13 +67,120 @@ export default function RequestAccess() {
   // Email validation will be done during form submission
   // Removed real-time email checking to avoid Firestore permission issues for unauthenticated users
 
+  const syncGoogleUser = async (user: FirebaseUser) => {
+    const displayName = user.displayName || '';
+    const userEmail = user.email || '';
+
+    setFormData((prev) => ({
+      ...prev,
+      full_name: prev.full_name || displayName,
+      email: prev.email || userEmail,
+    }));
+    setEmailError(null);
+    setAuthMethod('google');
+    setGoogleSession(true);
+
+    if (!user.uid) return;
+
+    try {
+      const firestoreUser = await getCurrentFirestoreUser();
+      if (firestoreUser?.company_id) {
+        const company = await getCompany(firestoreUser.company_id);
+        if (company?.setup_completed) {
+          navigate('/dashboard');
+          return;
+        }
+        navigate('/setup/company-basic');
+      }
+    } catch (error) {
+      logger.warn('No se pudo validar empresa asociada a Google:', error);
+    }
+  };
+
+  const startGoogleAuth = async () => {
+    setGoogleLoading(true);
+    setEmailError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      await syncGoogleUser(result.user);
+    } catch (error: any) {
+      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user') {
+        toast.error('No pudimos abrir la ventana. Intentaremos redirigir...');
+        try {
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          logger.error('Error iniciando Google con redirect:', redirectError);
+        }
+      } else if (error?.code === 'auth/account-exists-with-different-credential') {
+        toast.error('Este email ya tiene una cuenta con otro método. Usa el acceso por email.');
+        setAuthMethod('email');
+      } else {
+        logger.error('Error en Google Sign-In:', error);
+        toast.error('No pudimos iniciar sesión con Google.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const closeGoogleSession = async () => {
+    await signOutAuth();
+    setGoogleSession(false);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initGoogle = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!isMounted) return;
+
+        if (result?.user) {
+          await syncGoogleUser(result.user);
+        } else if (auth.currentUser?.providerData?.some((p) => p.providerId === 'google.com')) {
+          await syncGoogleUser(auth.currentUser);
+        }
+      } catch (error) {
+        logger.warn('Error procesando redirect de Google:', error);
+      } finally {
+        if (isMounted) {
+          setCheckingRedirect(false);
+        }
+      }
+    };
+
+    initGoogle();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const normalizedEmail = formData.email.trim().toLowerCase();
-    const normalizedName = formData.full_name.trim();
+    const usingGoogle = authMethod === 'google';
+    const googleEmail = auth.currentUser?.email?.toLowerCase() || '';
+    const normalizedEmail = (usingGoogle ? googleEmail || formData.email : formData.email).trim().toLowerCase();
+    const normalizedName = formData.full_name.trim() || auth.currentUser?.displayName || '';
     const normalizedBusiness = formData.business_name.trim();
     const sanitizedWhatsapp = formData.whatsapp.replace(/\D/g, '');
+
+    if (usingGoogle && !googleSession) {
+      toast.error('Primero autentica tu cuenta Google.');
+      return;
+    }
+
+    if (!usingGoogle && googleSession) {
+      toast.error('Cierra sesión de Google para continuar con email.');
+      return;
+    }
 
     if (!normalizedName || !normalizedBusiness || !normalizedEmail) {
       toast.error(t('requestAccess.submitError'));
@@ -74,7 +198,6 @@ export default function RequestAccess() {
     }
 
     setLoading(true);
-    let requestId: string | null = null;
 
     try {
       const payload = {
@@ -84,8 +207,13 @@ export default function RequestAccess() {
         whatsapp: sanitizedWhatsapp,
         plan: formData.plan,
       };
-      const normalizedPlan = (formData.plan || 'BASIC').toUpperCase() as 'BASIC' | 'STANDARD' | 'PRO';
-      const password = generateRandomPassword();
+      const normalizedPlan = (formData.plan || 'BASIC').toUpperCase() as
+        | 'BASIC'
+        | 'STARTER'
+        | 'PRO'
+        | 'BUSINESS'
+        | 'ENTERPRISE';
+      const password = usingGoogle ? '' : generateRandomPassword();
       const slugSource = normalizedBusiness || normalizedEmail.split('@')[0] || normalizedEmail;
       const slug = generateSlug(slugSource);
 
@@ -96,24 +224,44 @@ export default function RequestAccess() {
         whatsapp: sanitizedWhatsapp,
       };
       logger.info('📋 Datos del access request:', accessRequestData);
-      requestId = await createAccessRequest(accessRequestData);
-      logger.info('✅ Access request creado:', requestId);
+      await createAccessRequest(accessRequestData);
+      logger.info('✅ Access request creado');
 
-      logger.info('🔵 Paso 2: Creando usuario en Firebase Auth...');
-      const firebaseUser = await createAuthUser(normalizedEmail, password);
-      const userId = firebaseUser.uid;
-      logger.info('✅ Usuario Auth creado:', userId);
+      let userId = auth.currentUser?.uid || '';
 
-      logger.info('🔵 Paso 3: Creando documento de usuario en Firestore...');
-      await createUser(
-        {
-          email: normalizedEmail,
-          status: UserStatus.FORCE_PASSWORD_CHANGE,
-          role: UserRole.ENTREPRENEUR,
-        },
-        userId
-      );
-      logger.info('✅ Documento de usuario creado');
+      if (!usingGoogle) {
+        logger.info('🔵 Paso 2: Creando usuario en Firebase Auth...');
+        const firebaseUser = await createAuthUser(normalizedEmail, password);
+        userId = firebaseUser.uid;
+        logger.info('✅ Usuario Auth creado:', userId);
+
+        logger.info('🔵 Paso 3: Creando documento de usuario en Firestore...');
+        await createUser(
+          {
+            email: normalizedEmail,
+            status: UserStatus.FORCE_PASSWORD_CHANGE,
+            role: UserRole.ENTREPRENEUR,
+          },
+          userId
+        );
+        logger.info('✅ Documento de usuario creado');
+      } else {
+        if (!userId) {
+          throw new Error('No se encontró sesión de Google activa.');
+        }
+
+        const firestoreUser = await getCurrentFirestoreUser();
+        if (!firestoreUser) {
+          await createUser(
+            {
+              email: normalizedEmail,
+              status: UserStatus.ACTIVE,
+              role: UserRole.ENTREPRENEUR,
+            },
+            userId
+          );
+        }
+      }
 
       logger.info('🔵 Paso 4: Creando compañía...');
       const companyId = await createCompany({
@@ -134,26 +282,30 @@ export default function RequestAccess() {
       await updateUser(userId, { company_id: companyId });
       logger.info('✅ Usuario actualizado con company_id');
 
-  try {
-    await setCompanyClaim(userId, companyId);
-  } catch (claimError) {
-    logger.warn('No se pudo asignar claim de compañía automáticamente', claimError);
-  }
+      try {
+        await setCompanyClaim(userId, companyId);
+      } catch (claimError) {
+        logger.warn('No se pudo asignar claim de compañía automáticamente', claimError);
+      }
 
-  await sendAccessRequestEmail({
-    ...payload,
-    plan: normalizedPlan,
-    created_at: new Date(),
-    language: getCurrentLanguage(),
+      await sendAccessRequestEmail({
+        ...payload,
+        plan: normalizedPlan,
+        created_at: new Date(),
+        language: getCurrentLanguage(),
       });
 
-      // Enviar email oficial de Firebase para que el usuario establezca su contraseña
-      await requestPasswordReset(normalizedEmail);
+      if (!usingGoogle) {
+        // Enviar email oficial de Firebase para que el usuario establezca su contraseña
+        await requestPasswordReset(normalizedEmail);
 
-      // Cerrar sesión de la cuenta recién creada para evitar sesión indeseada en el dispositivo actual
-      await signOutAuth();
+        // Cerrar sesión de la cuenta recién creada para evitar sesión indeseada en el dispositivo actual
+        await signOutAuth();
 
-      setSubmitted(true);
+        setSubmitted(true);
+      } else {
+        navigate('/setup/company-basic');
+      }
     } catch (error: any) {
       // Log detallado del error para diagnóstico
       logger.error('Error completo en submitAccessRequest:', error);
@@ -177,9 +329,11 @@ export default function RequestAccess() {
         context: { action: 'submitAccessRequest' }
       });
     } finally {
-      // Evitar dejar la sesión abierta con el usuario recién creado
-      if (auth.currentUser?.email?.toLowerCase() === normalizedEmail) {
-        await signOutAuth().catch(() => {});
+      if (!usingGoogle) {
+        // Evitar dejar la sesión abierta con el usuario recién creado
+        if (auth.currentUser?.email?.toLowerCase() === normalizedEmail) {
+          await signOutAuth().catch(() => {});
+        }
       }
       setLoading(false);
     }
@@ -226,6 +380,69 @@ export default function RequestAccess() {
             {t('requestAccess.subtitle')}
           </p>
         </div>
+
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-xl bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setAuthMethod('google')}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                authMethod === 'google'
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Con Google
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMethod('email')}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                authMethod === 'email'
+                  ? 'bg-white text-blue-700 shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Con Email
+            </button>
+          </div>
+        </div>
+
+        {authMethod === 'google' && (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+            <p className="font-semibold">Primero autentica tu cuenta Google y luego completa los datos del negocio.</p>
+            <button
+              type="button"
+              onClick={startGoogleAuth}
+              disabled={googleLoading || checkingRedirect}
+              className="mt-3 w-full rounded-lg border border-blue-200 bg-white px-4 py-2.5 font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {googleLoading || checkingRedirect ? 'Continuar con Google...' : 'Continuar con Google'}
+            </button>
+            {googleSession && auth.currentUser?.email && (
+              <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-blue-900">
+                Sesión activa: <span className="font-semibold">{auth.currentUser.email}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {authMethod === 'email' && googleSession && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-semibold">Estás conectado con Google.</p>
+            <p className="mt-1 text-amber-800/90">
+              Para continuar con email debes cerrar sesión de Google.
+            </p>
+            <button
+              type="button"
+              onClick={closeGoogleSession}
+              className="mt-3 w-full rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        )}
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -241,6 +458,7 @@ export default function RequestAccess() {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                readOnly={authMethod === 'google' && googleSession}
               />
             </div>
             <div>
@@ -263,6 +481,7 @@ export default function RequestAccess() {
                   setFormData({ ...formData, email: e.target.value });
                   setEmailError(null); // Limpiar error al escribir
                 }}
+                readOnly={authMethod === 'google' && googleSession}
               />
               {emailError && (
                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -277,27 +496,27 @@ export default function RequestAccess() {
                 </div>
               )}
             </div>
-          <div>
-            <label htmlFor="business_name" className="block text-sm font-medium text-gray-700">
-              {t('requestAccess.businessNameLabel')} *
-            </label>
-            <input
-              id="business_name"
-              name="business_name"
-              type="text"
-              required
-              autoComplete="organization"
-              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder=""
-              value={formData.business_name}
-              onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-            />
-            <div className="relative overflow-hidden h-5 mt-1">
-              <span className="absolute whitespace-nowrap text-xs text-blue-600 animate-marquee">
-                {t('requestAccess.businessNameHint')}
-              </span>
+            <div>
+              <label htmlFor="business_name" className="block text-sm font-medium text-gray-700">
+                {t('requestAccess.businessNameLabel')} *
+              </label>
+              <input
+                id="business_name"
+                name="business_name"
+                type="text"
+                required
+                autoComplete="organization"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder=""
+                value={formData.business_name}
+                onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
+              />
+              <div className="relative overflow-hidden h-5 mt-1">
+                <span className="absolute whitespace-nowrap text-xs text-blue-600 animate-marquee">
+                  {t('requestAccess.businessNameHint')}
+                </span>
+              </div>
             </div>
-          </div>
             <div>
               <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700">
                 {t('requestAccess.whatsappLabel')} *

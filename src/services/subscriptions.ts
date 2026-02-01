@@ -24,7 +24,9 @@ export const getCompanySubscription = async (companyId: string) => {
   }
   
   const companyData = companySnap.data() as Company;
-  const plan = companyData.subscription_plan || 'BASIC';
+  const rawPlan = companyData.subscription_plan || 'BASIC';
+  const plan: SubscriptionPlan =
+    rawPlan in SUBSCRIPTION_PLANS_DETAILS ? (rawPlan as SubscriptionPlan) : 'BASIC';
   const planDetails = SUBSCRIPTION_PLANS_DETAILS[plan];
   
   return {
@@ -111,10 +113,11 @@ export const getAllPlans = () => {
  */
 export const getRecommendedUpgrade = (currentPlan: SubscriptionPlan): SubscriptionPlan | null => {
   const upgradePath: Record<SubscriptionPlan, SubscriptionPlan | null> = {
-    BASIC: 'STANDARD',
-    STANDARD: 'PRO',
-    PRO: null,
-    APPROVED25: 'PRO',
+    BASIC: 'STARTER',
+    STARTER: 'PRO',
+    PRO: 'BUSINESS',
+    BUSINESS: 'ENTERPRISE',
+    ENTERPRISE: null,
   };
   
   return upgradePath[currentPlan];
@@ -129,11 +132,11 @@ export const getRecommendedUpgrade = (currentPlan: SubscriptionPlan): Subscripti
 export const isUpgrade = (fromPlan: SubscriptionPlan, toPlan: SubscriptionPlan): boolean => {
   const planOrder: Record<SubscriptionPlan, number> = {
     BASIC: 1,
-    STANDARD: 2,
-    APPROVED25: 2.5,
+    STARTER: 2,
     PRO: 3,
+    BUSINESS: 4,
+    ENTERPRISE: 5,
   };
   
   return planOrder[toPlan] > planOrder[fromPlan];
 };
-
