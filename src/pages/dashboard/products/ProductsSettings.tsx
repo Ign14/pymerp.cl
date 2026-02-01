@@ -26,20 +26,35 @@ export default function ProductsSettings() {
     banner_url: '',
     logo_position: 'center' as 'left' | 'center' | 'right',
     background_color: '#ffffff',
+    menu_background_color: '#f9fafb',
+    menu_background_image: '',
     card_color: '#ffffff',
+    menu_card_color: '#ffffff',
     background_opacity: 1,
     card_opacity: 1,
+    menu_hero_card_color: '#000000',
+    menu_hero_card_opacity: 0,
+    menu_hero_logo_card_color: '#000000',
+    menu_hero_logo_card_opacity: 0,
     button_color: '#2563eb',
     button_text_color: '#ffffff',
+    menu_button_color: '#2563eb',
+    menu_button_text_color: '#ffffff',
     title_color: '#111827',
+    menu_title_color: '#111827',
     subtitle_color: '#4b5563',
     text_color: '#4b5563',
+    menu_text_color: '#374151',
     font_title: FONT_OPTIONS[0].value,
     font_body: FONT_OPTIONS[0].value,
     font_button: FONT_OPTIONS[0].value,
     layout: 'GRID' as 'GRID' | 'LIST',
     card_layout: 1 as 1 | 2 | 3,
     show_whatsapp_fab: false,
+    menu_category_image_default: '',
+    hero_kicker: '',
+    hero_title: '',
+    hero_description: '',
   });
   const [companySchedule, setCompanySchedule] = useState({
     weekday_days: [] as string[],
@@ -81,20 +96,35 @@ export default function ProductsSettings() {
           banner_url: appearanceData.banner_url || '',
           logo_position: appearanceData.logo_position || 'center',
           background_color: appearanceData.background_color || '#ffffff',
+          menu_background_color: appearanceData.menu_background_color || '#f9fafb',
+          menu_background_image: appearanceData.menu_background_image || '',
           card_color: appearanceData.card_color || '#ffffff',
+          menu_card_color: appearanceData.menu_card_color || '#ffffff',
           background_opacity: appearanceData.background_opacity ?? 1,
           card_opacity: appearanceData.card_opacity ?? 1,
+          menu_hero_card_color: appearanceData.menu_hero_card_color || '#000000',
+          menu_hero_card_opacity: appearanceData.menu_hero_card_opacity ?? 0,
+          menu_hero_logo_card_color: appearanceData.menu_hero_logo_card_color || '#000000',
+          menu_hero_logo_card_opacity: appearanceData.menu_hero_logo_card_opacity ?? 0,
           button_color: appearanceData.button_color || '#2563eb',
           button_text_color: appearanceData.button_text_color || '#ffffff',
+          menu_button_color: appearanceData.menu_button_color || '#2563eb',
+          menu_button_text_color: appearanceData.menu_button_text_color || '#ffffff',
           title_color: appearanceData.title_color || '#111827',
+          menu_title_color: appearanceData.menu_title_color || '#111827',
           subtitle_color: appearanceData.subtitle_color || '#4b5563',
           text_color: appearanceData.text_color || '#4b5563',
+          menu_text_color: appearanceData.menu_text_color || '#374151',
           font_title: appearanceData.font_title || FONT_OPTIONS[0].value,
           font_body: appearanceData.font_body || FONT_OPTIONS[0].value,
           font_button: appearanceData.font_button || FONT_OPTIONS[0].value,
           layout: appearanceData.layout || 'GRID',
           card_layout: (appearanceData.card_layout || 1) as 1 | 2 | 3,
           show_whatsapp_fab: appearanceData.show_whatsapp_fab || false,
+          menu_category_image_default: appearanceData.menu_category_image_default || '',
+          hero_kicker: appearanceData.hero_kicker || '',
+          hero_title: appearanceData.hero_title || '',
+          hero_description: appearanceData.hero_description || '',
         });
       }
       if (companyData) {
@@ -134,6 +164,28 @@ export default function ProductsSettings() {
         setAppearance({ ...appearance, banner_url: url });
       }
       
+      toast.success('Imagen subida correctamente');
+    } catch (error) {
+      toast.error('Error al subir imagen');
+      handleError(error);
+    }
+  };
+
+  const handleMenuImageUpload = async (
+    file: File,
+    field: 'menu_background_image' | 'menu_category_image_default'
+  ) => {
+    if (!firestoreUser?.company_id) return;
+
+    try {
+      const path = `companies/${firestoreUser.company_id}/${field}_${Date.now()}`;
+      const options =
+        field === 'menu_background_image'
+          ? { width: 1920, height: 1080, maxSizeKB: 1500, format: 'image/jpeg', quality: 0.9 }
+          : { width: 900, height: 900, maxSizeKB: 900, format: 'image/jpeg', quality: 0.9 };
+      const url = await uploadImage(file, path, options);
+
+      setAppearance((prev) => ({ ...prev, [field]: url }));
       toast.success('Imagen subida correctamente');
     } catch (error) {
       toast.error('Error al subir imagen');
@@ -294,6 +346,208 @@ export default function ProductsSettings() {
               }}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
+          </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Diseño del menú</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Fondo del menú</label>
+                <input
+                  type="color"
+                  value={appearance.menu_background_color}
+                  onChange={(e) => setAppearance({ ...appearance, menu_background_color: e.target.value })}
+                  className="h-10 w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Imagen de fondo del menú</label>
+                <p className="text-xs text-gray-500 mb-1">Recomendado: 1920x1080 px, JPG, máx ~1.5MB.</p>
+                {appearance.menu_background_image && (
+                  <div className="mb-2">
+                    <img
+                      src={appearance.menu_background_image}
+                      alt="Fondo del menú"
+                      className="w-full h-40 object-cover rounded mb-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAppearance({ ...appearance, menu_background_image: '' })}
+                      className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                    >
+                      Eliminar imagen
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleMenuImageUpload(file, 'menu_background_image');
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Imagen por defecto para categorías</label>
+                <p className="text-xs text-gray-500 mb-1">Recomendado: 900x900 px, JPG/PNG, máx ~900KB.</p>
+                {appearance.menu_category_image_default && (
+                  <div className="flex items-center gap-3 mb-2">
+                    <img
+                      src={appearance.menu_category_image_default}
+                      alt="Categoría por defecto"
+                      className="h-20 w-20 object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAppearance({ ...appearance, menu_category_image_default: '' })}
+                      className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                    >
+                      Eliminar imagen
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleMenuImageUpload(file, 'menu_category_image_default');
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tarjetas del menú</label>
+                  <input
+                    type="color"
+                    value={appearance.menu_card_color}
+                    onChange={(e) => setAppearance({ ...appearance, menu_card_color: e.target.value })}
+                    className="h-10 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Texto del menú</label>
+                  <input
+                    type="color"
+                    value={appearance.menu_text_color}
+                    onChange={(e) => setAppearance({ ...appearance, menu_text_color: e.target.value })}
+                    className="h-10 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Título del menú</label>
+                  <input
+                    type="color"
+                    value={appearance.menu_title_color}
+                    onChange={(e) => setAppearance({ ...appearance, menu_title_color: e.target.value })}
+                    className="h-10 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Botón del menú</label>
+                  <input
+                    type="color"
+                    value={appearance.menu_button_color}
+                    onChange={(e) => setAppearance({ ...appearance, menu_button_color: e.target.value })}
+                    className="h-10 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Texto de botón (menú)</label>
+                  <input
+                    type="color"
+                    value={appearance.menu_button_text_color}
+                    onChange={(e) => setAppearance({ ...appearance, menu_button_text_color: e.target.value })}
+                    className="h-10 w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-4">
+                <h3 className="text-sm font-semibold text-gray-800">Hero del menú</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kicker</label>
+                    <input
+                      type="text"
+                      value={appearance.hero_kicker}
+                      onChange={(e) => setAppearance({ ...appearance, hero_kicker: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Ej: Especialistas en completos"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+                    <input
+                      type="text"
+                      value={appearance.hero_title}
+                      onChange={(e) => setAppearance({ ...appearance, hero_title: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="Nombre destacado en el hero"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                    <textarea
+                      value={appearance.hero_description}
+                      onChange={(e) => setAppearance({ ...appearance, hero_description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md min-h-[90px]"
+                      placeholder="Breve descripción en el hero"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tarjeta hero (color)</label>
+                    <input
+                      type="color"
+                      value={appearance.menu_hero_card_color}
+                      onChange={(e) => setAppearance({ ...appearance, menu_hero_card_color: e.target.value })}
+                      className="h-10 w-full"
+                    />
+                    <label className="block text-xs text-gray-600 mt-2">Opacidad</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round((appearance.menu_hero_card_opacity ?? 0) * 100)}
+                      onChange={(e) =>
+                        setAppearance({ ...appearance, menu_hero_card_opacity: Number(e.target.value) / 100 })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tarjeta logo (color)</label>
+                    <input
+                      type="color"
+                      value={appearance.menu_hero_logo_card_color}
+                      onChange={(e) => setAppearance({ ...appearance, menu_hero_logo_card_color: e.target.value })}
+                      className="h-10 w-full"
+                    />
+                    <label className="block text-xs text-gray-600 mt-2">Opacidad</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round((appearance.menu_hero_logo_card_opacity ?? 0) * 100)}
+                      onChange={(e) =>
+                        setAppearance({ ...appearance, menu_hero_logo_card_opacity: Number(e.target.value) / 100 })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
