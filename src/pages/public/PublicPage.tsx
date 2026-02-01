@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import {
   getCompanyAppearance,
   getCompanyBySlug,
@@ -11,6 +12,7 @@ import {
   createPublicPageEvent,
   createProductOrderRequest,
 } from '../../services/firestore';
+import { getMenuCategories } from '../../services/menu';
 import { createAppointment } from '../../services/appointments';
 import { createCalendarInventoryEntry, isInventorySlotAvailable } from '../../services/calendarInventory';
 import { listProfessionals } from '../../services/professionals';
@@ -21,7 +23,9 @@ import {
   Company,
   CompanyAppearance,
   EventType,
+  MenuCategory,
   Product,
+  ServiceSchedule,
   ScheduleSlot,
   Service,
   Professional,
@@ -42,16 +46,18 @@ import { LocationMapCard } from './components/LocationMapCard';
 import { ServicesSection } from './components/ServicesSection';
 import { ProductsSection } from './components/ProductsSection';
 import { ContactActions } from './components/ContactActions';
+import { MobileMenuModal } from './components/MobileMenuModal';
 import { BookingModal } from './components/BookingModal';
 import { CartModal } from './components/CartModal';
-import { HorizontalCarousel } from './components/HorizontalCarousel';
-import { FullscreenCarousel } from './components/FullscreenCarousel';
 import { ImagePreviewModal } from './components/ImagePreviewModal';
 import { VideoCard } from './components/VideoCard';
 import { VideoModal } from './components/VideoModal';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { AppearanceTheme, BookingForm, OrderForm } from './types';
+import { resolvePublicLayout } from '../../services/publicPage';
+import { getLayoutRenderer } from './layouts/layoutRegistry';
+import type { PublicLayoutSections } from './layouts/types';
 
 const toRgba = (color: string, alpha: number): string => {
   const safeAlpha = Math.min(1, Math.max(0, alpha));
@@ -91,6 +97,7 @@ const defaultTheme: AppearanceTheme = {
   titleColor: '#111827',
   subtitleColor: '#4b5563',
   textColor: '#4b5563',
+  descriptionColor: '#4b5563',
   fontTitle: 'Inter, "Segoe UI", system-ui, -apple-system, sans-serif',
   fontBody: 'Inter, "Segoe UI", system-ui, -apple-system, sans-serif',
   fontButton: 'Inter, "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -100,6 +107,7 @@ export default function PublicPage() {
   const { slug } = useParams();
   const { trackConversion, trackClick, trackNamedEvent } = useAnalytics();
   const { handleError } = useErrorHandler();
+  const { t } = useTranslation();
 
   const isMobile = useMemo(
     () =>
@@ -115,6 +123,9 @@ export default function PublicPage() {
   const [serviceProfessionals, setServiceProfessionals] = useState<Professional[]>([]);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleSlot[]>([]);
+  const [serviceSchedules, setServiceSchedules] = useState<ServiceSchedule[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -143,6 +154,7 @@ export default function PublicPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalQuantity, setModalQuantity] = useState<number>(0);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showWhatsAppFab = Boolean(appearance?.show_whatsapp_fab && company?.whatsapp);
 
   useEffect(() => {
@@ -185,6 +197,7 @@ export default function PublicPage() {
       titleColor: appearance?.title_color || defaultTheme.titleColor,
       subtitleColor: appearance?.subtitle_color || defaultTheme.subtitleColor,
       textColor: appearance?.text_color || defaultTheme.textColor,
+      descriptionColor: appearance?.subtitle_color || appearance?.text_color || defaultTheme.descriptionColor,
       fontTitle: appearance?.font_title || defaultTheme.fontTitle,
       fontBody: appearance?.font_body || defaultTheme.fontBody,
       fontButton: appearance?.font_button || defaultTheme.fontButton,
@@ -247,6 +260,16 @@ export default function PublicPage() {
             !service.status || service.status === 'ACTIVE'
           );
           setServices(activeServices);
+
+          if (activeServices.length > 0) {
+            const schedulesData = await getScheduleSlots(companyData.id);
+            setSchedules(schedulesData);
+
+            const scheduleGroups = await Promise.all(
+              activeServices.map((service) => getServiceSchedules(service.id))
+            );
+            setServiceSchedules(scheduleGroups.flat());
+          }
         } catch (error) {
           handleError(error);
         }
@@ -259,11 +282,16 @@ export default function PublicPage() {
         }
       } else if (companyData.business_type === BusinessType.PRODUCTS) {
         try {
-          const productsData = await getProducts(companyData.id);
+          const [productsData, categoriesData] = await Promise.all([
+            getProducts(companyData.id),
+            getMenuCategories(companyData.id),
+          ]);
           const activeProducts = productsData.filter((product) => 
             !product.status || product.status === 'ACTIVE'
           );
+          const activeCategories = categoriesData.filter((category) => category.active !== false);
           setProducts(activeProducts);
+          setMenuCategories(activeCategories);
         } catch (error) {
           handleError(error);
         }
@@ -294,7 +322,7 @@ export default function PublicPage() {
     }
   };
 
-  const handleBookService = async (service: Service) => {
+  const handleBookService = async (service: Service, preferredProfessionalId?: string | null) => {
     if (!company?.id) return;
 
     setSelectedService(service);
@@ -305,7 +333,7 @@ export default function PublicPage() {
         ? professionals.filter((pro) => service.professional_ids?.includes(pro.id))
         : professionals;
     setServiceProfessionals(prosForService);
-    setSelectedProfessionalId(prosForService[0]?.id || null);
+    setSelectedProfessionalId(preferredProfessionalId || prosForService[0]?.id || null);
 
     try {
       const serviceSchedules = await getServiceSchedules(service.id);
@@ -651,9 +679,10 @@ export default function PublicPage() {
     ? `${company.name} | ${company.sector || company.industry || 'PYM-ERP'}`
     : 'Ficha pública | PYM-ERP';
   const metaDescription =
-    company?.mission || company?.booking_message || 'Descubre servicios y productos locales en PYM-ERP.';
-  const metaImage = appearance?.banner_url || appearance?.logo_url || '/logopymerp.png';
-  const metaUrl = typeof window !== 'undefined' ? window.location.href : '';
+    company?.description || company?.mission || company?.booking_message || 'Descubre servicios y productos locales en PYM-ERP.';
+  const metaImage = appearance?.logo_url || appearance?.banner_url || '/logopymerp.png';
+  const metaUrl =
+    company?.slug ? `https://pymerp.cl/${company.slug}` : typeof window !== 'undefined' ? window.location.href : '';
 
   const businessSchema = company
     ? createLocalBusinessSchema({
@@ -681,6 +710,8 @@ export default function PublicPage() {
     : null;
 
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const hasHiddenPrices = cart.some((item) => item.product.hide_price === true);
   const googleMapsApiKey = env.googleMapsApiKey;
 
   if (loading) {
@@ -698,79 +729,161 @@ export default function PublicPage() {
     );
   }
 
-  const isHorizontalBackground = Boolean(company?.background_enabled && company.background_orientation !== 'VERTICAL');
+  const layoutInfo = resolvePublicLayout(company);
+  const LayoutRenderer = getLayoutRenderer(layoutInfo.key);
 
-  // Crear array de secciones para el carrusel (sin ContactActions)
-  const contentSectionsArray = [
-    // Video HERO - al inicio si placement es HERO
-    company?.video_enabled && company.video_placement === 'HERO' && company.video_url ? (
-      <VideoCard key="video-hero" company={company} theme={theme} />
-    ) : null,
+  const resolveLabel = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
+
+  const descriptionSection =
     company?.description && company?.show_description !== false ? (
-      <DescriptionCard key="description" company={company} theme={theme} />
-    ) : null,
-    (company?.mission || company?.vision) && company?.show_mission_vision !== false ? (
-      <MissionVisionCard key="mission" company={company} theme={theme} />
-    ) : null,
-    (company?.weekday_days && company.weekday_days.length > 0) || 
-    (company?.weekend_days && company.weekend_days.length > 0) ? (
-      <OperatingHoursCard key="hours" company={company} theme={theme} />
-    ) : null,
-    company?.address && googleMapsApiKey ? (
-      <LocationMapCard key="location" company={company} theme={theme} googleMapsApiKey={googleMapsApiKey} />
-    ) : null,
-    ...(company.business_type === BusinessType.SERVICES && services.length > 0
-      ? [
-          <ServicesSection
-            key="services"
-            services={services}
-            theme={theme}
-            onBook={handleBookService}
-            onServiceClick={(service) => {
-              setSelectedService(service);
-              // Cargar profesionales para este servicio
-              const prosForService =
-                service.professional_ids && service.professional_ids.length > 0
-                  ? professionals.filter((pro) => service.professional_ids?.includes(pro.id))
-                  : professionals;
-              setServiceProfessionals(prosForService);
-            }}
-          />,
-        ]
-      : []),
-    ...(company.business_type === BusinessType.PRODUCTS && products.length > 0
-      ? [
-          <ProductsSection
-            key="products"
-            products={products}
-            theme={theme}
-            layout={appearance?.layout}
-            cart={cart}
-            onAddToCart={addToCart}
-            onUpdateQuantity={updateCartQuantity}
-            onOpenCart={() => setShowCart(true)}
-            onProductClick={handleProductClick}
-          />,
-        ]
-      : []),
-    // Video FOOTER - al final si placement es FOOTER
-    company?.video_enabled && company.video_placement === 'FOOTER' && company.video_url ? (
-      <VideoCard key="video-footer" company={company} theme={theme} />
-    ) : null,
-  ].filter(Boolean); // Filtrar tarjetas vacías (null/undefined)
+      <DescriptionCard company={company} theme={theme} />
+    ) : null;
 
-  // Versión vertical (sin carrusel)
-  const contentSections = (
-    <>
-      {contentSectionsArray}
-      <ContactActions
+  const missionVisionSection =
+    (company?.mission || company?.vision) && company?.show_mission_vision !== false ? (
+      <MissionVisionCard company={company} theme={theme} />
+    ) : null;
+
+  const hoursSection =
+    (company?.weekday_days && company.weekday_days.length > 0) ||
+    (company?.weekend_days && company.weekend_days.length > 0) ? (
+      <OperatingHoursCard company={company} theme={theme} />
+    ) : null;
+
+  const locationSection =
+    company?.address && googleMapsApiKey ? (
+      <LocationMapCard company={company} theme={theme} googleMapsApiKey={googleMapsApiKey} />
+    ) : null;
+
+  const servicesSection =
+    company.business_type === BusinessType.SERVICES && services.length > 0 ? (
+      <ServicesSection
+        services={services}
         theme={theme}
-        onWhatsApp={handleWhatsAppClick}
-        onOpenCart={() => setShowCart(true)}
-        cartItems={totalCartItems}
-        showCartCta={company.business_type === BusinessType.PRODUCTS}
+        onBook={handleBookService}
+        onServiceClick={(service) => {
+          setSelectedService(service);
+          const prosForService =
+            service.professional_ids && service.professional_ids.length > 0
+              ? professionals.filter((pro) => service.professional_ids?.includes(pro.id))
+              : professionals;
+          setServiceProfessionals(prosForService);
+        }}
       />
-    </>
+    ) : null;
+
+  const productsSection =
+    company.business_type === BusinessType.PRODUCTS && products.length > 0 ? (
+      <ProductsSection
+        products={products}
+        theme={theme}
+        layout={appearance?.layout}
+        cart={cart}
+        onAddToCart={addToCart}
+        onUpdateQuantity={updateCartQuantity}
+        onOpenCart={() => setShowCart(true)}
+        onProductClick={handleProductClick}
+      />
+    ) : null;
+
+  const mediaSection =
+    company?.video_enabled && company.video_placement !== 'MODAL' && company.video_url ? (
+      <VideoCard company={company} theme={theme} />
+    ) : null;
+
+  const contactActionsNode = (
+    <ContactActions
+      theme={theme}
+      onWhatsApp={handleWhatsAppClick}
+      onOpenCart={() => setShowCart(true)}
+      cartItems={totalCartItems}
+      showCartCta={company.business_type === BusinessType.PRODUCTS}
+    />
+  );
+
+  const sections: PublicLayoutSections = {
+    highlight: descriptionSection,
+    missionVision: missionVisionSection,
+    services: servicesSection,
+    products: productsSection,
+    hours: hoursSection,
+    location: locationSection,
+    media: mediaSection,
+  };
+
+  const mobileSections = [
+    descriptionSection
+      ? {
+          id: 'highlight',
+          label: resolveLabel('publicPage.mobileMenu.about', 'Acerca de'),
+          icon: '📋',
+        }
+      : null,
+    servicesSection
+      ? {
+          id: 'services',
+          label: resolveLabel('publicPage.mobileMenu.services', 'Servicios'),
+          icon: '🛎️',
+        }
+      : null,
+    productsSection
+      ? {
+          id: 'products',
+          label: resolveLabel('publicPage.mobileMenu.products', 'Productos'),
+          icon: '🛍️',
+          scrollToId: 'section-products',
+        }
+      : null,
+    hoursSection
+      ? {
+          id: 'hours',
+          label: resolveLabel('publicPage.mobileMenu.hours', 'Horario'),
+          icon: '🕒',
+        }
+      : null,
+    locationSection
+      ? {
+          id: 'location',
+          label: resolveLabel('publicPage.mobileMenu.location', 'Ubicación'),
+          icon: '📍',
+        }
+      : null,
+    mediaSection
+      ? {
+          id: 'media',
+          label: resolveLabel('publicPage.mobileMenu.media', 'Video'),
+          icon: '🎥',
+        }
+      : null,
+    {
+      id: 'contact',
+      label: resolveLabel('publicPage.mobileMenu.contact', 'Contacto'),
+      icon: '💬',
+      scrollToId: 'section-contact',
+    },
+  ].filter(Boolean) as Array<{ id: string; label: string; icon?: string; scrollToId?: string }>;
+
+  const mobileHeaderLogo =
+    appearance?.logo_url || (company as any)?.logo_url || (company as any)?.logo || '';
+  const mobileHeaderBg =
+    appearance?.menu_card_color ||
+    appearance?.menu_background_color ||
+    appearance?.card_color ||
+    theme.cardColor;
+  const mobileHeaderText =
+    appearance?.menu_text_color ||
+    appearance?.text_color ||
+    theme.textColor;
+  const mobileHeaderBorder =
+    appearance?.menu_button_color ||
+    appearance?.button_color ||
+    theme.buttonColor;
+
+  const showStandardHeader = ['default', 'servicesShowcase', 'productsShowcase', 'beautyShowcase', 'propertyShowcase'].includes(
+    layoutInfo.key
   );
 
   return (
@@ -846,59 +959,77 @@ export default function PublicPage() {
           />
         )}
 
-        <PublicHeader company={company} appearance={appearance} theme={theme} />
+        <div
+          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-between px-4 py-2 shadow-md"
+          style={{
+            backgroundColor: mobileHeaderBg,
+            color: mobileHeaderText,
+            borderBottom: `1px solid ${mobileHeaderBorder}30`,
+          }}
+        >
+          {mobileHeaderLogo ? (
+            <img
+              src={mobileHeaderLogo}
+              alt={company.name}
+              className="h-10 w-auto object-contain"
+              loading="eager"
+            />
+          ) : (
+            <span className="text-sm font-semibold">{company.name}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="h-10 w-10 rounded-full flex items-center justify-center transition hover:opacity-80"
+            aria-label="Abrir menú"
+            style={{ color: mobileHeaderText }}
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
+        {showStandardHeader && <PublicHeader company={company} appearance={appearance} theme={theme} />}
 
         <main
           id="main-content"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pt-16 sm:pt-6"
           style={{ color: theme.textColor, fontFamily: theme.fontBody }}
         >
-          {/* Layout 3: Carrusel Fullscreen */}
-          {theme.cardLayout === 3 ? (
-            <FullscreenCarousel
-              company={company}
-              theme={theme}
-              services={services}
-              products={products}
-              cart={cart}
-              googleMapsApiKey={googleMapsApiKey}
-              onBook={handleBookService}
-              onServiceClick={(service) => {
-                setSelectedService(service);
-                const prosForService =
-                  service.professional_ids && service.professional_ids.length > 0
-                    ? professionals.filter((pro) => service.professional_ids?.includes(pro.id))
-                    : professionals;
-                setServiceProfessionals(prosForService);
-              }}
-              onAddToCart={addToCart}
-              onUpdateQuantity={updateCartQuantity}
-              onProductClick={handleProductClick}
-              onOpenCart={() => setShowCart(true)}
-            />
-          ) : isHorizontalBackground ? (
-            <>
-              {contentSectionsArray.length > 0 && (
-                <HorizontalCarousel theme={theme}>
-                  {contentSectionsArray}
-                </HorizontalCarousel>
-              )}
-              {/* Botón de contacto centrado al final */}
-              <div className="mt-12 mb-8 flex justify-center">
-                <ContactActions
-                  theme={theme}
-                  onWhatsApp={handleWhatsAppClick}
-                  onOpenCart={() => setShowCart(true)}
-                  cartItems={totalCartItems}
-                  showCartCta={company.business_type === BusinessType.PRODUCTS}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="space-y-6">
-              {contentSections}
-            </div>
-          )}
+          <LayoutRenderer
+            layoutKey={layoutInfo.key}
+            variant={layoutInfo.variant}
+            company={company}
+            appearance={appearance}
+            theme={theme}
+            services={services}
+            products={products}
+            professionals={professionals}
+            schedules={schedules}
+            serviceSchedules={serviceSchedules}
+            menuCategories={menuCategories}
+            cart={cart}
+            cartItems={totalCartItems}
+            cartTotal={cartTotal}
+            hasHiddenPrices={hasHiddenPrices}
+            sections={sections}
+            contactActions={contactActionsNode}
+            onOpenCart={() => setShowCart(true)}
+            onAddToCart={addToCart}
+            onUpdateQuantity={updateCartQuantity}
+            onProductClick={handleProductClick}
+            onBookService={handleBookService}
+            onWhatsAppClick={handleWhatsAppClick}
+            onServiceClick={(service) => {
+              setSelectedService(service);
+              const prosForService =
+                service.professional_ids && service.professional_ids.length > 0
+                  ? professionals.filter((pro) => service.professional_ids?.includes(pro.id))
+                  : professionals;
+              setServiceProfessionals(prosForService);
+            }}
+          />
         </main>
 
         {showWhatsAppFab && (
@@ -928,6 +1059,14 @@ export default function PublicPage() {
             pymerp.cl
           </a>
         </footer>
+
+        <MobileMenuModal
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          sections={mobileSections}
+          theme={theme}
+          appearance={appearance}
+        />
 
         <BookingModal
           isOpen={showBookingModal}
