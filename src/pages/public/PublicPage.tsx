@@ -47,7 +47,7 @@ import { ServicesSection } from './components/ServicesSection';
 import { ProductsSection } from './components/ProductsSection';
 import { ContactActions } from './components/ContactActions';
 import { MobileMenuModal } from './components/MobileMenuModal';
-import { BookingModal } from './components/BookingModal';
+import { BookingModalV2 } from './components/BookingModalV2';
 import { CartModal } from './components/CartModal';
 import { ImagePreviewModal } from './components/ImagePreviewModal';
 import { VideoCard } from './components/VideoCard';
@@ -1249,9 +1249,12 @@ export default function PublicPage() {
           appearance={appearance}
         />
 
-        <BookingModal
+        <BookingModalV2
           isOpen={showBookingModal}
+          theme={theme}
           serviceName={selectedService?.name}
+          servicePrice={selectedService?.price}
+          serviceDuration={selectedService?.estimated_duration_minutes}
           availableSchedules={availableSchedules}
           selectedDate={selectedDate}
           selectedSchedule={selectedSchedule}
@@ -1268,11 +1271,8 @@ export default function PublicPage() {
           selectedProfessionalId={selectedProfessionalId}
           onProfessionalChange={(id) => setSelectedProfessionalId(id)}
           requireProfessional={serviceProfessionals.length > 0}
-          enableEmailField
-          emailLabel="Correo del cliente (opcional)"
-          emailPlaceholder="cliente@correo.com"
-          theme={theme}
           companyId={company?.id}
+          companyAddress={company?.address}
         />
 
         <CartModal
