@@ -387,7 +387,7 @@ export function BookingModalV2({
     <AnimatedModal
       isOpen={isOpen}
       onClose={onClose}
-      className="p-0 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col booking-modal-container"
+      className="p-0 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col booking-modal-container"
       ariaLabel={`Agendar servicio: ${serviceName}`}
     >
       <style>{`
@@ -457,23 +457,23 @@ export function BookingModalV2({
           border: 2px solid #0ea5e9 !important;
           background: #ffffff !important;
           box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.3), 0 8px 10px -6px rgba(14, 165, 233, 0.2) !important;
-          border-radius: 1.25rem !important;
+          border-radius: 1rem !important;
           color: #000000 !important;
-          padding: 0.75rem !important;
+          padding: 0.5rem !important;
         }
 
         .react-datepicker__header {
           background: transparent !important;
           border: none !important;
-          padding: 0.5rem 0.5rem 0.75rem !important;
+          padding: 0.25rem 0.25rem 0.5rem !important;
           border-bottom: 2px solid #0ea5e9 !important;
         }
 
         .react-datepicker__current-month {
           color: #000000 !important;
           font-weight: 700 !important;
-          font-size: 1rem !important;
-          margin-bottom: 0.75rem !important;
+          font-size: 0.9rem !important;
+          margin-bottom: 0.5rem !important;
         }
 
         .react-datepicker__month-container {
@@ -488,27 +488,27 @@ export function BookingModalV2({
         .react-datepicker__day-names {
           display: grid !important;
           grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-          gap: 0.375rem !important;
-          margin-top: 0.5rem !important;
+          gap: 0.25rem !important;
+          margin-top: 0.25rem !important;
         }
 
         .react-datepicker__day-name {
           color: #6b7280 !important;
           font-weight: 700 !important;
-          font-size: 0.7rem !important;
+          font-size: 0.65rem !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
           background: transparent !important;
-          border-radius: 0.5rem !important;
-          padding: 0.5rem 0 !important;
+          border-radius: 0.375rem !important;
+          padding: 0.25rem 0 !important;
           text-align: center !important;
         }
 
         .react-datepicker__week {
           display: grid !important;
           grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-          gap: 0.375rem !important;
-          margin-bottom: 0.375rem !important;
+          gap: 0.25rem !important;
+          margin-bottom: 0.25rem !important;
         }
 
         .react-datepicker__day {
@@ -518,9 +518,9 @@ export function BookingModalV2({
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          border-radius: 0.75rem !important;
+          border-radius: 0.5rem !important;
           font-weight: 600 !important;
-          font-size: 0.875rem !important;
+          font-size: 0.8rem !important;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
           border: 2px solid #bfdbfe !important;
           color: #000000 !important;
@@ -629,23 +629,23 @@ export function BookingModalV2({
 
       {/* Header */}
       <div 
-        className="px-5 sm:px-6 py-4 border-b-2"
+        className="px-4 sm:px-5 py-3 border-b-2"
         style={{ 
           borderColor: colorPalette.border,
           background: `linear-gradient(to bottom, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
         }}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p 
-              className="text-xs uppercase tracking-wider font-semibold mb-1.5" 
+              className="text-xs uppercase tracking-wider font-semibold mb-1" 
               style={{ color: '#000000' }}
             >
               Agendar servicio
             </p>
             <h3 
               id="booking-modal-title"
-              className="text-xl sm:text-2xl font-bold truncate leading-tight"
+              className="text-lg sm:text-xl font-bold truncate leading-tight"
               style={{ color: colorPalette.text }}
             >
               {serviceName}
@@ -653,12 +653,12 @@ export function BookingModalV2({
             
             {/* Metadatos del servicio */}
             <div 
-              className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm mt-3"
+              className="flex flex-wrap items-center gap-2 text-xs sm:text-sm mt-2"
               style={{ color: colorPalette.textSecondary }}
             >
               {serviceDuration && (
                 <span 
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium"
                   style={{ 
                     background: colorPalette.surfaceLight,
                     border: `1px solid ${colorPalette.borderLight}`,
@@ -673,7 +673,7 @@ export function BookingModalV2({
               )}
               {servicePrice !== undefined && servicePrice > 0 && (
                 <span 
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold"
                   style={{ 
                     background: colorPalette.primaryLight,
                     color: colorPalette.primary,
@@ -688,7 +688,7 @@ export function BookingModalV2({
               )}
               {selectedProfessionalData && step >= 3 && (
                 <span 
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium"
                   style={{ 
                     background: colorPalette.surfaceLight,
                     border: `1px solid ${colorPalette.borderLight}`,
@@ -707,7 +707,7 @@ export function BookingModalV2({
           {/* Botón cerrar */}
           <button
             onClick={onClose}
-            className="text-2xl leading-none flex-shrink-0 p-2 rounded-xl transition-all duration-200 hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-w-[40px] min-h-[40px] flex items-center justify-center font-light"
+            className="text-xl leading-none flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-w-[36px] min-h-[36px] flex items-center justify-center font-light"
             style={{ 
               color: '#000000',
               background: colorPalette.surfaceLight,
@@ -720,8 +720,8 @@ export function BookingModalV2({
         </div>
 
         {/* Progress indicator con 4 pasos */}
-        <div className="mt-5 px-2">
-          <div className="flex items-center justify-center gap-1 sm:gap-2" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4}>
+        <div className="mt-3 px-1">
+          <div className="flex items-center justify-center gap-0.5 sm:gap-1" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4}>
             {[
               { num: 1, label: 'Fecha' },
               { num: 2, label: 'Hora' },
@@ -729,9 +729,9 @@ export function BookingModalV2({
               { num: 4, label: 'Confirmar' },
             ].map((stepData, index) => (
               <div key={stepData.num} className="flex items-center">
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="flex flex-col items-center gap-1">
                   <div 
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold transition-all duration-300 border-2 ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 border-2 ${
                       step >= stepData.num ? 'scale-110' : 'scale-100'
                     }`}
                     style={{
@@ -739,7 +739,7 @@ export function BookingModalV2({
                       borderColor: step >= stepData.num ? colorPalette.primary : colorPalette.border,
                       color: step >= stepData.num ? '#ffffff' : colorPalette.textMuted,
                       boxShadow: step >= stepData.num 
-                        ? `0 4px 12px -2px ${colorPalette.primary}, 0 0 0 4px ${colorPalette.primaryLight}` 
+                        ? `0 4px 12px -2px ${colorPalette.primary}, 0 0 0 3px ${colorPalette.primaryLight}` 
                         : 'none'
                     }}
                     aria-current={step === stepData.num ? 'step' : undefined}
@@ -747,7 +747,7 @@ export function BookingModalV2({
                     {step > stepData.num ? '✓' : stepData.num}
                   </div>
                   <span 
-                    className="text-[10px] sm:text-xs font-bold uppercase tracking-wide"
+                    className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide"
                     style={{ 
                       color: step >= stepData.num ? colorPalette.text : colorPalette.textMuted
                     }}
@@ -757,7 +757,7 @@ export function BookingModalV2({
                 </div>
                 {index < 3 && (
                   <div 
-                    className="w-6 sm:w-10 h-1 mx-1 rounded-full transition-all duration-300"
+                    className="w-4 sm:w-8 h-0.5 mx-0.5 rounded-full transition-all duration-300"
                     style={{ 
                       backgroundColor: step > stepData.num ? colorPalette.primary : colorPalette.borderLight
                     }}
@@ -772,7 +772,7 @@ export function BookingModalV2({
 
       {/* Content */}
       <div 
-        className="px-5 sm:px-6 py-4 sm:py-5 flex-1 min-h-0 overflow-y-auto booking-modal-content"
+        className="px-4 sm:px-5 py-3 sm:py-4 flex-1 min-h-0 overflow-y-auto booking-modal-content"
         style={{ 
           backgroundColor: colorPalette.surfaceLight,
           color: colorPalette.text
@@ -785,25 +785,25 @@ export function BookingModalV2({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="booking-step-panel space-y-5"
+              className="booking-step-panel space-y-3"
             >
               {/* Paso 1: Selección de fecha */}
-              <div className="space-y-4 max-w-2xl mx-auto">
+              <div className="space-y-3 max-w-xl mx-auto">
                 <label 
                   id="booking-date-picker-label"
-                  className="block text-base sm:text-lg font-bold"
+                  className="block text-sm sm:text-base font-bold"
                   style={{ color: '#000000' }}
                 >
-                  <span className="mr-2 text-xl" aria-hidden="true">📆</span>
+                  <span className="mr-1.5 text-lg" aria-hidden="true">📆</span>
                   Selecciona una fecha
                 </label>
 
                 {/* Botones de navegación rápida */}
-                <div className="space-y-2">
-                  <p className="text-xs sm:text-sm font-semibold" style={{ color: '#000000' }}>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold" style={{ color: '#000000' }}>
                     Ir a:
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {[
                       { label: 'Hoy', action: () => selectNearestAvailable(new Date()) },
                       { label: 'Mañana', action: () => { const d = new Date(); d.setDate(d.getDate() + 1); selectNearestAvailable(d); } },
@@ -813,7 +813,7 @@ export function BookingModalV2({
                         key={action.label}
                         type="button"
                         onClick={action.action}
-                        className="px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-bold transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                        className="px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                         style={{ 
                           borderColor: colorPalette.border,
                           backgroundColor: colorPalette.surface,
@@ -831,7 +831,7 @@ export function BookingModalV2({
                 {/* Calendario */}
                 <div className="w-full flex justify-center">
                   <div 
-                    className="border-2 rounded-2xl p-3 sm:p-4 shadow-lg transition-all w-full max-w-full sm:max-w-md mx-auto flex flex-col items-center"
+                    className="border-2 rounded-xl p-2 sm:p-3 shadow-lg transition-all w-full max-w-full sm:max-w-sm mx-auto flex flex-col items-center"
                     style={{ 
                       backgroundColor: '#ffffff',
                       borderColor: '#0ea5e9',
@@ -856,7 +856,7 @@ export function BookingModalV2({
 
                 {/* Leyenda de disponibilidad */}
                 <div 
-                  className="flex flex-wrap items-center justify-center gap-3 mt-4 p-3 rounded-xl border"
+                  className="flex flex-wrap items-center justify-center gap-2 mt-3 p-2 rounded-lg border"
                   style={{
                     backgroundColor: colorPalette.surfaceDark,
                     borderColor: colorPalette.borderLight
@@ -864,16 +864,16 @@ export function BookingModalV2({
                   role="list" 
                   aria-label="Leyenda de disponibilidad"
                 >
-                  <div className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-3 h-3 rounded-full border-2" aria-hidden="true" style={{ backgroundColor: colorPalette.success, borderColor: colorPalette.success }}></span>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
+                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.success, borderColor: colorPalette.success }}></span>
                     <span>Disponible</span>
                   </div>
-                  <div className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-3 h-3 rounded-full border-2" aria-hidden="true" style={{ backgroundColor: colorPalette.warning, borderColor: colorPalette.warning }}></span>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
+                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.warning, borderColor: colorPalette.warning }}></span>
                     <span>Pocos cupos</span>
                   </div>
-                  <div className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-3 h-3 rounded-full border-2" aria-hidden="true" style={{ backgroundColor: colorPalette.error, borderColor: colorPalette.error }}></span>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
+                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.error, borderColor: colorPalette.error }}></span>
                     <span>Sin horas</span>
                   </div>
                 </div>
@@ -883,17 +883,17 @@ export function BookingModalV2({
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 p-4 rounded-xl border-2"
+                    className="mt-2 p-3 rounded-lg border-2"
                     style={{ 
                       backgroundColor: colorPalette.primaryLight,
                       borderColor: colorPalette.primary,
                       boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
                     }}
                   >
-                    <p className="text-sm font-bold flex items-center gap-2" 
+                    <p className="text-xs font-bold flex items-center gap-1.5" 
                       style={{ color: '#000000' }}
                     >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {selectedDate.toLocaleDateString('es-CL', { 
@@ -915,22 +915,22 @@ export function BookingModalV2({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="booking-step-panel space-y-4 max-w-3xl mx-auto"
+              className="booking-step-panel space-y-3 max-w-2xl mx-auto"
             >
               {/* Paso 2: Selección de horario */}
               {selectedDate && (
                 <div 
-                  className="p-4 rounded-xl border-2"
+                  className="p-3 rounded-lg border-2"
                   style={{ 
                     backgroundColor: colorPalette.primaryLight,
                     borderColor: colorPalette.primary,
                     boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
                   }}
                 >
-                  <p className="text-sm font-bold flex items-center gap-2" 
+                  <p className="text-xs font-bold flex items-center gap-1.5" 
                     style={{ color: colorPalette.text }}
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     {selectedDate.toLocaleDateString('es-CL', { 
@@ -944,16 +944,16 @@ export function BookingModalV2({
               )}
 
               <div>
-                <label className="block text-base sm:text-lg font-bold mb-4 flex items-center gap-2"
+                <label className="block text-sm sm:text-base font-bold mb-3 flex items-center gap-1.5"
                   style={{ color: '#000000' }}
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Selecciona un horario
                 </label>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {getAvailableSchedulesForDate().map((schedule: ScheduleSlot) => (
                     <motion.button
                       key={schedule.id}
@@ -961,7 +961,7 @@ export function BookingModalV2({
                       onClick={() => onScheduleChange(schedule.id)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="p-4 rounded-xl border-2 transition-all text-center"
+                      className="p-3 rounded-lg border-2 transition-all text-center"
                       style={{
                         borderColor: selectedSchedule === schedule.id ? colorPalette.primary : colorPalette.border,
                         backgroundColor: selectedSchedule === schedule.id 
@@ -972,8 +972,8 @@ export function BookingModalV2({
                           : `0 2px 8px -2px ${colorPalette.overlay}`
                       }}
                     >
-                      <div className="space-y-1">
-                        <p className="font-bold text-lg"
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-base"
                           style={{ color: selectedSchedule === schedule.id ? '#ffffff' : colorPalette.text }}
                         >
                           {schedule.start_time}
@@ -990,14 +990,14 @@ export function BookingModalV2({
 
                 {getAvailableSchedulesForDate().length === 0 && (
                   <div 
-                    className="text-center py-10 px-4 rounded-xl border-2 border-dashed"
+                    className="text-center py-6 px-3 rounded-lg border-2 border-dashed"
                     style={{ 
                       borderColor: colorPalette.borderLight,
                       backgroundColor: colorPalette.surfaceDark,
                       color: colorPalette.textMuted
                     }}
                   >
-                    <svg className="w-16 h-16 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ opacity: 0.4, color: '#6b7280' }}>
+                    <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ opacity: 0.4, color: '#6b7280' }}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p className="text-sm font-bold" style={{ color: '#000000' }}>No hay horarios disponibles</p>
@@ -1014,24 +1014,24 @@ export function BookingModalV2({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="booking-step-panel space-y-5 max-w-2xl mx-auto"
+              className="booking-step-panel space-y-3 max-w-xl mx-auto"
             >
               {/* Paso 3: Datos personales y profesional */}
               
               {/* Resumen de la reserva hasta ahora */}
               <div 
-                className="p-4 rounded-xl border-2"
+                className="p-3 rounded-lg border-2"
                 style={{ 
                   backgroundColor: colorPalette.primaryLight,
                   borderColor: colorPalette.primary,
                   boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
                 }}
               >
-                <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: colorPalette.text }}>
-                  <span className="text-lg">📋</span>
+                <h4 className="font-bold mb-2 flex items-center gap-1.5 text-sm" style={{ color: colorPalette.text }}>
+                  <span className="text-base">📋</span>
                   Resumen de tu reserva
                 </h4>
-                <div className="space-y-2 text-sm font-medium" style={{ color: colorPalette.text }}>
+                <div className="space-y-1.5 text-xs font-medium" style={{ color: colorPalette.text }}>
                   <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString('es-CL', { 
                     weekday: 'long', 
                     day: 'numeric', 
@@ -1047,17 +1047,17 @@ export function BookingModalV2({
               {/* Selección de profesional */}
               {getAvailableProfessionals().length > 0 && (
                 <div>
-                  <label className="block text-sm font-bold mb-3" style={{ color: '#000000' }}>
-                    <span className="mr-2">👤</span>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#000000' }}>
+                    <span className="mr-1.5">👤</span>
                     Selecciona un profesional {requireProfessional && <span style={{ color: colorPalette.error }}>*</span>}
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {getAvailableProfessionals().map((pro) => (
                       <button
                         key={pro.id}
                         type="button"
                         onClick={() => onProfessionalChange?.(pro.id)}
-                        className="w-full text-left px-4 py-3 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95"
+                        className="w-full text-left px-3 py-2 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-95"
                         style={{ 
                           borderColor: selectedProfessionalId === pro.id ? colorPalette.primary : colorPalette.border,
                           backgroundColor: selectedProfessionalId === pro.id 
@@ -1081,15 +1081,15 @@ export function BookingModalV2({
               )}
 
               {/* Formulario de datos personales */}
-              <div className="space-y-4">
-                <h4 className="font-bold text-base flex items-center gap-2" style={{ color: colorPalette.text }}>
-                  <span className="text-lg">📝</span>
+              <div className="space-y-3">
+                <h4 className="font-bold text-sm flex items-center gap-1.5" style={{ color: colorPalette.text }}>
+                  <span className="text-base">📝</span>
                   Tus datos de contacto
                 </h4>
 
                 {/* Nombre */}
                 <div>
-                  <label htmlFor="client-name" className="block text-sm font-bold mb-2" style={{ color: '#000000' }}>
+                  <label htmlFor="client-name" className="block text-xs font-bold mb-1.5" style={{ color: '#000000' }}>
                     Nombre completo *
                   </label>
                   <input
@@ -1097,7 +1097,7 @@ export function BookingModalV2({
                     type="text"
                     required
                     placeholder="Ej: Juan Pérez"
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
+                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
@@ -1111,7 +1111,7 @@ export function BookingModalV2({
 
                 {/* RUT */}
                 <div>
-                  <label htmlFor="client-rut" className="block text-sm font-bold mb-2" style={{ color: '#000000' }}>
+                  <label htmlFor="client-rut" className="block text-xs font-bold mb-1.5" style={{ color: '#000000' }}>
                     RUT *
                   </label>
                   <input
@@ -1119,7 +1119,7 @@ export function BookingModalV2({
                     type="text"
                     required
                     placeholder="Ej: 12.345.678-9"
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
+                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
@@ -1133,18 +1133,18 @@ export function BookingModalV2({
 
                 {/* WhatsApp */}
                 <div>
-                  <label htmlFor="client-whatsapp" className="block text-sm font-bold mb-2" style={{ color: '#000000' }}>
+                  <label htmlFor="client-whatsapp" className="block text-xs font-bold mb-1.5" style={{ color: '#000000' }}>
                     WhatsApp *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-3.5 font-bold" style={{ color: '#000000' }}>+56</span>
+                    <span className="absolute left-3 top-2 font-bold text-sm" style={{ color: '#000000' }}>+56</span>
                     <input
                       id="client-whatsapp"
                       type="tel"
                       required
                       placeholder="912345678"
                       maxLength={9}
-                      className="w-full pl-14 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
+                      className="w-full pl-12 pr-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all font-medium"
                       style={{ 
                         borderColor: colorPalette.border,
                         backgroundColor: colorPalette.surface,
@@ -1162,14 +1162,14 @@ export function BookingModalV2({
 
                 {/* Comentarios */}
                 <div>
-                  <label htmlFor="client-comment" className="block text-sm font-bold mb-2" style={{ color: '#000000' }}>
+                  <label htmlFor="client-comment" className="block text-xs font-bold mb-1.5" style={{ color: '#000000' }}>
                     Comentarios o solicitudes especiales (opcional)
                   </label>
                   <textarea
                     id="client-comment"
-                    rows={4}
+                    rows={3}
                     placeholder="Ej: Prefiero atención en la mañana..."
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all resize-none font-medium"
+                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all resize-none font-medium"
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
@@ -1190,54 +1190,54 @@ export function BookingModalV2({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="booking-step-panel max-w-xl mx-auto"
+              className="booking-step-panel max-w-lg mx-auto"
             >
               {/* Paso 4: Confirmación */}
-              <div className="text-center py-6 space-y-6">
+              <div className="text-center py-4 space-y-4">
                 {/* Icono de éxito */}
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="w-24 h-24 rounded-full mx-auto flex items-center justify-center border-4"
+                  className="w-16 h-16 rounded-full mx-auto flex items-center justify-center border-4"
                   style={{ 
                     backgroundColor: colorPalette.primaryLight,
                     borderColor: colorPalette.success,
                     boxShadow: `0 8px 24px -6px ${colorPalette.success}`
                   }}
                 >
-                  <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: colorPalette.success }} strokeWidth={3}>
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: colorPalette.success }} strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </motion.div>
 
                 <div>
-                  <h3 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: '#000000' }}>
+                  <h3 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: '#000000' }}>
                     ¡Reserva agendada!
                   </h3>
-                  <p className="text-sm sm:text-base font-medium" style={{ color: '#000000' }}>
+                  <p className="text-xs sm:text-sm font-medium" style={{ color: '#000000' }}>
                     Se le enviará una confirmación para verificar su cita
                   </p>
                 </div>
 
                 {/* Resumen completo */}
                 <div 
-                  className="p-6 rounded-2xl border-2 text-left shadow-lg"
+                  className="p-4 rounded-xl border-2 text-left shadow-lg"
                   style={{ 
                     backgroundColor: colorPalette.surface,
                     borderColor: colorPalette.border,
                     boxShadow: `0 10px 30px -10px ${colorPalette.overlay}`
                   }}
                 >
-                  <h4 className="font-bold mb-4 text-center text-base" style={{ color: '#000000' }}>
+                  <h4 className="font-bold mb-3 text-center text-sm" style={{ color: '#000000' }}>
                     📋 Resumen de tu reserva
                   </h4>
-                  <div className="space-y-3 text-sm font-medium" style={{ color: '#000000' }}>
-                    <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: colorPalette.borderLight }}>
+                  <div className="space-y-2 text-xs font-medium" style={{ color: '#000000' }}>
+                    <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
                       <span style={{ color: '#374151' }}>Servicio:</span>
                       <span className="font-bold">{serviceName}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: colorPalette.borderLight }}>
+                    <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
                       <span style={{ color: '#374151' }}>Fecha:</span>
                       <span className="font-bold">
                         {selectedDate?.toLocaleDateString('es-CL', { 
@@ -1248,26 +1248,26 @@ export function BookingModalV2({
                       </span>
                     </div>
                     {selectedScheduleData && (
-                      <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: colorPalette.borderLight }}>
+                      <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
                         <span style={{ color: '#374151' }}>Horario:</span>
                         <span className="font-bold">{selectedScheduleData.start_time} - {selectedScheduleData.end_time}</span>
                       </div>
                     )}
                     {selectedProfessionalData && (
-                      <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: colorPalette.borderLight }}>
+                      <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
                         <span style={{ color: '#374151' }}>Profesional:</span>
                         <span className="font-bold">{selectedProfessionalData.name}</span>
                       </div>
                     )}
                     {servicePrice !== undefined && servicePrice > 0 && (
                       <div 
-                        className="flex justify-between items-center pt-3 mt-2"
+                        className="flex justify-between items-center pt-2 mt-1.5"
                         style={{ 
                           borderTop: `2px solid ${colorPalette.border}`,
                         }}
                       >
                         <span className="font-bold" style={{ color: '#374151' }}>Precio:</span>
-                        <span className="font-bold text-xl" style={{ color: colorPalette.primary }}>
+                        <span className="font-bold text-lg" style={{ color: colorPalette.primary }}>
                           ${servicePrice.toLocaleString()}
                         </span>
                       </div>
@@ -1280,7 +1280,7 @@ export function BookingModalV2({
                   <button
                     type="button"
                     onClick={handleOpenMaps}
-                    className="px-8 py-3.5 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2.5 mx-auto transition-all hover:scale-105 active:scale-95"
+                    className="px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto transition-all hover:scale-105 active:scale-95"
                     style={{ 
                       backgroundColor: colorPalette.primary,
                       color: '#ffffff',
@@ -1303,7 +1303,7 @@ export function BookingModalV2({
       {/* Footer */}
       {step < 4 && (
         <div 
-          className="px-5 sm:px-6 py-4 border-t-2 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4"
+          className="px-4 sm:px-5 py-3 border-t-2 flex flex-col sm:flex-row justify-between gap-2 sm:gap-3"
           style={{ 
             borderColor: colorPalette.border,
             background: `linear-gradient(to top, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
@@ -1313,7 +1313,7 @@ export function BookingModalV2({
             <>
               <AnimatedButton
                 onClick={onClose}
-                className="px-5 py-2.5 sm:py-3 border-2 rounded-xl font-semibold text-sm sm:text-base order-2 sm:order-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+                className="px-4 py-2 border-2 rounded-lg font-semibold text-sm order-2 sm:order-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 style={{
                   backgroundColor: colorPalette.surface,
                   borderColor: colorPalette.border,
@@ -1333,7 +1333,7 @@ export function BookingModalV2({
                       ? `0 4px 16px -4px ${colorPalette.primary}` 
                       : 'none'
                   }}
-                  className="px-6 py-2.5 sm:py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base min-w-[160px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+                  className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm min-w-[140px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 >
                   Ver horarios →
                 </AnimatedButton>
@@ -1348,7 +1348,7 @@ export function BookingModalV2({
             <>
               <AnimatedButton
                 onClick={() => setStep(1)}
-                className="px-5 py-2.5 sm:py-3 border-2 rounded-xl font-semibold text-sm sm:text-base flex items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+                className="px-4 py-2 border-2 rounded-lg font-semibold text-sm flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 style={{
                   backgroundColor: colorPalette.surface,
                   borderColor: colorPalette.border,
@@ -1371,7 +1371,7 @@ export function BookingModalV2({
                       ? `0 4px 16px -4px ${colorPalette.primary}` 
                       : 'none'
                   }}
-                  className="px-6 py-2.5 sm:py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base min-w-[160px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+                  className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm min-w-[140px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 >
                   Continuar →
                 </AnimatedButton>
@@ -1386,7 +1386,7 @@ export function BookingModalV2({
             <>
               <AnimatedButton
                 onClick={() => setStep(2)}
-                className="px-5 py-2.5 sm:py-3 border-2 rounded-xl font-semibold text-sm sm:text-base flex items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+                className="px-4 py-2 border-2 rounded-lg font-semibold text-sm flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 style={{
                   backgroundColor: colorPalette.surface,
                   borderColor: colorPalette.border,
@@ -1408,7 +1408,7 @@ export function BookingModalV2({
                     ? `0 6px 20px -6px ${colorPalette.success}` 
                     : 'none'
                 }}
-                className="px-7 py-2.5 sm:py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-sm sm:text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all min-w-[160px]"
+                className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all min-w-[140px]"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -1422,7 +1422,7 @@ export function BookingModalV2({
 
       {step === 4 && (
         <div 
-          className="px-5 sm:px-6 py-4 border-t-2 flex justify-center"
+          className="px-4 sm:px-5 py-3 border-t-2 flex justify-center"
           style={{ 
             borderColor: colorPalette.border,
             background: `linear-gradient(to top, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
@@ -1430,7 +1430,7 @@ export function BookingModalV2({
         >
           <AnimatedButton
             onClick={onClose}
-            className="px-8 py-3 border-2 rounded-xl font-bold text-sm sm:text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
+            className="px-6 py-2.5 border-2 rounded-lg font-bold text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
             style={{
               backgroundColor: colorPalette.primary,
               borderColor: colorPalette.primary,
