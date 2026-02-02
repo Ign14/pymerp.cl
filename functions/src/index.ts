@@ -910,3 +910,430 @@ export const setNotificationSettingsSafe = functions
 
     return { success: true };
   });
+
+// ==================== BACKFILL & SYNC FUNCTIONS ====================
+// Funciones de backfill y sincronización para administración de datos
+
+import {
+  backfillCompaniesHandler,
+  syncPublicCompaniesHandler,
+  syncPublicCompanyBySlugHandler,
+  enablePublicForCompaniesWithLocationHandler,
+  migrateMyCompanyToFoodtruckHandler,
+} from './backfill';
+
+/**
+ * Callable: Backfill de empresas existentes
+ * Solo accesible para SUPERADMIN
+ */
+export const backfillCompanies = functions
+  .runWith({ memory: '512MB', timeoutSeconds: 540 })
+  .https.onCall(backfillCompaniesHandler);
+
+/**
+ * Callable: Sincronizar todas las empresas públicas
+ * Actualiza la colección public_companies con los datos de companies
+ */
+export const syncPublicCompanies = functions
+  .runWith({ memory: '512MB', timeoutSeconds: 540 })
+  .https.onCall(syncPublicCompaniesHandler);
+
+/**
+ * Callable: Sincronizar una empresa pública específica por slug
+ */
+export const syncPublicCompanyBySlug = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(syncPublicCompanyBySlugHandler);
+
+/**
+ * Callable: Habilitar público para empresas con ubicación
+ * Solo accesible para SUPERADMIN
+ */
+export const enablePublicForCompaniesWithLocation = functions
+  .runWith({ memory: '512MB', timeoutSeconds: 540 })
+  .https.onCall(enablePublicForCompaniesWithLocationHandler);
+
+/**
+ * Callable: Migrar empresa a categoría foodtruck
+ */
+export const migrateMyCompanyToFoodtruck = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(migrateMyCompanyToFoodtruckHandler);
+
+// ==================== PUBLIC WEB SEO ====================
+// Función para renderizar páginas públicas con SEO dinámico
+// Utilizada en rewrites de firebase.json para rutas de barberías
+
+import { handlePublicSeoRequest } from './publicweb-seo/handler';
+
+/**
+ * HTTPS: Renderizado SEO dinámico para páginas públicas
+ * Rutas: /:slug/barberias, /:slug/barberias/servicios/:serviceSlug
+ */
+export const publicWebSeo = functions
+  .runWith({ 
+    memory: '512MB', 
+    timeoutSeconds: 60,
+    minInstances: 0,
+    maxInstances: 100,
+  })
+  .https.onRequest(async (req, res) => {
+    try {
+      ensureAdminInitialized();
+      await handlePublicSeoRequest(req, res);
+    } catch (error: any) {
+      console.error('Error en publicWebSeo:', error);
+      res.status(500).send('Error interno del servidor');
+    }
+  });
+
+// ==================== SYNC FUNCTIONS ====================
+// Funciones de sincronización automática entre collections
+
+import {
+  syncCompanyPublicOnWriteHandler,
+  syncCompanyPublicScheduleHandler,
+  syncServiceSlugHandler,
+} from './sync';
+
+/**
+ * Trigger: Sincronizar automáticamente companies → public_companies
+ * Se ejecuta cada vez que se crea, actualiza o elimina una empresa
+ */
+export const syncCompanyPublicOnWrite = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .firestore.document('companies/{companyId}')
+  .onWrite(syncCompanyPublicOnWriteHandler);
+
+/**
+ * Callable: Forzar sincronización de horarios de empresa a public_companies
+ */
+export const syncCompanyPublicSchedule = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(syncCompanyPublicScheduleHandler);
+
+/**
+ * Trigger: Generar/actualizar slug automáticamente cuando se crea/actualiza un servicio
+ */
+export const syncServiceSlug = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .firestore.document('services/{serviceId}')
+  .onWrite(syncServiceSlugHandler);
+
+// ==================== SCHEDULE MANAGEMENT ====================
+// Funciones para gestión de horarios de servicios y profesionales
+
+import {
+  setServiceSchedulesHandler,
+  setServiceSchedulesHttpHandler,
+} from './schedules';
+
+/**
+ * Callable: Configurar horarios de servicios o profesionales
+ */
+export const setServiceSchedules = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(setServiceSchedulesHandler);
+
+/**
+ * HTTPS: Configurar horarios (versión HTTP para integraciones externas)
+ */
+export const setServiceSchedulesHttp = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onRequest(setServiceSchedulesHttpHandler);
+
+// ==================== GDPR COMPLIANCE ====================
+// Funciones para cumplimiento de RGPD (Reglamento General de Protección de Datos)
+
+import {
+  requestDataDeletionHandler,
+  processDataDeletionRequestsHandler,
+} from './gdpr';
+
+/**
+ * Callable: Solicitar eliminación de datos personales (Derecho GDPR)
+ * Permite a los usuarios solicitar la eliminación de sus datos
+ */
+export const requestDataDeletion = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(requestDataDeletionHandler);
+
+/**
+ * Scheduled: Procesar solicitudes de eliminación pendientes
+ * Se ejecuta diariamente a las 2:00 AM (horario UTC)
+ */
+export const processDataDeletionRequests = functions
+  .runWith({ memory: '1GB', timeoutSeconds: 540 })
+  .pubsub.schedule('0 2 * * *')
+  .timeZone('UTC')
+  .onRun(processDataDeletionRequestsHandler);
+
+// ==================== HTTP ENDPOINTS ====================
+// Funciones HTTP adicionales para integraciones externas y formularios públicos
+
+/**
+ * HTTPS: Crear solicitud de cita (versión HTTP)
+ * Permite crear citas desde formularios públicos sin autenticación
+ */
+export const createAppointmentRequestHttp = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onRequest(async (req, res) => {
+    // Configurar CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      ensureAdminInitialized();
+
+      const {
+        companyId,
+        professionalId,
+        serviceId,
+        clientName,
+        clientPhone,
+        clientEmail,
+        startAt,
+        endAt,
+        notes,
+        slotMinutes = 15,
+      } = req.body;
+
+      // Validaciones básicas
+      if (!companyId || !professionalId || !serviceId || !clientName || !clientPhone || !startAt) {
+        res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+        return;
+      }
+
+      // Rate limiting simple por IP
+      const ip = req.ip || 'unknown';
+      const limiterKey = `appointment-${ip}`;
+      
+      // Crear cita (reutilizando lógica similar a callable)
+      const appointmentRef = await getFirestore().collection('appointments').add({
+        company_id: companyId,
+        professional_id: professionalId,
+        service_id: serviceId,
+        clientName,
+        clientPhone,
+        clientEmail: clientEmail || null,
+        notes: notes || null,
+        startAt: admin.firestore.Timestamp.fromDate(new Date(startAt)),
+        endAt: endAt 
+          ? admin.firestore.Timestamp.fromDate(new Date(endAt))
+          : admin.firestore.Timestamp.fromDate(new Date(new Date(startAt).getTime() + slotMinutes * 60000)),
+        status: 'REQUESTED',
+        source: 'PUBLIC_API',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      res.status(200).json({
+        success: true,
+        appointmentId: appointmentRef.id,
+        message: 'Solicitud de cita creada exitosamente',
+      });
+    } catch (error: any) {
+      console.error('Error en createAppointmentRequestHttp:', error);
+      res.status(500).json({ success: false, error: error.message || 'Error interno' });
+    }
+  });
+
+/**
+ * HTTPS: Enviar email de contacto desde formulario público
+ */
+export const sendContactEmailHttp = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    // Configurar CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      ensureAdminInitialized();
+
+      const { name, email, phone, message, companyId } = req.body;
+
+      if (!name || !email || !message) {
+        res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+        return;
+      }
+
+      // Validar email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        res.status(400).json({ success: false, error: 'Email inválido' });
+        return;
+      }
+
+      // Guardar mensaje de contacto en Firestore
+      const contactRef = await getFirestore().collection('contact_messages').add({
+        name,
+        email,
+        phone: phone || null,
+        message,
+        company_id: companyId || null,
+        status: 'pending',
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'contact_form',
+      });
+
+      // Aquí podrías enviar email con SendGrid si está configurado
+      const sendgridKey = process.env.SENDGRID_API_KEY;
+      if (sendgridKey && sgMail) {
+        try {
+          await sgMail.send({
+            to: process.env.CONTACT_EMAIL || 'contacto@pymerp.cl',
+            from: process.env.SENDGRID_FROM_EMAIL || 'noreply@pymerp.cl',
+            subject: `Nuevo mensaje de contacto de ${name}`,
+            text: `
+Nombre: ${name}
+Email: ${email}
+Teléfono: ${phone || 'No proporcionado'}
+
+Mensaje:
+${message}
+            `,
+            html: `
+              <h2>Nuevo mensaje de contacto</h2>
+              <p><strong>Nombre:</strong> ${name}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Teléfono:</strong> ${phone || 'No proporcionado'}</p>
+              <h3>Mensaje:</h3>
+              <p>${message}</p>
+            `,
+          });
+        } catch (emailError) {
+          console.error('Error enviando email:', emailError);
+          // No fallar por error de email
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        messageId: contactRef.id,
+        message: 'Mensaje de contacto enviado exitosamente',
+      });
+    } catch (error: any) {
+      console.error('Error en sendContactEmailHttp:', error);
+      res.status(500).json({ success: false, error: error.message || 'Error interno' });
+    }
+  });
+
+/**
+ * HTTPS: Enviar email con primera contraseña a usuario nuevo
+ */
+export const sendFirstPasswordEmailHttp = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    // Configurar CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      ensureAdminInitialized();
+
+      // Verificar autenticación (solo admins pueden usar esto)
+      const authHeader = req.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ success: false, error: 'No autorizado' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+
+      // Verificar que es admin
+      const userDoc = await getFirestore().doc(`users/${decodedToken.uid}`).get();
+      const userData = userDoc.data();
+      
+      if (!userData || (userData.role !== 'SUPERADMIN' && userData.role !== 'ADMIN')) {
+        res.status(403).json({ success: false, error: 'Permiso denegado' });
+        return;
+      }
+
+      const { email, name, password, companyName } = req.body;
+
+      if (!email || !name || !password) {
+        res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+        return;
+      }
+
+      // Enviar email con SendGrid
+      const sendgridKey = process.env.SENDGRID_API_KEY;
+      if (!sendgridKey || !sgMail) {
+        res.status(503).json({ success: false, error: 'Servicio de email no configurado' });
+        return;
+      }
+
+      await sgMail.send({
+        to: email,
+        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@pymerp.cl',
+        subject: `Bienvenido a ${companyName || 'AgendaWeb'}`,
+        text: `
+Hola ${name},
+
+Tu cuenta ha sido creada exitosamente.
+
+Credenciales de acceso:
+Email: ${email}
+Contraseña temporal: ${password}
+
+Por favor, cambia tu contraseña después de iniciar sesión por primera vez.
+
+Saludos,
+El equipo de ${companyName || 'AgendaWeb'}
+        `,
+        html: `
+          <h2>Bienvenido a ${companyName || 'AgendaWeb'}</h2>
+          <p>Hola ${name},</p>
+          <p>Tu cuenta ha sido creada exitosamente.</p>
+          <h3>Credenciales de acceso:</h3>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Contraseña temporal:</strong> <code>${password}</code></p>
+          <p><em>Por favor, cambia tu contraseña después de iniciar sesión por primera vez.</em></p>
+          <br>
+          <p>Saludos,<br>El equipo de ${companyName || 'AgendaWeb'}</p>
+        `,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Email enviado exitosamente',
+      });
+    } catch (error: any) {
+      console.error('Error en sendFirstPasswordEmailHttp:', error);
+      res.status(500).json({ success: false, error: error.message || 'Error interno' });
+    }
+  });
