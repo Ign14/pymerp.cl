@@ -33,10 +33,19 @@ export function DescriptionCard({ company, theme, isCarousel = false }: Descript
     );
   }
 
+  const borderColor =
+    theme.titleColor && theme.titleColor.startsWith('#')
+      ? `${theme.titleColor}20`
+      : 'rgba(148,163,184,0.25)';
   return (
     <div
-      className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm sm:shadow-md overflow-hidden"
-      style={{ backgroundColor: theme.cardColor, color: theme.textColor, fontFamily: theme.fontBody }}
+      className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm sm:shadow-md overflow-hidden border"
+      style={{
+        backgroundColor: theme.cardColor,
+        color: theme.textColor,
+        fontFamily: theme.fontBody,
+        borderColor,
+      }}
     >
       <div className="space-y-2 sm:space-y-2.5 md:space-y-3">
         <h2 className="font-semibold text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mb-1.5 sm:mb-2 md:mb-2.5 flex-shrink-0" style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}>

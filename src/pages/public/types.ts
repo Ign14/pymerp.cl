@@ -14,6 +14,8 @@ export interface AppearanceTheme {
   fontButton: string;
   cardLayout?: 1 | 2 | 3; // Layout premium para tarjetas (1: Grid Clásico, 2: Lista Circular, 3: Carrusel Fullscreen)
   serviceCtaEmoji?: string;
+  // Configuración de productos en lista
+  productListImagePosition?: 'left' | 'right'; // Posición de imagen en lista de productos
   // Personalización del calendario
   calendarCardColor?: string;
   calendarCardOpacity?: number;

@@ -1,6 +1,7 @@
 import { SchemaOrg } from './schema';
+import { env } from '../config/env';
 
-export const DEFAULT_SITE_URL = 'https://agendaweb.app';
+export const DEFAULT_SITE_URL = 'https://pymerp.cl';
 export const DEFAULT_BRAND_NAME = 'AgendaWeb';
 
 export function formatSeoTitle(title: string, brand: string = DEFAULT_BRAND_NAME): string {
@@ -10,12 +11,12 @@ export function formatSeoTitle(title: string, brand: string = DEFAULT_BRAND_NAME
     : `${normalizedTitle} | ${brand}`;
 }
 
-export function resolveFullUrl(preferredUrl?: string, fallback: string = DEFAULT_SITE_URL): string {
+export function resolveFullUrl(preferredUrl?: string, fallback?: string): string {
   if (preferredUrl) return preferredUrl;
   if (typeof window !== 'undefined' && window.location?.href) {
     return window.location.href;
   }
-  return fallback;
+  return fallback || env.publicBaseUrl || DEFAULT_SITE_URL;
 }
 
 export function resolveCanonicalUrl(canonical?: string, fullUrl?: string): string {
@@ -23,7 +24,7 @@ export function resolveCanonicalUrl(canonical?: string, fullUrl?: string): strin
   if (typeof window !== 'undefined' && window.location) {
     return `${window.location.origin}${window.location.pathname}`;
   }
-  return fullUrl || DEFAULT_SITE_URL;
+  return fullUrl || env.publicBaseUrl || DEFAULT_SITE_URL;
 }
 
 export function normalizeSchemas(schema?: SchemaOrg | SchemaOrg[] | null): SchemaOrg[] {

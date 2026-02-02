@@ -4,6 +4,7 @@ import { X, Copy, Check, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Company } from '../../types';
 import { updateCompany } from '../../services/firestore';
+import { env } from '../../config/env';
 
 interface MenuQRModalProps {
   company: Company | null;
@@ -23,8 +24,8 @@ export default function MenuQRModal({ company, isOpen, onClose, onCompanyUpdate 
 
   useEffect(() => {
     if (company && isOpen) {
-      // Generar URL del menú público
-      const baseUrl = window.location.origin;
+      // Generar URL del menú público (dominio canónico Firebase agendaemprende)
+      const baseUrl = env.publicBaseUrl;
       const url = company.slug 
         ? `${baseUrl}/${company.slug}/menu`
         : `${baseUrl}/${company.id}/menu`;

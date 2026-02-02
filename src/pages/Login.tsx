@@ -284,6 +284,17 @@ export default function Login() {
               </div>
             </form>
           )}
+
+          <div className="mt-6 text-center text-sm text-gray-600">
+            <span>¿No tienes cuenta?</span>{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/request-access')}
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Regístrate aquí
+            </button>
+          </div>
         </div>
       </div>
 

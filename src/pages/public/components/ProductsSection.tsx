@@ -1,9 +1,11 @@
-import { Product, CartItem } from '../../../types';
+import { useState } from 'react';
+import { Product, CartItem, MenuCategory } from '../../../types';
 import { AppearanceTheme } from '../types';
 import { getProductCardLayout } from './cardLayouts/ProductCardLayouts';
 
 interface ProductsSectionProps {
   products: Product[];
+  categories?: MenuCategory[];
   theme: AppearanceTheme;
   layout?: 'GRID' | 'LIST';
   cart: CartItem[];
@@ -15,6 +17,7 @@ interface ProductsSectionProps {
 
 export function ProductsSection({
   products,
+  categories = [],
   theme,
   layout,
   cart,
@@ -23,6 +26,8 @@ export function ProductsSection({
   onOpenCart,
   onProductClick,
 }: ProductsSectionProps) {
+  const [categoryPage, setCategoryPage] = useState(0);
+  
   if (products.length === 0) {
     return null;
   }
@@ -35,20 +40,82 @@ export function ProductsSection({
     return item ? item.quantity : 0;
   };
 
-  // Layout 3 es carrusel fullscreen - se maneja en PublicPage
-  // No se renderiza aquí cuando es layout 3
-
   const CardComponent = getProductCardLayout(cardLayout);
-  
-  // Layout 2 es lista, necesita grid diferente
   const useListLayout = layout === 'LIST' || cardLayout === 2;
-  const gridClasses = useListLayout 
-    ? 'grid grid-cols-1 gap-3 sm:gap-4'
-    : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4';
+  const imagePosition = (theme as any).productListImagePosition || 'left';
+
+  // Agrupar productos por categoría
+  const hasMultipleCategories = categories.length > 1;
+  
+  const groupedProducts = categories.length > 0
+    ? categories.map(category => ({
+        category,
+        products: products.filter(p => p.menuCategoryId === category.id)
+      })).filter(group => group.products.length > 0)
+    : [{ category: null, products }];
+
+  // Configuración de paginación para categorías (desktop)
+  const categoriesPerPage = 3;
+  const totalPages = Math.ceil(groupedProducts.length / categoriesPerPage);
+  const startIdx = categoryPage * categoriesPerPage;
+  const endIdx = startIdx + categoriesPerPage;
+  const visibleGroups = groupedProducts.slice(startIdx, endIdx);
+
+  const handlePrevPage = () => {
+    setCategoryPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCategoryPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
+
+  // Renderizar categorías en columnas (desktop) o lista (mobile)
+  const renderCategoryColumn = (group: { category: MenuCategory | null; products: Product[] }) => {
+    const gridClasses = useListLayout 
+      ? 'grid grid-cols-1 gap-3 sm:gap-4'
+      : 'grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4';
+
+    return (
+      <div key={group.category?.id || 'uncategorized'} className="flex flex-col">
+        {group.category && (
+          <h3 
+            className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b"
+            style={{ 
+              color: theme.titleColor, 
+              fontFamily: theme.fontTitle,
+              borderColor: `${theme.buttonColor}40`
+            }}
+          >
+            {group.category.name}
+          </h3>
+        )}
+        <div className={gridClasses}>
+          {group.products.map((product, index) => {
+            const quantity = getProductQuantity(product.id);
+            
+            return (
+              <CardComponent
+                key={product.id}
+                product={product}
+                theme={theme}
+                quantity={quantity}
+                onAddToCart={onAddToCart}
+                onUpdateQuantity={onUpdateQuantity}
+                onProductClick={onProductClick}
+                index={index}
+                imagePosition={imagePosition}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="mb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      {/* Header con título y botón de carrito */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h2 className="text-xl sm:text-2xl font-bold" style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}>
           Productos
         </h2>
@@ -73,24 +140,99 @@ export function ProductsSection({
           )}
         </button>
       </div>
-      <div className={gridClasses}>
-        {products.map((product, index) => {
-          const quantity = getProductQuantity(product.id);
-          
-          return (
-            <CardComponent
-              key={product.id}
-              product={product}
-              theme={theme}
-              quantity={quantity}
-              onAddToCart={onAddToCart}
-              onUpdateQuantity={onUpdateQuantity}
-              onProductClick={onProductClick}
-              index={index}
-            />
-          );
-        })}
-      </div>
+
+      {/* Layout por categorías en columnas (desktop) o lista (mobile) */}
+      {hasMultipleCategories ? (
+        <div className="relative">
+          {/* Botones de navegación (solo visible en desktop y cuando hay más de 3 categorías) */}
+          {totalPages > 1 && (
+            <div className="hidden lg:flex items-center justify-between mb-4">
+              <button
+                onClick={handlePrevPage}
+                disabled={categoryPage === 0}
+                className="p-2 rounded-full shadow-md hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: theme.buttonColor,
+                  color: theme.buttonTextColor,
+                }}
+                aria-label="Categorías anteriores"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCategoryPage(idx)}
+                    className="w-2 h-2 rounded-full transition"
+                    style={{
+                      backgroundColor: idx === categoryPage ? theme.buttonColor : `${theme.buttonColor}40`,
+                    }}
+                    aria-label={`Ir a página ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleNextPage}
+                disabled={categoryPage === totalPages - 1}
+                className="p-2 rounded-full shadow-md hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: theme.buttonColor,
+                  color: theme.buttonTextColor,
+                }}
+                aria-label="Siguientes categorías"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Grid de columnas por categoría (desktop) o lista (mobile) */}
+          <div className="lg:grid lg:gap-6" style={{ 
+            gridTemplateColumns: `repeat(${Math.min(visibleGroups.length, 3)}, 1fr)` 
+          }}>
+            {/* En mobile: mostrar todas las categorías en lista vertical */}
+            <div className="lg:hidden space-y-8">
+              {groupedProducts.map((group) => renderCategoryColumn(group))}
+            </div>
+            
+            {/* En desktop: mostrar categorías en columnas con paginación */}
+            <div className="hidden lg:contents">
+              {visibleGroups.map((group) => renderCategoryColumn(group))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Sin categorías o solo una: mantener diseño original
+        <div className={useListLayout 
+          ? 'grid grid-cols-1 gap-3 sm:gap-4'
+          : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'
+        }>
+          {products.map((product, index) => {
+            const quantity = getProductQuantity(product.id);
+            
+            return (
+              <CardComponent
+                key={product.id}
+                product={product}
+                theme={theme}
+                quantity={quantity}
+                onAddToCart={onAddToCart}
+                onUpdateQuantity={onUpdateQuantity}
+                onProductClick={onProductClick}
+                index={index}
+                imagePosition={imagePosition}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

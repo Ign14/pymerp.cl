@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { GAEventCategory } from '../../config/analytics';
 import { getCompany, getCompanyBySlug, getProducts, createProductOrderRequest, createPublicPageEvent, getCompanyAppearance } from '../../services/firestore';
 import { getMenuCategories } from '../../services/menu';
-import { isModuleEnabled, resolveCategoryId } from '../../config/categories';
+import { env } from '../../config/env';
 import { sanitizeText } from '../../services/validation';
 import { EventType, BusinessType } from '../../types';
 import LoadingSpinner from '../../components/animations/LoadingSpinner';
@@ -436,7 +436,7 @@ export default function PublicMenu() {
         channel: 'MENU',
         status: 'REQUESTED',
       });
-      const trackingLink = `https://www.pymerp.cl/${company.slug || companyId}/tracking/${orderId}`;
+      const trackingLink = `${env.publicBaseUrl}/${company.slug || companyId}/tracking/${orderId}`;
 
       // Tracking
       await createPublicPageEvent(company.id, EventType.PRODUCT_ORDER_CLICK);
@@ -583,30 +583,7 @@ export default function PublicMenu() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10">
-        {/* Bloque Menu QR si está habilitado - Mostrar al inicio */}
-        {company && isModuleEnabled(resolveCategoryId(company), 'menu-qr') && (
-          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">📱</span>
-                  <h3 className="text-lg font-bold text-gray-900">{t('menuView.qrTitle')}</h3>
-                </div>
-                <p className="text-sm text-gray-700">{t('menuView.qrDescription')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  toast(t('menuView.qrInfo'), { duration: 4000, icon: 'ℹ️' });
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 whitespace-nowrap"
-                aria-label={t('menuView.qrCta')}
-              >
-                {t('menuView.qrCta')}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Sección QR removida según solicitud de mejoras UI/UX */}
 
         <div className="mb-10">
           <div className="relative">
@@ -618,8 +595,8 @@ export default function PublicMenu() {
               className="w-full rounded-2xl border border-gray-200 bg-white/90 px-4 py-3 pl-11 pr-10 text-base shadow-sm focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
               aria-label={t('publicPage.restaurantsLayout.searchPlaceholder')}
             />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 flex items-center justify-center text-gray-400 pointer-events-none">
+              <svg className="w-5 h-5 min-w-[20px] min-h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>

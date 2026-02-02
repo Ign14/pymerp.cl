@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { advanceProductOrderStatus, getCompany, getProducts, getProductOrderRequests, updateProductOrderRequest } from '../../services/firestore';
+import { env } from '../../config/env';
 import type { Product, ProductOrderRequest } from '../../types';
 import LoadingSpinner from '../../components/animations/LoadingSpinner';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
@@ -31,13 +32,13 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus | null>> = {
 // Colores de estado con buen contraste en light/dark.
 // En dark usamos fondos translúcidos y texto claro (evita "texto oscuro sobre tarjeta oscura").
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  REQUESTED: 'bg-blue-100 text-black dark:bg-blue-500/20 dark:text-black',
-  CONFIRMED: 'bg-indigo-100 text-black dark:bg-indigo-500/20 dark:text-black',
-  PREPARING: 'bg-amber-100 text-black dark:bg-amber-500/20 dark:text-black',
-  READY: 'bg-emerald-100 text-black dark:bg-emerald-500/20 dark:text-black',
-  DELIVERED: 'bg-emerald-100 text-black dark:bg-emerald-500/20 dark:text-black',
-  PAID: 'bg-green-100 text-black dark:bg-green-500/20 dark:text-black',
-  CANCELLED: 'bg-red-100 text-black dark:bg-red-500/20 dark:text-black',
+  REQUESTED: 'bg-blue-100 text-slate-900 dark:bg-blue-500/35 dark:text-white',
+  CONFIRMED: 'bg-indigo-100 text-slate-900 dark:bg-indigo-500/35 dark:text-white',
+  PREPARING: 'bg-amber-100 text-slate-900 dark:bg-amber-500/35 dark:text-white',
+  READY: 'bg-emerald-100 text-slate-900 dark:bg-emerald-500/35 dark:text-white',
+  DELIVERED: 'bg-emerald-100 text-slate-900 dark:bg-emerald-500/35 dark:text-white',
+  PAID: 'bg-green-100 text-slate-900 dark:bg-green-500/35 dark:text-white',
+  CANCELLED: 'bg-red-100 text-slate-900 dark:bg-red-500/35 dark:text-white',
 };
 
 const normalizePhone = (phone?: string | null) => (phone || '').replace(/[^0-9]/g, '');
@@ -280,7 +281,7 @@ export default function OrdersPage() {
       );
 
       if (targetOrder && next === 'CONFIRMED' && companySlug) {
-        const trackingLink = `https://www.pymerp.cl/${companySlug}/tracking/${orderId}`;
+        const trackingLink = `${env.publicBaseUrl}/${companySlug}/tracking/${orderId}`;
         const whatsappUrl = buildOrderStatusWhatsAppUrl({ ...targetOrder, status: next }, productsMap, trackingLink);
         if (whatsappUrl) {
           const shouldSend = window.confirm('¿Enviar WhatsApp al cliente con el link de seguimiento?');
@@ -303,12 +304,13 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 text-black">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="min-h-screen bg-slate-900/70">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 text-slate-900 dark:text-slate-100">
+        <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-black">Pedidos</p>
-          <h1 className="text-2xl font-bold text-black">Gestión de pedidos</h1>
-          <p className="text-sm text-black">
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-700 dark:text-slate-300">Pedidos</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de pedidos</h1>
+          <p className="text-sm text-slate-700 dark:text-slate-300">
             Incluye pedidos ingresados desde el menú y los capturados por WhatsApp.
           </p>
         </div>
@@ -316,14 +318,14 @@ export default function OrdersPage() {
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 rounded-md border border-slate-200 bg-white text-black text-sm font-semibold hover:bg-slate-50"
+            className="px-4 py-2 rounded-md border border-slate-200 bg-white text-slate-900 text-sm font-semibold hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
           >
             Volver al dashboard
           </button>
           <button
             type="button"
             onClick={loadData}
-            className="px-4 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
+            className="px-4 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
             Recargar
           </button>
@@ -339,7 +341,7 @@ export default function OrdersPage() {
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
               statusFilter === status
                 ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100'
-                : 'bg-white text-black border-slate-200'
+                : 'bg-white text-slate-900 border-slate-200 dark:bg-slate-900/60 dark:text-white dark:border-slate-700'
             }`}
           >
             {status === 'ALL' ? 'Todos' : STATUS_LABELS[status] || status}
@@ -347,111 +349,112 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      {filteredOrders.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-black">
-          No hay pedidos en esta categoría.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => {
-            const status = order.status || 'REQUESTED';
-            const nextStatus = NEXT_STATUS[status] || null;
-            return (
-              <div
-                key={order.id}
-                className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col gap-3"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="text-xs text-black">
-                      Creado: {order.created_at ? new Date(order.created_at).toLocaleString() : '-'}
-                    </p>
-                    <p className="text-lg font-semibold text-black">Pedido #{order.id.slice(-6)}</p>
-                    <p className="text-sm text-black">
-                      Mesa: {order.table_number || 'N/D'} • Tipo: {order.order_type || 'TABLE'} • Canal:{' '}
-                      {order.channel || 'WHATSAPP'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handlePrintOrder(order)}
-                      className="px-3 py-2 rounded-md bg-slate-100 text-slate-900 text-xs font-semibold hover:bg-slate-200"
-                    >
-                      Imprimir
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!companySlug}
-                      onClick={() => {
-                        if (!companySlug) return;
-                        const trackingLink = `https://www.pymerp.cl/${companySlug}/tracking/${order.id}`;
-                        window.open(trackingLink, '_blank');
-                      }}
-                      className="px-3 py-2 rounded-md border border-slate-200 bg-white text-black text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      Ver tracking
-                    </button>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        STATUS_COLORS[status] || 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100'
-                      }`}
-                    >
-                      {STATUS_LABELS[status] || status}
-                    </span>
-                    {nextStatus && (
-                      <button
-                        type="button"
-                        disabled={updatingId === order.id}
-                        onClick={() => handleStatusChange(order.id, nextStatus)}
-                        className="px-3 py-2 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        Avanzar a {STATUS_LABELS[nextStatus] || nextStatus}
-                      </button>
-                    )}
-                    {status !== 'CANCELLED' && status !== 'PAID' && (
-                      <button
-                        type="button"
-                        disabled={updatingId === order.id}
-                        onClick={() => handleStatusChange(order.id, 'CANCELLED')}
-                        className="px-3 py-2 rounded-md bg-red-50 text-red-800 text-xs font-semibold border border-red-200 hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-red-500/15 dark:text-red-100 dark:border-red-500/30 dark:hover:bg-red-500/20"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-6 text-sm">
-                  <div className="space-y-1">
-                    <p className="font-semibold text-black">Cliente</p>
-                    <p className="text-black">{order.client_name || 'Sin nombre'}</p>
-                    {order.client_whatsapp && <p className="text-black">📱 {order.client_whatsapp}</p>}
-                    {order.client_comment && <p className="text-black">📝 {order.client_comment}</p>}
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[240px]">
-                    <p className="font-semibold text-black">Productos</p>
-                    <ul className="list-disc list-inside text-black space-y-1">
-                      {order.items.map((item, idx) => (
-                        <li key={idx}>
-                          {item.quantity}x {productsMap[item.product_id]?.name || item.product_id}{' '}
-                          {item.unit_price ? <span className="text-black">- ${item.unit_price.toLocaleString()}</span> : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  {!order.total_estimated ? null : (
+        {filteredOrders.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
+            No hay pedidos en esta categoría.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredOrders.map((order) => {
+              const status = order.status || 'REQUESTED';
+              const nextStatus = NEXT_STATUS[status] || null;
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col gap-3 dark:border-slate-800 dark:bg-slate-900/70"
+                >
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="font-semibold text-black">Total estimado</p>
-                      <p className="text-lg font-bold text-black">${order.total_estimated.toLocaleString()}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        Creado: {order.created_at ? new Date(order.created_at).toLocaleString() : '-'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-white">Pedido #{order.id.slice(-6)}</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-200">
+                        Mesa: {order.table_number || 'N/D'} • Tipo: {order.order_type || 'TABLE'} • Canal:{' '}
+                        {order.channel || 'WHATSAPP'}
+                      </p>
                     </div>
-                  )}
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePrintOrder(order)}
+                        className="px-3 py-2 rounded-md bg-slate-100 text-slate-900 text-xs font-semibold hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                      >
+                        Imprimir
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!companySlug}
+                        onClick={() => {
+                          if (!companySlug) return;
+                          const trackingLink = `${env.publicBaseUrl}/${companySlug}/tracking/${order.id}`;
+                          window.open(trackingLink, '_blank');
+                        }}
+                        className="px-3 py-2 rounded-md border border-slate-200 bg-white text-slate-900 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-slate-900 dark:text-white dark:border-slate-700 dark:hover:bg-slate-800"
+                      >
+                        Ver tracking
+                      </button>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold text-center ${
+                          STATUS_COLORS[status] || 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100'
+                        }`}
+                      >
+                        {STATUS_LABELS[status] || status}
+                      </span>
+                      {nextStatus && (
+                        <button
+                          type="button"
+                          disabled={updatingId === order.id}
+                          onClick={() => handleStatusChange(order.id, nextStatus)}
+                          className="px-3 py-2 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Avanzar a {STATUS_LABELS[nextStatus] || nextStatus}
+                        </button>
+                      )}
+                      {status !== 'CANCELLED' && status !== 'PAID' && (
+                        <button
+                          type="button"
+                          disabled={updatingId === order.id}
+                          onClick={() => handleStatusChange(order.id, 'CANCELLED')}
+                          className="px-3 py-2 rounded-md bg-red-50 text-red-800 text-xs font-semibold border border-red-200 hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-red-500/15 dark:text-red-100 dark:border-red-500/30 dark:hover:bg-red-500/20"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-6 text-sm">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-slate-900 dark:text-white">Cliente</p>
+                      <p className="text-slate-800 dark:text-slate-100">{order.client_name || 'Sin nombre'}</p>
+                      {order.client_whatsapp && <p className="text-slate-700 dark:text-slate-200">📱 {order.client_whatsapp}</p>}
+                      {order.client_comment && <p className="text-slate-700 dark:text-slate-200">📝 {order.client_comment}</p>}
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-[240px]">
+                      <p className="font-semibold text-slate-900 dark:text-white">Productos</p>
+                      <ul className="list-disc list-inside text-slate-800 dark:text-slate-100 space-y-1">
+                        {order.items.map((item, idx) => (
+                          <li key={idx}>
+                            {item.quantity}x {productsMap[item.product_id]?.name || item.product_id}{' '}
+                            {item.unit_price ? <span className="text-slate-700 dark:text-slate-200">- ${item.unit_price.toLocaleString()}</span> : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {!order.total_estimated ? null : (
+                      <div className="space-y-1">
+                        <p className="font-semibold text-slate-900 dark:text-white">Total estimado</p>
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">${order.total_estimated.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

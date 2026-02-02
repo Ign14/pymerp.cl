@@ -2,6 +2,7 @@ import { Product } from '../../../../types';
 import { AppearanceTheme } from '../../types';
 import AnimatedButton from '../../../../components/animations/AnimatedButton';
 import AnimatedCard from '../../../../components/animations/AnimatedCard';
+import { ensureButtonContrast } from '../../../../utils/colorContrast';
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +12,7 @@ interface ProductCardProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onProductClick: (product: Product) => void;
   index: number;
+  imagePosition?: 'left' | 'right'; // Para Layout2
 }
 
 // Layout 1: Grid Clásico (actual)
@@ -35,13 +37,13 @@ export function Layout1ProductCard({ product, theme, quantity, onAddToCart, onUp
         style={{ backgroundColor: theme.cardColor, color: theme.textColor, fontFamily: theme.fontBody }}
       >
         <div
-          className="w-full h-32 xs:h-36 sm:h-40 md:h-44 flex items-center justify-center relative overflow-hidden flex-shrink-0"
+          className="w-full aspect-square min-h-[7rem] max-h-[180px] sm:max-h-[220px] md:max-h-[240px] flex items-center justify-center relative overflow-hidden flex-shrink-0"
           style={{ backgroundColor: theme.cardColor + '20' }}
         >
           <img
             src={product.image_url || 'https://placehold.co/400x400/EEF2FF/1F2937?text=Sin+imagen'}
             alt={product.image_url ? `Imagen del producto ${product.name}` : `Imagen no disponible para ${product.name}`}
-            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
+            className="w-full h-full max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
@@ -130,7 +132,7 @@ export function Layout1ProductCard({ product, theme, quantity, onAddToCart, onUp
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm sm:text-base hover:opacity-80 transition shadow-sm"
                   style={{
                     backgroundColor: theme.buttonColor,
-                    color: theme.buttonTextColor,
+                    color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                   }}
                   aria-label="Disminuir cantidad"
                 >
@@ -144,7 +146,7 @@ export function Layout1ProductCard({ product, theme, quantity, onAddToCart, onUp
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm sm:text-base hover:opacity-80 transition shadow-sm"
                   style={{
                     backgroundColor: theme.buttonColor,
-                    color: theme.buttonTextColor,
+                    color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                   }}
                   aria-label="Aumentar cantidad"
                 >
@@ -154,7 +156,11 @@ export function Layout1ProductCard({ product, theme, quantity, onAddToCart, onUp
             ) : (
               <AnimatedButton
                 onClick={() => onAddToCart(product, 1)}
-                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
+                style={{
+                  backgroundColor: theme.buttonColor,
+                  color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
+                  fontFamily: theme.fontButton,
+                }}
                 className="w-full py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg hover:opacity-90 font-medium shadow-sm hover:shadow-md transition-all"
                 ariaLabel={`Agregar ${product.name} al carrito`}
               >
@@ -173,8 +179,8 @@ export function Layout1ProductCard({ product, theme, quantity, onAddToCart, onUp
   );
 }
 
-// Layout 2: Estilo Lista - Imagen circular y botón a la derecha
-export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUpdateQuantity, onProductClick, index }: ProductCardProps) {
+// Layout 2: Estilo Lista - Imagen cuadrada (como pymerp.cl producción)
+export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUpdateQuantity, onProductClick, index, imagePosition = 'left' }: ProductCardProps) {
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     onUpdateQuantity(product.id, quantity + 1);
@@ -187,69 +193,82 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
     }
   };
 
+  const borderClr = theme.buttonColor ? `${theme.buttonColor}25` : 'rgba(204, 5, 25, 0.145)';
+  const shadowClr = theme.buttonColor ? `${theme.buttonColor}12` : 'rgba(204, 5, 25, 0.07)';
+  const isImageRight = imagePosition === 'right';
+
+  const imageComponent = (
+    <div className="relative flex-shrink-0">
+      <div 
+        className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden flex items-center justify-center relative shadow-md transition-all duration-500 group-hover:scale-105"
+        style={{ 
+          background: `linear-gradient(135deg, ${theme.buttonColor || '#cc0519'}18 0%, ${theme.buttonColor || '#cc0519'}08 100%)`,
+              border: `3px solid ${theme.buttonColor ? theme.buttonColor + '30' : 'rgba(204, 5, 25, 0.19)'}`,
+          boxShadow: theme.buttonColor ? `${theme.buttonColor}20 0px 8px 24px` : 'rgba(204, 5, 25, 0.125) 0px 8px 24px',
+        }}
+      >
+        <img
+          src={product.image_url || 'https://placehold.co/400x400/EEF2FF/1F2937?text=Sin+imagen'}
+          alt={product.image_url ? `Imagen del producto ${product.name}` : `Imagen no disponible para ${product.name}`}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          style={{ aspectRatio: '1 / 1' }}
+          loading="lazy"
+        />
+      </div>
+      {product.stock !== undefined && product.stock < 10 && product.stock > 0 && (
+        <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-orange-500 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-bold shadow-md">
+          {product.stock}
+        </div>
+      )}
+      {product.stock === 0 && (
+        <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-red-500 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-bold shadow-md">
+          ✕
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div onClick={() => onProductClick(product)} className="cursor-pointer group">
       <AnimatedCard
         delay={index * 0.1}
-        className="rounded-lg sm:rounded-xl overflow-hidden flex flex-col sm:flex-row items-center gap-2 sm:gap-3 md:gap-4 p-2.5 sm:p-3 md:p-4 border hover:shadow-lg hover:scale-[1.01] transition-all"
+        className={`rounded-2xl sm:rounded-3xl overflow-hidden flex flex-wrap items-start gap-4 sm:gap-5 md:gap-6 p-4 sm:p-5 md:p-6 border-2 hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 ${
+          isImageRight ? 'flex-row-reverse' : ''
+        }`}
         style={{ 
           backgroundColor: theme.cardColor, 
           color: theme.textColor, 
           fontFamily: theme.fontBody,
-          borderColor: theme.buttonColor + '20',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          borderColor: borderClr,
+          boxShadow: `${shadowClr} 0px 4px 20px, rgba(0, 0, 0, 0.08) 0px 2px 6px`,
         }}
       >
-        {/* Imagen circular */}
-        <div className="relative flex-shrink-0">
-          <div 
-            className="w-16 h-16 xs:w-18 xs:h-18 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex items-center justify-center relative"
-            style={{ 
-              backgroundColor: theme.buttonColor + '15',
-              border: `2px solid ${theme.buttonColor}30`,
-            }}
-          >
-            <img
-              src={product.image_url || 'https://placehold.co/400x400/EEF2FF/1F2937?text=Sin+imagen'}
-              alt={product.image_url ? `Imagen del producto ${product.name}` : `Imagen no disponible para ${product.name}`}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              loading="lazy"
-            />
-          </div>
-          {product.stock !== undefined && product.stock < 10 && product.stock > 0 && (
-            <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-orange-500 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-bold shadow-md">
-              {product.stock}
-            </div>
-          )}
-          {product.stock === 0 && (
-            <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-red-500 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-bold shadow-md">
-              ✕
-            </div>
-          )}
-        </div>
+        {/* Imagen cuadrada (posición configurable) */}
+        {imageComponent}
         
         {/* Contenido central */}
-        <div className="flex-1 min-w-0 w-full sm:w-auto">
+        <div className="flex-1 min-w-0">
           <h3
-            className="font-bold text-xs sm:text-sm md:text-base lg:text-lg mb-0.5 sm:mb-1 line-clamp-1 sm:line-clamp-2 text-center sm:text-left"
+            className="font-extrabold text-base sm:text-lg md:text-xl lg:text-2xl mb-2 sm:mb-3 line-clamp-2 leading-tight text-left"
             style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
           >
             {product.name}
           </h3>
           {product.description && (
-            <p className="text-xs sm:text-sm mb-1.5 sm:mb-2 line-clamp-2 leading-relaxed text-center sm:text-left" style={{ color: theme.textColor, opacity: 0.85 }}>
+            <p className="text-sm sm:text-base mb-2 sm:mb-3 line-clamp-2 leading-relaxed text-left" style={{ color: theme.textColor, opacity: 0.8 }}>
               {product.description}
             </p>
           )}
           {product.tags && product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-1.5 sm:mb-2 justify-center sm:justify-start">
+            <div className="flex flex-wrap gap-2 mb-2 sm:mb-3 justify-start">
               {product.tags.slice(0, 2).map((tag: string, idx: number) => (
                 <span
                   key={idx}
-                  className="px-1.5 sm:px-2 py-0.5 text-xs rounded-full"
+                  className="px-2.5 py-1 text-xs sm:text-sm rounded-full font-medium shadow-sm"
                   style={{
-                    backgroundColor: theme.buttonColor + '20',
-                    color: theme.buttonColor,
+                    backgroundColor: theme.buttonColor ? `${theme.buttonColor}18` : 'rgba(204, 5, 25, 0.094)',
+                    color: theme.buttonColor || '#cc0519',
+                    border: `1px solid ${theme.buttonColor ? theme.buttonColor + '35' : 'rgba(204, 5, 25, 0.208)'}`,
                   }}
                 >
                   {tag}
@@ -257,7 +276,7 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
               ))}
             </div>
           )}
-          <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center justify-start gap-3 sm:gap-4 flex-wrap">
             {product.hide_price ? (
               <span
                 className="text-xs sm:text-sm font-medium flex items-center gap-1"
@@ -270,8 +289,8 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
               </span>
             ) : (
               <span
-                className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold"
-                style={{ color: theme.buttonColor, fontFamily: theme.fontTitle }}
+                className="text-lg sm:text-xl md:text-2xl font-extrabold"
+                style={{ color: theme.buttonColor, fontFamily: theme.fontTitle, textShadow: theme.buttonColor ? `${theme.buttonColor}25 0px 2px 8px` : undefined }}
               >
                 ${product.price.toLocaleString()}
               </span>
@@ -296,7 +315,7 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm sm:text-base hover:opacity-80 transition shadow-sm"
                 style={{
                   backgroundColor: theme.buttonColor,
-                  color: theme.buttonTextColor,
+                  color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                 }}
                 aria-label="Disminuir cantidad"
               >
@@ -310,7 +329,7 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm sm:text-base hover:opacity-80 transition shadow-sm"
                 style={{
                   backgroundColor: theme.buttonColor,
-                  color: theme.buttonTextColor,
+                  color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                 }}
                 aria-label="Aumentar cantidad"
               >
@@ -320,13 +339,17 @@ export function Layout2ProductCard({ product, theme, quantity, onAddToCart, onUp
           ) : (
             <AnimatedButton
               onClick={() => onAddToCart(product, 1)}
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
-              className="w-full sm:w-auto px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 text-xs sm:text-sm md:text-base rounded-lg hover:opacity-90 font-semibold shadow-md hover:shadow-lg transition-all whitespace-nowrap"
+              style={{
+                backgroundColor: theme.buttonColor,
+                color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
+                fontFamily: theme.fontButton,
+              }}
+              className="w-full sm:w-auto px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 text-sm sm:text-base rounded-xl hover:opacity-90 font-semibold shadow-md hover:shadow-lg transition-all duration-300 active:scale-[0.98] whitespace-nowrap"
               ariaLabel={`Agregar ${product.name} al carrito`}
             >
-              <span className="flex items-center justify-center gap-1">
-                <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <span className="flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
                 Agregar
               </span>
@@ -468,7 +491,7 @@ export function Layout6ProductCard({ product, theme, quantity, onAddToCart, onUp
                   className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-base sm:text-lg hover:opacity-80 transition shadow-md"
                   style={{
                     background: `linear-gradient(135deg, ${theme.buttonColor} 0%, ${theme.buttonColor}ee 100%)`,
-                    color: theme.buttonTextColor,
+                    color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                   }}
                   aria-label="Disminuir cantidad"
                 >
@@ -482,7 +505,7 @@ export function Layout6ProductCard({ product, theme, quantity, onAddToCart, onUp
                   className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-base sm:text-lg hover:opacity-80 transition shadow-md"
                   style={{
                     background: `linear-gradient(135deg, ${theme.buttonColor} 0%, ${theme.buttonColor}ee 100%)`,
-                    color: theme.buttonTextColor,
+                    color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'),
                   }}
                   aria-label="Aumentar cantidad"
                 >
@@ -494,7 +517,7 @@ export function Layout6ProductCard({ product, theme, quantity, onAddToCart, onUp
                 onClick={() => onAddToCart(product, 1)}
                 style={{ 
                   background: `linear-gradient(135deg, ${theme.buttonColor} 0%, ${theme.buttonColor}ee 100%)`,
-                  color: theme.buttonTextColor, 
+                  color: ensureButtonContrast(theme.buttonColor, theme.buttonTextColor || '#ffffff'), 
                   fontFamily: theme.fontButton 
                 }}
                 className="w-full py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm md:text-base rounded-lg sm:rounded-xl hover:opacity-90 font-semibold shadow-md hover:shadow-lg transition-all"

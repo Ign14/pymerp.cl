@@ -533,24 +533,6 @@ export default function RequestAccess() {
                 onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
               />
             </div>
-            <div>
-              <label htmlFor="plan" className="block text-sm font-medium text-gray-700">
-                {t('requestAccess.planLabel')}
-              </label>
-              <select
-                id="plan"
-                name="plan"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-gray-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm cursor-not-allowed"
-                value={formData.plan}
-                disabled
-              >
-                <option value="BASIC">{t('requestAccess.plans.basic')}</option>
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                El plan BÁSICO es gratis para siempre
-              </p>
-            </div>
-
             <div className="flex items-start gap-2">
               <input
                 id="acceptedBeta"

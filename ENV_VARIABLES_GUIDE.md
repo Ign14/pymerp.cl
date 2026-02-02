@@ -38,6 +38,10 @@ VITE_APP_ENV=development
 # Habilitar analytics
 VITE_ENABLE_ANALYTICS=true
 
+# URL base canónica para páginas públicas (Firebase agendaemprende)
+# Si no se define, usa https://agendaemprende-8ac77.web.app
+# VITE_PUBLIC_BASE_URL=https://agendaemprende-8ac77.web.app
+
 # Sentry DSN
 VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 ```

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import SEO, { createOrganizationSchema } from '../components/SEO';
+import { env } from '../config/env';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -11,11 +12,11 @@ export default function Landing() {
     () =>
       createOrganizationSchema({
         name: 'PYM-ERP',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://pymerp.cl',
+        url: typeof window !== 'undefined' ? window.location.origin : env.publicBaseUrl,
         logo:
           typeof window !== 'undefined'
             ? `${window.location.origin}/logopymerp.png`
-            : 'https://pymerp.cl/logopymerp.png',
+            : `${env.publicBaseUrl}/logopymerp.png`,
         description:
           'PYM-ERP ayuda a emprendedores a mostrar servicios o productos, recibir reservas y conectar con clientes.',
       }),
@@ -129,7 +130,7 @@ export default function Landing() {
                 onClick={() => setMobileNavOpen(false)}
                 className="block w-full text-center px-4 py-2.5 bg-white text-gray-900 rounded-lg font-medium shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 active:scale-[0.98]"
               >
-                Comenzar Gratis
+                Regístrate gratis
               </Link>
             </div>
           </div>
@@ -181,24 +182,24 @@ export default function Landing() {
                 <div className="absolute top-20 -left-20 w-96 h-96 bg-purple-500 rounded-full blur-3xl opacity-[0.05]" />
                 <div className="absolute bottom-20 -right-20 w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-[0.05]" />
               </div>
-              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 md:pt-28 md:pb-16 text-center">
+              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 md:pt-24 md:pb-14 text-center">
                 <h1
                   id="landing-hero-heading"
-                  className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-snug sm:leading-tight tracking-tight max-w-3xl mx-auto drop-shadow-lg"
+                  className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-5 sm:mb-6 leading-snug sm:leading-tight tracking-tight max-w-3xl mx-auto drop-shadow-lg"
                 >
                   Transforma tu negocio a digital en minutos
                 </h1>
-                <p className="text-lg sm:text-xl text-gray-100 font-medium mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+                <p className="text-lg sm:text-xl text-gray-100 font-medium mb-8 sm:mb-9 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
                   Tu sitio web se ajusta a tu categoría: agenda, catálogo, menú QR, formulario de contacto o
                   tarjeta de presentación. Además, incluye un sistema de gestión simple para operar tu día a
                   día. Sin conocimientos técnicos y sin costos ocultos.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
                   <Link
                     to="/request-access"
                     className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-shadow duration-300 w-full sm:w-auto"
                   >
-                    Solicitar acceso gratis →
+                    Regístrate gratis →
                   </Link>
                   <a
                     href="#how-it-works"
@@ -213,7 +214,7 @@ export default function Landing() {
                     Ver precios
                   </Link>
                 </div>
-                <div className="mt-10 flex flex-wrap justify-center gap-4 text-sm">
+                <div className="mt-8 sm:mt-9 flex flex-wrap justify-center gap-3 text-sm">
                   <span className="flex items-center text-gray-100 font-medium drop-shadow-sm">
                     <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path
@@ -245,10 +246,10 @@ export default function Landing() {
                     Listo en minutos
                   </span>
                 </div>
-                <div className="mt-16 sm:mt-20 flex justify-center">
+                <div className="mt-12 sm:mt-14 flex justify-center">
                   <Link
                     to="/pymes-cercanas"
-                    className="relative inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white rounded-full shadow-2xl hover:shadow-red-500/50 transition-all duration-300 font-bold text-lg sm:text-xl lg:text-2xl border-4 border-white/20 backdrop-blur-sm"
+                    className="relative inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-red-600 via-red-500 to-red-600 text-white rounded-full shadow-2xl hover:shadow-red-500/50 transition-all duration-300 font-bold text-lg sm:text-xl lg:text-2xl border-4 border-white/20 backdrop-blur-sm -translate-y-[0.5cm]"
                   >
                     <svg className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mr-3 sm:mr-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
@@ -508,24 +509,31 @@ export default function Landing() {
                   <span className="mr-2">🎯</span>Únete al lanzamiento de la Aplicación de PYMEs más esperada por Emprendedores y clientes
                 </div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-                  Crea tu página + agenda gratis
+                  Tu vitrina online y tu sistema de gestión, en uno
                 </h2>
                 <p className="text-lg sm:text-xl text-white text-opacity-90 mb-10 max-w-2xl mx-auto">
-                  Miles de emprendedores ya confían en nosotros. Tu turno para llevar tu negocio online.
+                  Crea tu sitio web, recibe clientes y administra tu negocio desde un solo lugar. Además, los clientes pueden
+                  encontrar PYMEs por categoría y comuna. Soporte 24/7 para ayudarte a crecer.
                 </p>
-                <div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Link
                     to="/request-access"
-                    className="px-10 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg shadow-2xl hover:shadow-3xl transition-shadow duration-300"
+                    className="px-10 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg shadow-2xl hover:shadow-3xl transition-shadow duration-300 w-full sm:w-auto"
                   >
-                    Solicitar acceso gratis →
+                    Regístrate gratis →
+                  </Link>
+                  <Link
+                    to="/categorias"
+                    className="px-10 py-4 border-2 border-white/70 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-xl hover:bg-white/10 transition-all duration-300 w-full sm:w-auto"
+                  >
+                    Explorar categorías →
                   </Link>
                 </div>
                 <div className="mt-12 flex flex-wrap justify-center items-center gap-8 text-white text-opacity-90">
                   {[
-                    'Comienza en 2 min 100% gratis',
-                    'Sin tarjeta requerida',
-                    'Plan básico gratis para siempre',
+                    'Sitio web + gestión empresarial',
+                    'Búsqueda por categorías y comuna',
+                    'Soporte 24/7',
                   ].map((line) => (
                     <div key={line} className="flex items-center">
                       <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">

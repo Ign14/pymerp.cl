@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
@@ -74,6 +74,7 @@ import Cookies from './pages/info/Cookies';
 import Legal from './pages/info/Legal';
 import Licenses from './pages/info/Licenses';
 import Contacto from './pages/info/Contacto';
+import Categorias from './pages/info/Categorias';
 import CondicionesBeta from './pages/info/CondicionesBeta';
 import { env } from './config/env';
 import { useState } from 'react';
@@ -419,6 +420,7 @@ function AnimatedRoutes() {
           <Route path="/licenses" element={<PageTransition><Licenses /></PageTransition>} />
           <Route path="/licencias" element={<PageTransition><Licenses /></PageTransition>} />
           <Route path="/contacto" element={<PageTransition><Contacto /></PageTransition>} />
+          <Route path="/categorias" element={<PageTransition><Categorias /></PageTransition>} />
           <Route path="/condiciones-beta" element={<PageTransition><CondicionesBeta /></PageTransition>} />
           <Route path="/pymes-cercanas" element={<PageTransition><NearbyCompanies /></PageTransition>} />
 
@@ -436,13 +438,18 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SkipLinks />
           <OfflineIndicator />
           <PWAUpdatePrompt />
           <AnimatedRoutes />
           <PWAInstallPrompt />
           <CookieConsent />
+          <footer className="py-4 text-center text-xs text-gray-500">
+            <Link to="/" className="hover:text-gray-700 transition-colors">
+              Desarrollado por pymerp.cl
+            </Link>
+          </footer>
           <Toaster 
             position="top-right"
             toastOptions={{
@@ -480,7 +487,7 @@ export default App;
 
 function E2EHarness() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/login" element={<div style={{ padding: 32 }}><h1>Login</h1></div>} />
         <Route path="/dashboard" element={<DashboardStub />} />

@@ -139,7 +139,7 @@ export default defineConfig({
         clientsClaim: true
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module',
         navigateFallback: 'index.html'
       }

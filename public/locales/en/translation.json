@@ -431,6 +431,16 @@
     "available": "available",
     "outOfStock": "Out of stock",
     "contactViaWhatsApp": "Contact via WhatsApp",
+    "mobileMenu": {
+      "title": "Menu",
+      "about": "About",
+      "services": "Services",
+      "products": "Products",
+      "hours": "Hours",
+      "location": "Location",
+      "media": "Video",
+      "contact": "Contact"
+    },
     "layouts": {
       "cta": {
         "services": "Book or message via WhatsApp",
@@ -722,6 +732,8 @@
       "cartCta": "Cart ({{count}})",
       "menuKicker": "Featured menu",
       "menuTitle": "{{name}} menu",
+      "productsSectionTitle": "Products",
+      "menuFilterAll": "All",
       "menuSubtitle": "Choose a category or scroll to explore all dishes.",
       "productsTab": "Products",
       "servicesTab": "Services",

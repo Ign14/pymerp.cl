@@ -48,13 +48,26 @@ export default function ProductsSettings() {
     font_title: FONT_OPTIONS[0].value,
     font_body: FONT_OPTIONS[0].value,
     font_button: FONT_OPTIONS[0].value,
-    layout: 'GRID' as 'GRID' | 'LIST',
-    card_layout: 1 as 1 | 2 | 3,
+    layout: 'LIST' as 'GRID' | 'LIST',
+    card_layout: 2 as 1 | 2 | 3,
     show_whatsapp_fab: false,
     menu_category_image_default: '',
     hero_kicker: '',
     hero_title: '',
     hero_description: '',
+    // Nuevas configuraciones de botones flotantes
+    show_cart_fab: true,
+    show_call_fab: true,
+    fab_cart_color: '#f59e0b',
+    fab_cart_opacity: 1,
+    fab_call_color: '#10b981',
+    fab_call_opacity: 1,
+    fab_whatsapp_color: '#25D366',
+    fab_whatsapp_opacity: 1,
+    // Configuración de productos en lista
+    product_list_image_position: 'left' as 'left' | 'right',
+    // Header mobile
+    hide_hero_logo_on_mobile: true,
   });
   const [companySchedule, setCompanySchedule] = useState({
     weekday_days: [] as string[],
@@ -118,13 +131,24 @@ export default function ProductsSettings() {
           font_title: appearanceData.font_title || FONT_OPTIONS[0].value,
           font_body: appearanceData.font_body || FONT_OPTIONS[0].value,
           font_button: appearanceData.font_button || FONT_OPTIONS[0].value,
-          layout: appearanceData.layout || 'GRID',
-          card_layout: (appearanceData.card_layout || 1) as 1 | 2 | 3,
+          layout: 'LIST', // Fijo en LIST
+          card_layout: 2, // Fijo en Layout 2
           show_whatsapp_fab: appearanceData.show_whatsapp_fab || false,
           menu_category_image_default: appearanceData.menu_category_image_default || '',
           hero_kicker: appearanceData.hero_kicker || '',
           hero_title: appearanceData.hero_title || '',
           hero_description: appearanceData.hero_description || '',
+          // Nuevas configuraciones
+          show_cart_fab: appearanceData.show_cart_fab ?? true,
+          show_call_fab: appearanceData.show_call_fab ?? true,
+          fab_cart_color: appearanceData.fab_cart_color || '#f59e0b',
+          fab_cart_opacity: appearanceData.fab_cart_opacity ?? 1,
+          fab_call_color: appearanceData.fab_call_color || '#10b981',
+          fab_call_opacity: appearanceData.fab_call_opacity ?? 1,
+          fab_whatsapp_color: appearanceData.fab_whatsapp_color || '#25D366',
+          fab_whatsapp_opacity: appearanceData.fab_whatsapp_opacity ?? 1,
+          product_list_image_position: appearanceData.product_list_image_position || 'left',
+          hide_hero_logo_on_mobile: appearanceData.hide_hero_logo_on_mobile ?? true,
         });
       }
       if (companyData) {
@@ -181,8 +205,8 @@ export default function ProductsSettings() {
       const path = `companies/${firestoreUser.company_id}/${field}_${Date.now()}`;
       const options =
         field === 'menu_background_image'
-          ? { width: 1920, height: 1080, maxSizeKB: 1500, format: 'image/jpeg', quality: 0.9 }
-          : { width: 900, height: 900, maxSizeKB: 900, format: 'image/jpeg', quality: 0.9 };
+          ? { width: 1920, height: 1080, maxSizeKB: 1500, format: 'image/jpeg' as const, quality: 0.9 }
+          : { width: 900, height: 900, maxSizeKB: 900, format: 'image/jpeg' as const, quality: 0.9 };
       const url = await uploadImage(file, path, options);
 
       setAppearance((prev) => ({ ...prev, [field]: url }));
@@ -231,16 +255,33 @@ export default function ProductsSettings() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center justify-between gap-2 mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="p-2 rounded-full border border-gray-200 hover:bg-gray-100"
+              aria-label="Volver"
+            >
+              ←
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">Configuración Visual - Productos</h1>
+          </div>
           <button
             type="button"
-            onClick={() => window.history.back()}
-            className="p-2 rounded-full border border-gray-200 hover:bg-gray-100"
-            aria-label="Volver"
+            onClick={() => {
+              const slug = firestoreUser?.company_id; // Usar el ID de la empresa como slug por ahora
+              window.open(`/${slug}?preview=true`, '_blank');
+            }}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 font-medium text-sm flex items-center gap-2"
+            aria-label="Vista previa con modo edición"
           >
-            ←
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Vista Previa
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Configuración Visual - Productos</h1>
         </div>
         
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
@@ -268,58 +309,6 @@ export default function ProductsSettings() {
               }}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-            {appearance.logo_url && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Posición del logo</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAppearance({ ...appearance, logo_position: 'left' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
-                      appearance.logo_position === 'left'
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-lg mb-1">⬅️</div>
-                      <div className="text-sm">Izquierda</div>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAppearance({ ...appearance, logo_position: 'center' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
-                      appearance.logo_position === 'center'
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-lg mb-1">⬆️</div>
-                      <div className="text-sm">Centro</div>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAppearance({ ...appearance, logo_position: 'right' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
-                      appearance.logo_position === 'right'
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-lg mb-1">➡️</div>
-                      <div className="text-sm">Derecha</div>
-                    </div>
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  El logo se mostrará más grande cuando esté centrado para mayor visibilidad.
-                </p>
-              </div>
-            )}
           </div>
 
           <div>
@@ -387,36 +376,6 @@ export default function ProductsSettings() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleMenuImageUpload(file, 'menu_background_image');
-                  }}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Imagen por defecto para categorías</label>
-                <p className="text-xs text-gray-500 mb-1">Recomendado: 900x900 px, JPG/PNG, máx ~900KB.</p>
-                {appearance.menu_category_image_default && (
-                  <div className="flex items-center gap-3 mb-2">
-                    <img
-                      src={appearance.menu_category_image_default}
-                      alt="Categoría por defecto"
-                      className="h-20 w-20 object-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setAppearance({ ...appearance, menu_category_image_default: '' })}
-                      className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                    >
-                      Eliminar imagen
-                    </button>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleMenuImageUpload(file, 'menu_category_image_default');
                   }}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
@@ -796,48 +755,212 @@ export default function ProductsSettings() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>
-            <select
-              value={appearance.layout}
-              onChange={(e) => setAppearance({ ...appearance, layout: e.target.value as 'GRID' | 'LIST' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="GRID">Grid</option>
-              <option value="LIST">Lista</option>
-            </select>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Layout Premium de Tarjetas</label>
-            <select
-              value={appearance.card_layout}
-              onChange={(e) => setAppearance({ ...appearance, card_layout: Number(e.target.value) as 1 | 2 | 3 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value={1}>Layout 1: Grid Clásico</option>
-              <option value={2}>Layout 2: Lista con Imagen Circular</option>
-              <option value={3}>Layout 3: Carrusel Fullscreen</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Selecciona el diseño premium para las tarjetas de productos en tu página pública.
+          {/* Sección de Botones Flotantes */}
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Botones Flotantes (FAB)</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Configura los botones de acción flotantes que aparecen en la esquina inferior derecha de tu página pública.
             </p>
+
+            <div className="space-y-4">
+              {/* Toggle WhatsApp */}
+              <div className="flex items-start gap-3 border rounded-lg p-4">
+                <input
+                  id="whatsappFab"
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  checked={appearance.show_whatsapp_fab}
+                  onChange={(e) => setAppearance({ ...appearance, show_whatsapp_fab: e.target.checked })}
+                />
+                <div className="flex-1">
+                  <label htmlFor="whatsappFab" className="text-sm font-medium text-gray-900">
+                    💬 Botón de WhatsApp
+                  </label>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Permite a los clientes contactarte por WhatsApp desde la página pública.
+                  </p>
+                  {appearance.show_whatsapp_fab && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Color</label>
+                        <input
+                          type="color"
+                          value={appearance.fab_whatsapp_color}
+                          onChange={(e) => setAppearance({ ...appearance, fab_whatsapp_color: e.target.value })}
+                          className="h-10 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Opacidad: {Math.round(appearance.fab_whatsapp_opacity * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={Math.round(appearance.fab_whatsapp_opacity * 100)}
+                          onChange={(e) => setAppearance({ ...appearance, fab_whatsapp_opacity: Number(e.target.value) / 100 })}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Toggle Carrito */}
+              <div className="flex items-start gap-3 border rounded-lg p-4 bg-orange-50">
+                <input
+                  id="cartFab"
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  checked={appearance.show_cart_fab}
+                  onChange={(e) => setAppearance({ ...appearance, show_cart_fab: e.target.checked })}
+                />
+                <div className="flex-1">
+                  <label htmlFor="cartFab" className="text-sm font-medium text-gray-900">
+                    🛒 Botón de Carrito
+                  </label>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Muestra el carrito de compras flotante para acceso rápido.
+                  </p>
+                  {appearance.show_cart_fab && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Color</label>
+                        <input
+                          type="color"
+                          value={appearance.fab_cart_color}
+                          onChange={(e) => setAppearance({ ...appearance, fab_cart_color: e.target.value })}
+                          className="h-10 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Opacidad: {Math.round(appearance.fab_cart_opacity * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={Math.round(appearance.fab_cart_opacity * 100)}
+                          onChange={(e) => setAppearance({ ...appearance, fab_cart_opacity: Number(e.target.value) / 100 })}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Toggle Llamadas */}
+              <div className="flex items-start gap-3 border rounded-lg p-4 bg-green-50">
+                <input
+                  id="callFab"
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  checked={appearance.show_call_fab}
+                  onChange={(e) => setAppearance({ ...appearance, show_call_fab: e.target.checked })}
+                />
+                <div className="flex-1">
+                  <label htmlFor="callFab" className="text-sm font-medium text-gray-900">
+                    📞 Botón de Llamadas
+                  </label>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Permite a los clientes llamarte directamente desde la página pública.
+                  </p>
+                  {appearance.show_call_fab && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Color</label>
+                        <input
+                          type="color"
+                          value={appearance.fab_call_color}
+                          onChange={(e) => setAppearance({ ...appearance, fab_call_color: e.target.value })}
+                          className="h-10 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Opacidad: {Math.round(appearance.fab_call_opacity * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={Math.round(appearance.fab_call_opacity * 100)}
+                          onChange={(e) => setAppearance({ ...appearance, fab_call_opacity: Number(e.target.value) / 100 })}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-start gap-3 border rounded-lg p-4">
-            <input
-              id="whatsappFab"
-              type="checkbox"
-              className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              checked={appearance.show_whatsapp_fab}
-              onChange={(e) => setAppearance({ ...appearance, show_whatsapp_fab: e.target.checked })}
-            />
-            <div>
-              <label htmlFor="whatsappFab" className="text-sm font-medium text-gray-900">
-                Mostrar botón flotante de WhatsApp
-              </label>
-              <p className="text-xs text-gray-600">
-                Permite a los clientes abrir WhatsApp desde la esquina inferior de la página pública de productos.
+          {/* Configuración de Header Mobile */}
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Header Mobile</h2>
+            <div className="flex items-start gap-3 border rounded-lg p-4">
+              <input
+                id="hideHeroLogo"
+                type="checkbox"
+                className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                checked={appearance.hide_hero_logo_on_mobile}
+                onChange={(e) => setAppearance({ ...appearance, hide_hero_logo_on_mobile: e.target.checked })}
+              />
+              <div>
+                <label htmlFor="hideHeroLogo" className="text-sm font-medium text-gray-900">
+                  Ocultar logo del hero en mobile
+                </label>
+                <p className="text-xs text-gray-600">
+                  Cuando está activado, el logo del hero no se muestra en mobile (solo se muestra en el header superior).
+                  Esto evita duplicar el logo en pantallas pequeñas.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Configuración de Productos en Lista */}
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Productos en Lista</h2>
+            <div className="border rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Posición de imagen</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAppearance({ ...appearance, product_list_image_position: 'left' })}
+                  className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                    appearance.product_list_image_position === 'left'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-lg mb-1">⬅️</div>
+                    <div className="text-sm">Izquierda</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAppearance({ ...appearance, product_list_image_position: 'right' })}
+                  className={`px-4 py-3 rounded-lg border-2 transition font-medium ${
+                    appearance.product_list_image_position === 'right'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-lg mb-1">➡️</div>
+                    <div className="text-sm">Derecha</div>
+                  </div>
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Cuando los productos se muestran en formato lista, la imagen aparecerá a la izquierda o derecha según tu configuración.
               </p>
             </div>
           </div>
