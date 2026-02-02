@@ -166,6 +166,10 @@ export default function PublicPage() {
   // Agregar clase al body para deshabilitar dark mode global en páginas públicas
   useEffect(() => {
     document.body.classList.add('public-page-mode');
+    
+    // DEBUG: Log para verificar que se aplicó la clase
+    console.log('✅ public-page-mode clase agregada al body');
+    
     return () => {
       document.body.classList.remove('public-page-mode');
     };
@@ -249,30 +253,50 @@ export default function PublicPage() {
   };
 
   const loadData = async (companySlug: string) => {
+    console.log('🔍 [DEBUG] loadData iniciado para slug:', companySlug);
     setLoading(true);
     try {
+      console.log('📡 [DEBUG] Consultando Firestore para slug:', companySlug);
       const companyData = await getCompanyBySlug(companySlug);
+      
       if (!companyData) {
+        console.error('❌ [DEBUG] Empresa NO encontrada para slug:', companySlug);
         setLoading(false);
         return;
       }
 
+      console.log('✅ [DEBUG] Empresa encontrada:', {
+        id: companyData.id,
+        name: companyData.name,
+        business_type: companyData.business_type,
+      });
+      
       setCompany(companyData);
 
       const loadAppearance = async () => {
+        console.log('🎨 [DEBUG] Cargando appearance para company_id:', companyData.id);
         const preferred = companyData.business_type as BusinessType | undefined;
         const candidates: BusinessType[] = preferred
           ? [preferred, preferred === BusinessType.SERVICES ? BusinessType.PRODUCTS : BusinessType.SERVICES]
           : [BusinessType.SERVICES, BusinessType.PRODUCTS];
 
+        console.log('🔎 [DEBUG] Probando contexts:', candidates);
+        
         for (const context of candidates) {
           try {
+            console.log(`  → Probando context: ${context}`);
             const appearanceData = await getCompanyAppearance(companyData.id, context);
-            if (appearanceData) return appearanceData;
-          } catch {
+            if (appearanceData) {
+              console.log(`  ✅ Appearance encontrado en context: ${context}`);
+              return appearanceData;
+            }
+            console.log(`  ⚠️ No encontrado en context: ${context}`);
+          } catch (error) {
+            console.error(`  ❌ Error en context ${context}:`, error);
             // Try next context
           }
         }
+        console.warn('⚠️ [DEBUG] No se encontró appearance en ningún context');
         return null;
       };
 
@@ -336,13 +360,35 @@ export default function PublicPage() {
       } else if (companyData.business_type) {
         try {
           const appearanceData = await appearancePromise;
-          if (appearanceData) setAppearance(appearanceData);
+          console.log('🎨 Appearance data (primera carga):', appearanceData ? 'CARGADO ✅' : 'NULL ❌');
+          if (appearanceData) {
+            console.log('  Colors:', {
+              card: appearanceData.card_color,
+              text: appearanceData.text_color,
+              button: appearanceData.button_color,
+              hero_card: appearanceData.menu_hero_card_color,
+              hero_opacity: appearanceData.menu_hero_card_opacity,
+            });
+            setAppearance(appearanceData);
+          } else {
+            console.warn('⚠️ No se encontró appearance data - usando valores por defecto');
+          }
         } catch (error) {
+          console.error('❌ Error cargando appearance:', error);
           // Continue without appearance
         }
       } else {
         const appearanceData = await appearancePromise;
-        if (appearanceData) setAppearance(appearanceData);
+        console.log('🎨 Appearance data (sin business_type):', appearanceData ? 'CARGADO ✅' : 'NULL ❌');
+        if (appearanceData) {
+          console.log('  Colors:', {
+            card: appearanceData.card_color,
+            text: appearanceData.text_color,
+          });
+          setAppearance(appearanceData);
+        } else {
+          console.warn('⚠️ No se encontró appearance data');
+        }
       }
     } catch (error) {
       handleError(error);
@@ -1023,19 +1069,19 @@ export default function PublicPage() {
         )}
 
         <div
-          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-between pl-8 pr-4 py-3 shadow-md safe-area-inset-top"
+          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-center py-4 shadow-md safe-area-inset-top relative"
           style={{
             backgroundColor: mobileHeaderBg,
             color: mobileHeaderText,
             borderBottom: `1px solid ${mobileHeaderBorder}40`,
           }}
         >
-          <div className="flex items-center">
+          <div className="flex items-center justify-center flex-1 mt-2.5">
             {appearance?.logo_url ? (
               <img
                 src={appearance.logo_url}
                 alt={`Logo de ${company.name}`}
-                className="h-10 object-contain"
+                className="h-12 object-contain"
                 loading="eager"
               />
             ) : (
@@ -1045,7 +1091,7 @@ export default function PublicPage() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="h-10 w-10 rounded-full flex items-center justify-center transition hover:opacity-80"
+            className="absolute right-4 h-10 w-10 rounded-full flex items-center justify-center transition hover:opacity-80"
             aria-label="Abrir menú"
             style={{ color: mobileHeaderText }}
           >
@@ -1059,7 +1105,7 @@ export default function PublicPage() {
 
         <main
           id="main-content"
-          className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12 pt-20 sm:pt-4 pb-24 sm:pb-10 lg:pb-12"
+          className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12 pt-12 sm:pt-4 pb-24 sm:pb-10 lg:pb-12"
           style={{ color: theme.textColor, fontFamily: theme.fontBody }}
         >
           <LayoutRenderer
@@ -1078,6 +1124,7 @@ export default function PublicPage() {
             cartItems={totalCartItems}
             cartTotal={cartTotal}
             hasHiddenPrices={hasHiddenPrices}
+            hideHeroLogoOnMobile={appearance?.hide_hero_logo_on_mobile ?? true}
             sections={sections}
             contactActions={contactActionsNode}
             onOpenCart={() => setShowCart(true)}
@@ -1193,20 +1240,6 @@ export default function PublicPage() {
             </div>
           )}
         </div>
-
-        <footer id="footer" className="text-center py-6 text-sm" style={{ color: theme.textColor, transform: 'translateY(-1.2rem)' }}>
-          Desarrollado por{' '}
-          <a
-            href="https://www.pymerp.cl"
-            className="text-blue-600 hover:underline"
-            style={{ fontFamily: theme.fontBody }}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Visitar sitio web de PymERP (se abre en nueva ventana)"
-          >
-            pymerp.cl
-          </a>
-        </footer>
 
         <MobileMenuModal
           isOpen={isMobileMenuOpen}
