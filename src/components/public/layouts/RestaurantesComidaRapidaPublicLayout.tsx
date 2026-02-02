@@ -465,16 +465,18 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       {/* Grid de columnas por categoría (desktop) o lista (mobile) */}
       {hasMultipleCategories && activeCategory === 'all' ? (
         <div className="lg:grid lg:gap-6" style={{ 
-          gridTemplateColumns: `repeat(${Math.min(visibleCategoriesForColumns.length, 3)}, 1fr)` 
+          gridTemplateColumns: `repeat(${Math.min(visibleCategoriesForColumns.length, 3)}, 1fr)`,
+          background: 'transparent',
+          backgroundColor: 'transparent'
         }}>
           {/* En mobile: mostrar todas las categorías en lista vertical */}
-          <div className="lg:hidden space-y-8">
+          <div className="lg:hidden space-y-8" style={{ background: 'transparent' }}>
             {categoriesToRender.map((category) => {
               const categoryProducts = displayProductsByCategory[category.id] || [];
               if (categoryProducts.length === 0) return null;
 
               return (
-                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3" style={{ background: 'transparent' }}>
                   <h3
                     className="text-lg sm:text-xl font-bold pb-2 border-b"
                     style={{ 
@@ -485,7 +487,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
                   >
                     {category.name}
                   </h3>
-                  <div className={gridClasses}>
+                  <div className={gridClasses} style={{ background: 'transparent' }}>
                     {categoryProducts.map((product, index) => {
                       const quantity = getProductQuantity(product.id);
                       const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
@@ -522,7 +524,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
               if (categoryProducts.length === 0) return null;
 
               return (
-                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3" style={{ background: 'transparent' }}>
                   <h3
                     className="text-lg sm:text-xl font-bold pb-2 border-b"
                     style={{ 
@@ -533,7 +535,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
                   >
                     {category.name}
                   </h3>
-                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4" style={{ background: 'transparent' }}>
                     {categoryProducts.map((product, index) => {
                       const quantity = getProductQuantity(product.id);
                       const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
@@ -570,14 +572,14 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
           if (categoryProducts.length === 0) return null;
 
           return (
-            <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+            <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3" style={{ background: 'transparent' }}>
               <h3
                 className="text-lg sm:text-xl font-bold"
                 style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
               >
                 {category.name}
               </h3>
-              <div className={gridClasses}>
+              <div className={gridClasses} style={{ background: 'transparent' }}>
                 {categoryProducts.map((product, index) => {
                   const quantity = getProductQuantity(product.id);
                   const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
