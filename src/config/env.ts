@@ -17,7 +17,8 @@ type EnvKeys =
   | 'VITE_APP_ENV'
   | 'VITE_ENABLE_ANALYTICS'
   | 'VITE_SENTRY_DSN'
-  | 'VITE_E2E_USER';
+  | 'VITE_E2E_USER'
+  | 'VITE_PUBLIC_BASE_URL';
 
 const rawEnv = import.meta.env as unknown as Partial<Record<EnvKeys, string>>;
 
@@ -83,4 +84,17 @@ export const env = {
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
   e2eUser: getEnvVar('VITE_E2E_USER', { required: false, fallback: '' }),
+
+  // URL base canónica para páginas públicas.
+  // En local (localhost) usa el origen actual; en producción usa pymerp.cl o VITE_PUBLIC_BASE_URL.
+  get publicBaseUrl(): string {
+    const configured = getEnvVar('VITE_PUBLIC_BASE_URL', {
+      required: false,
+      fallback: 'https://pymerp.cl',
+    }).replace(/\/$/, '');
+    if (typeof window !== 'undefined' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin)) {
+      return window.location.origin;
+    }
+    return configured;
+  },
 };

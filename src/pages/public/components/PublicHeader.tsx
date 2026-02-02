@@ -48,7 +48,7 @@ export function PublicHeader({ company, appearance, theme }: PublicHeaderProps) 
           style={hasBanner ? { marginTop: '1rem', backgroundColor: 'transparent' } : undefined}
         >
           {appearance?.logo_url ? (
-            <div className={`flex ${alignmentClass} ${hasBanner ? 'mt-1 sm:mt-3' : 'mb-4'}`}>
+            <div className={`hidden sm:flex ${alignmentClass} ${hasBanner ? 'mt-1 sm:mt-3' : 'mb-4'}`}>
               <img
                 src={appearance.logo_url}
                 alt={`Logo de ${company.name}`}

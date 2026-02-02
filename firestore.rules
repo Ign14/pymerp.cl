@@ -27,6 +27,10 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.company_id == companyId;
     }
+
+    function getServiceCompanyId(serviceId) {
+      return get(/databases/$(database)/documents/services/$(serviceId)).data.company_id;
+    }
     
     // ==================== USERS ====================
     match /users/{userId} {
@@ -40,13 +44,36 @@ service cloud.firestore {
       allow create: if true; // Public can create requests
       allow update, delete: if isSuperAdmin();
     }
+
+    // ==================== DATA DELETION REQUESTS ====================
+    match /data_deletion_requests/{requestId} {
+      allow read: if isAuthenticated() &&
+        (request.auth.uid == resource.data.user_id || isSuperAdmin());
+      allow create, update, delete: if isSuperAdmin();
+    }
     
     // ==================== COMPANIES ====================
     match /companies/{companyId} {
-      allow read: if isAuthenticated() || true; // Public read for public pages
+      allow read: if true; // Public read for public pages (e.g. /micarritodecomida)
       allow create: if isAuthenticated();
       allow update: if belongsToUserCompany(companyId) || isSuperAdmin();
       allow delete: if isSuperAdmin();
+    }
+    
+    // ==================== COMPANIES PUBLIC ====================
+    // Colección pública con datos whitelisted para búsquedas y mapas
+    // Solo lectura pública permitida. Escritura desde cliente muy limitada.
+    match /companies_public/{companyId} {
+      allow read: if true; // Lectura pública permitida
+      // Permitir solo updates muy acotados por el dueño de la empresa.
+      // Esto habilita la configuración de mesas del Menú QR.
+      allow update: if isAuthenticated() &&
+                     belongsToUserCompany(companyId) &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                       'menu_qr_table_count',
+                       'updated_at'
+                     ]);
+      allow create, delete: if false;
     }
     
     // ==================== COMPANY APPEARANCE ====================
@@ -150,8 +177,10 @@ service cloud.firestore {
     }
     
     // ==================== PRODUCT ORDER REQUESTS ====================
+    // Read: público por ID (página /tracking). Quien tiene el link puede ver el estado.
+    // Create: público (pedidos desde sitio/menú). Update/Delete: solo empresa.
     match /productOrderRequests/{orderId} {
-      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow read: if true; // Public read by document ID - tracking link is secret
       allow create: if true; // Public can create orders
       allow update, delete: if isEntrepreneur() && 
                               belongsToUserCompany(resource.data.company_id);
@@ -182,7 +211,39 @@ service cloud.firestore {
     // ==================== SERVICE SCHEDULES ====================
     match /serviceSchedules/{scheduleId} {
       allow read: if true; // Public read
-      allow create, update, delete: if isEntrepreneur();
+      allow create: if isAuthenticated() &&
+        (belongsToUserCompany(
+          request.resource.data.company_id != null
+            ? request.resource.data.company_id
+            : getServiceCompanyId(request.resource.data.service_id)
+        ) || isSuperAdmin());
+      allow update, delete: if isAuthenticated() &&
+        (belongsToUserCompany(
+          resource.data.company_id != null
+            ? resource.data.company_id
+            : getServiceCompanyId(resource.data.service_id)
+        ) || isSuperAdmin());
+    }
+
+    // ==================== DELIVERY ROUTES ====================
+    match /delivery_routes/{routeId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== PAYMENT COLLECTIONS ====================
+    match /payment_collections/{collectionId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== DELIVERY LOCATIONS ====================
+    match /delivery_locations/{locationId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
     }
     
     // ==================== PUBLIC PAGE EVENTS ====================
@@ -190,6 +251,48 @@ service cloud.firestore {
       allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
       allow create: if true; // Public can create events (analytics)
       allow update, delete: if isSuperAdmin();
+    }
+
+    // ==================== MENU CATEGORIES ====================
+    match /menu_categories/{categoryId} {
+      allow read: if true; // Public menu
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== CLINIC RESOURCES ====================
+    match /clinic_resources/{resourceId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== EVENTS ====================
+    match /events/{eventId} {
+      allow read: if true; // Public events
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== EVENT RESERVATIONS ====================
+    match /event_reservations/{reservationId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== PROPERTIES ====================
+    match /properties/{propertyId} {
+      allow read: if true; // Public listings
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
+    }
+
+    // ==================== PROPERTY BOOKINGS ====================
+    match /property_bookings/{bookingId} {
+      allow read: if isAuthenticated() && belongsToUserCompany(resource.data.company_id);
+      allow create: if isEntrepreneur() && belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
     }
     
     // ==================== CALENDAR INVENTORY ====================

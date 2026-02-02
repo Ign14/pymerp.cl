@@ -114,6 +114,7 @@ export interface Company {
   comuna?: string;
   externalWebsiteUrl?: string;
   externalWebsiteEnabled?: boolean;
+  publicEnabled?: boolean;
   publicSlug?: string;
   photos?: string[];
   social_links?: Record<string, string> | null;
@@ -189,6 +190,19 @@ export interface CompanyAppearance {
   calendar_low_slots_color?: string; // Color de borde para días con pocos slots (amarillo)
   calendar_no_slots_color?: string; // Color de borde para días sin slots (rojo)
   calendar_selected_day_color?: string; // Color de fondo para el día seleccionado
+  // Configuración de botones flotantes
+  show_cart_fab?: boolean; // Mostrar botón flotante de carrito
+  show_call_fab?: boolean; // Mostrar botón flotante de llamadas
+  fab_cart_color?: string; // Color del botón flotante de carrito
+  fab_cart_opacity?: number; // Opacidad del botón flotante de carrito (0-1)
+  fab_call_color?: string; // Color del botón flotante de llamadas
+  fab_call_opacity?: number; // Opacidad del botón flotante de llamadas (0-1)
+  fab_whatsapp_color?: string; // Color del botón flotante de WhatsApp
+  fab_whatsapp_opacity?: number; // Opacidad del botón flotante de WhatsApp (0-1)
+  // Configuración de productos en lista
+  product_list_image_position?: 'left' | 'right'; // Posición de imagen en lista de productos
+  // Header mobile
+  hide_hero_logo_on_mobile?: boolean; // Ocultar logo del hero en mobile cuando header ya muestra logo
 }
 
 export interface ScheduleSlot {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import {
@@ -105,9 +105,13 @@ const defaultTheme: AppearanceTheme = {
 
 export default function PublicPage() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const { trackConversion, trackClick, trackNamedEvent } = useAnalytics();
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
+  
+  // Modo preview para mostrar indicadores de edición
+  const isPreviewMode = searchParams.get('preview') === 'true';
 
   const isMobile = useMemo(
     () =>
@@ -156,6 +160,16 @@ export default function PublicPage() {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showWhatsAppFab = Boolean(appearance?.show_whatsapp_fab && company?.whatsapp);
+  const showCartFab = Boolean(appearance?.show_cart_fab && company?.business_type === BusinessType.PRODUCTS);
+  const showCallFab = Boolean(appearance?.show_call_fab && company?.whatsapp);
+
+  // Agregar clase al body para deshabilitar dark mode global en páginas públicas
+  useEffect(() => {
+    document.body.classList.add('public-page-mode');
+    return () => {
+      document.body.classList.remove('public-page-mode');
+    };
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -202,6 +216,7 @@ export default function PublicPage() {
       fontBody: appearance?.font_body || defaultTheme.fontBody,
       fontButton: appearance?.font_button || defaultTheme.fontButton,
       cardLayout: appearance?.card_layout || 1, // Default layout 1
+      productListImagePosition: appearance?.product_list_image_position || 'left', // Posición de imagen en lista
       // Personalización del calendario
       calendarCardColor: toRgba(calendarCardBase, calendarCardOpacity / 100),
       calendarCardOpacity: calendarCardOpacity,
@@ -244,57 +259,90 @@ export default function PublicPage() {
 
       setCompany(companyData);
 
-      if (companyData.business_type) {
-        try {
-          const appearanceData = await getCompanyAppearance(companyData.id, companyData.business_type);
-          setAppearance(appearanceData);
-        } catch (error) {
-          // Continue without appearance
+      const loadAppearance = async () => {
+        const preferred = companyData.business_type as BusinessType | undefined;
+        const candidates: BusinessType[] = preferred
+          ? [preferred, preferred === BusinessType.SERVICES ? BusinessType.PRODUCTS : BusinessType.SERVICES]
+          : [BusinessType.SERVICES, BusinessType.PRODUCTS];
+
+        for (const context of candidates) {
+          try {
+            const appearanceData = await getCompanyAppearance(companyData.id, context);
+            if (appearanceData) return appearanceData;
+          } catch {
+            // Try next context
+          }
         }
-      }
+        return null;
+      };
+
+      const appearancePromise = loadAppearance();
 
       if (companyData.business_type === BusinessType.SERVICES) {
-        try {
-          const servicesData = await getServices(companyData.id);
-          const activeServices = servicesData.filter((service) => 
+        const [appearanceResult, servicesResult, professionalsResult] = await Promise.allSettled([
+          appearancePromise,
+          getServices(companyData.id),
+          listProfessionals(companyData.id),
+        ]);
+
+        if (appearanceResult.status === 'fulfilled' && appearanceResult.value) {
+          setAppearance(appearanceResult.value);
+        }
+
+        if (servicesResult.status === 'fulfilled') {
+          const activeServices = servicesResult.value.filter((service) =>
             !service.status || service.status === 'ACTIVE'
           );
           setServices(activeServices);
 
           if (activeServices.length > 0) {
-            const schedulesData = await getScheduleSlots(companyData.id);
+            const [schedulesData, scheduleGroups] = await Promise.all([
+              getScheduleSlots(companyData.id),
+              Promise.all(activeServices.map((service) => getServiceSchedules(service.id))),
+            ]);
             setSchedules(schedulesData);
-
-            const scheduleGroups = await Promise.all(
-              activeServices.map((service) => getServiceSchedules(service.id))
-            );
             setServiceSchedules(scheduleGroups.flat());
           }
-        } catch (error) {
-          handleError(error);
+        } else {
+          handleError(servicesResult.reason);
         }
 
-        try {
-          const professionalsData = await listProfessionals(companyData.id);
-          setProfessionals(professionalsData);
-        } catch (error) {
-          handleError(error);
+        if (professionalsResult.status === 'fulfilled') {
+          setProfessionals(professionalsResult.value);
+        } else {
+          handleError(professionalsResult.reason);
         }
       } else if (companyData.business_type === BusinessType.PRODUCTS) {
-        try {
-          const [productsData, categoriesData] = await Promise.all([
-            getProducts(companyData.id),
-            getMenuCategories(companyData.id),
-          ]);
-          const activeProducts = productsData.filter((product) => 
-            !product.status || product.status === 'ACTIVE'
+        const [appearanceResult, productsResult] = await Promise.allSettled([
+          appearancePromise,
+          Promise.all([getProducts(companyData.id), getMenuCategories(companyData.id)]),
+        ]);
+
+        if (appearanceResult.status === 'fulfilled' && appearanceResult.value) {
+          setAppearance(appearanceResult.value);
+        }
+
+        if (productsResult.status === 'fulfilled') {
+          const [productsData, categoriesData] = productsResult.value;
+          const activeProducts = productsData.filter(
+            (product) => !product.status || product.status === 'ACTIVE'
           );
           const activeCategories = categoriesData.filter((category) => category.active !== false);
           setProducts(activeProducts);
           setMenuCategories(activeCategories);
-        } catch (error) {
-          handleError(error);
+        } else {
+          handleError(productsResult.reason);
         }
+      } else if (companyData.business_type) {
+        try {
+          const appearanceData = await appearancePromise;
+          if (appearanceData) setAppearance(appearanceData);
+        } catch (error) {
+          // Continue without appearance
+        }
+      } else {
+        const appearanceData = await appearancePromise;
+        if (appearanceData) setAppearance(appearanceData);
       }
     } catch (error) {
       handleError(error);
@@ -497,7 +545,7 @@ export default function PublicPage() {
       company_id: company?.id,
     });
 
-    toast.success(`${quantity > 1 ? `${quantity} productos agregados` : 'Producto agregado'} al carrito`);
+    toast.success(`${quantity > 1 ? quantity + ' productos agregados' : 'Producto agregado'} al carrito`);
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
@@ -682,7 +730,7 @@ export default function PublicPage() {
     company?.description || company?.mission || company?.booking_message || 'Descubre servicios y productos locales en PYM-ERP.';
   const metaImage = appearance?.logo_url || appearance?.banner_url || '/logopymerp.png';
   const metaUrl =
-    company?.slug ? `https://pymerp.cl/${company.slug}` : typeof window !== 'undefined' ? window.location.href : '';
+    company?.slug ? `${env.publicBaseUrl}/${company.slug}` : typeof window !== 'undefined' ? window.location.href : '';
 
   const businessSchema = company
     ? createLocalBusinessSchema({
@@ -720,10 +768,10 @@ export default function PublicPage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Emprendimiento no encontrado</h1>
-          <p className="text-gray-600">La página que buscas no existe.</p>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="text-center px-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Emprendimiento no encontrado</h1>
+          <p className="text-gray-600 dark:text-gray-300">La página que buscas no existe.</p>
         </div>
       </div>
     );
@@ -779,6 +827,7 @@ export default function PublicPage() {
     company.business_type === BusinessType.PRODUCTS && products.length > 0 ? (
       <ProductsSection
         products={products}
+        categories={menuCategories}
         theme={theme}
         layout={appearance?.layout}
         cart={cart}
@@ -866,17 +915,10 @@ export default function PublicPage() {
     },
   ].filter(Boolean) as Array<{ id: string; label: string; icon?: string; scrollToId?: string }>;
 
-  const mobileHeaderLogo =
-    appearance?.logo_url || (company as any)?.logo_url || (company as any)?.logo || '';
   const mobileHeaderBg =
-    appearance?.menu_card_color ||
-    appearance?.menu_background_color ||
-    appearance?.card_color ||
-    theme.cardColor;
+    appearance?.card_color || theme.cardColor;
   const mobileHeaderText =
-    appearance?.menu_text_color ||
-    appearance?.text_color ||
-    theme.textColor;
+    appearance?.text_color || theme.titleColor || theme.textColor;
   const mobileHeaderBorder =
     appearance?.menu_button_color ||
     appearance?.button_color ||
@@ -897,14 +939,35 @@ export default function PublicPage() {
         ogImage={metaImage}
         ogImageAlt={`${company.name} - ${company.sector || 'Negocio local'}`}
         ogType="website"
+        ogUrl={metaUrl}
+        canonical={metaUrl}
         schema={businessSchema || undefined}
         robots="index, follow"
       />
+      
+      {/* Banner de modo preview */}
+      {isPreviewMode && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium shadow-lg">
+          <div className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>Modo Vista Previa: Los elementos configurables muestran indicadores azules</span>
+          </div>
+        </div>
+      )}
+      
       <div 
-        className="min-h-screen relative background-container" 
-        style={backgroundContainerStyle}
+        className="min-h-screen relative background-container public-page-custom-theme" 
+        style={{
+          ...backgroundContainerStyle,
+          paddingTop: isPreviewMode ? '2.5rem' : '0',
+        }}
         data-orientation={company?.background_orientation?.toLowerCase() || 'horizontal'}
         data-fit={company?.background_fit || 'cover'}
+        data-layout-variant={layoutInfo.key}
+        data-layout-variant-style={layoutInfo.variant}
       >
         {/* Background Image Layer - Optimizado para máxima calidad e integridad */}
         {company?.background_enabled && company.background_url && (
@@ -960,23 +1023,25 @@ export default function PublicPage() {
         )}
 
         <div
-          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-between px-4 py-2 shadow-md"
+          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-between pl-8 pr-4 py-3 shadow-md safe-area-inset-top"
           style={{
             backgroundColor: mobileHeaderBg,
             color: mobileHeaderText,
-            borderBottom: `1px solid ${mobileHeaderBorder}30`,
+            borderBottom: `1px solid ${mobileHeaderBorder}40`,
           }}
         >
-          {mobileHeaderLogo ? (
-            <img
-              src={mobileHeaderLogo}
-              alt={company.name}
-              className="h-10 w-auto object-contain"
-              loading="eager"
-            />
-          ) : (
-            <span className="text-sm font-semibold">{company.name}</span>
-          )}
+          <div className="flex items-center">
+            {appearance?.logo_url ? (
+              <img
+                src={appearance.logo_url}
+                alt={`Logo de ${company.name}`}
+                className="h-10 object-contain"
+                loading="eager"
+              />
+            ) : (
+              <span className="text-sm font-semibold">{company.name}</span>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
@@ -994,7 +1059,7 @@ export default function PublicPage() {
 
         <main
           id="main-content"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pt-16 sm:pt-6"
+          className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12 pt-20 sm:pt-4 pb-24 sm:pb-10 lg:pb-12"
           style={{ color: theme.textColor, fontFamily: theme.fontBody }}
         >
           <LayoutRenderer
@@ -1032,21 +1097,104 @@ export default function PublicPage() {
           />
         </main>
 
-        {showWhatsAppFab && (
-          <button
-            type="button"
-            onClick={handleWhatsAppClick}
-            className="fixed bottom-6 right-6 z-40 flex items-center justify-center h-14 w-14 rounded-full shadow-lg text-white hover:opacity-90 transition"
-            style={{ backgroundColor: '#25D366', color: '#ffffff' }}
-            aria-label="Contactar por WhatsApp"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0 11.86 11.86 0 0 0 1.07 12.17 11.7 11.7 0 0 0 3.5 20.5l-1 3.48 3.6-.94a11.93 11.93 0 0 0 5.94 1.52h.05A11.83 11.83 0 0 0 24 12.07 11.8 11.8 0 0 0 20.52 3.48ZM12.1 21a9.9 9.9 0 0 1-5.05-1.38l-.36-.22-2.14.55.57-2.08-.24-.34a9.83 9.83 0 0 1-1.7-5.54A10.08 10.08 0 0 1 12.06 2a9.92 9.92 0 0 1 7.07 2.93 9.92 9.92 0 0 1 2.92 7.12A10 10 0 0 1 12.1 21Zm5.47-7.3c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.64.07A8.14 8.14 0 0 1 10 11.8a9.18 9.18 0 0 1-1.65-2 .55.55 0 0 1 .13-.76c.13-.14.3-.37.45-.55a2.54 2.54 0 0 0 .3-.52.67.67 0 0 0-.03-.63c-.08-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51H6.8a1.3 1.3 0 0 0-.94.44 3.93 3.93 0 0 0-1.24 2.9c0 1.7 1.26 3.34 1.43 3.57.17.22 2.47 3.78 5.98 5.13a19.4 19.4 0 0 0 2.02.6 4.86 4.86 0 0 0 2.25.14c.69-.1 2.1-.86 2.4-1.7a3 3 0 0 0 .21-1.7c-.09-.14-.27-.22-.57-.37Z" />
-            </svg>
-          </button>
-        )}
+        {/* Floating Action Buttons (FABs) - Apilados verticalmente */}
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3 items-end">
+          {isPreviewMode && (showCallFab || showCartFab || showWhatsAppFab) && (
+            <div className="mb-2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded shadow-lg">
+              Botones Flotantes
+            </div>
+          )}
+          
+          {/* Botón de Llamadas - Arriba de todo */}
+          {showCallFab && company?.whatsapp && (
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = `tel:${company.whatsapp}`;
+                  if (company?.id) {
+                    createPublicPageEvent(company.id, EventType.WHATSAPP_CLICK); // Reusar evento por ahora
+                  }
+                }}
+                className="flex items-center justify-center h-14 w-14 rounded-full shadow-lg hover:opacity-90 transition transform hover:scale-105"
+                style={{
+                  backgroundColor: appearance?.fab_call_color || '#10b981',
+                  opacity: appearance?.fab_call_opacity ?? 1,
+                  color: '#ffffff',
+                }}
+                aria-label="Llamar por teléfono"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </button>
+              {isPreviewMode && (
+                <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded shadow-lg whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition">
+                  Botón Llamadas
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Botón de Carrito - En medio */}
+          {showCartFab && (
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => setShowCart(true)}
+                className="flex items-center justify-center h-14 w-14 rounded-full shadow-lg hover:opacity-90 transition transform hover:scale-105 relative"
+                style={{
+                  backgroundColor: appearance?.fab_cart_color || '#f59e0b',
+                  opacity: appearance?.fab_cart_opacity ?? 1,
+                  color: '#ffffff',
+                }}
+                aria-label={`Ver carrito con ${totalCartItems} artículos`}
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
+              {isPreviewMode && (
+                <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded shadow-lg whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition">
+                  Botón Carrito
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Botón de WhatsApp - Abajo */}
+          {showWhatsAppFab && (
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={handleWhatsAppClick}
+                className="flex items-center justify-center h-14 w-14 rounded-full shadow-lg hover:opacity-90 transition transform hover:scale-105"
+                style={{
+                  backgroundColor: appearance?.fab_whatsapp_color || '#25D366',
+                  opacity: appearance?.fab_whatsapp_opacity ?? 1,
+                  color: '#ffffff',
+                }}
+                aria-label="Contactar por WhatsApp"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0 11.86 11.86 0 0 0 1.07 12.17 11.7 11.7 0 0 0 3.5 20.5l-1 3.48 3.6-.94a11.93 11.93 0 0 0 5.94 1.52h.05A11.83 11.83 0 0 0 24 12.07 11.8 11.8 0 0 0 20.52 3.48ZM12.1 21a9.9 9.9 0 0 1-5.05-1.38l-.36-.22-2.14.55.57-2.08-.24-.34a9.83 9.83 0 0 1-1.7-5.54A10.08 10.08 0 0 1 12.06 2a9.92 9.92 0 0 1 7.07 2.93 9.92 9.92 0 0 1 2.92 7.12A10 10 0 0 1 12.1 21Zm5.47-7.3c-.3-.15-1.77-.87-2.04-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.64.07A8.14 8.14 0 0 1 10 11.8a9.18 9.18 0 0 1-1.65-2 .55.55 0 0 1 .13-.76c.13-.14.3-.37.45-.55a2.54 2.54 0 0 0 .3-.52.67.67 0 0 0-.03-.63c-.08-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51H6.8a1.3 1.3 0 0 0-.94.44 3.93 3.93 0 0 0-1.24 2.9c0 1.7 1.26 3.34 1.43 3.57.17.22 2.47 3.78 5.98 5.13a19.4 19.4 0 0 0 2.02.6 4.86 4.86 0 0 0 2.25.14c.69-.1 2.1-.86 2.4-1.7a3 3 0 0 0 .21-1.7c-.09-.14-.27-.22-.57-.37Z" />
+                </svg>
+              </button>
+              {isPreviewMode && (
+                <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded shadow-lg whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition">
+                  Botón WhatsApp
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-        <footer id="footer" className="text-center py-6 text-sm" style={{ color: theme.textColor }}>
+        <footer id="footer" className="text-center py-6 text-sm" style={{ color: theme.textColor, transform: 'translateY(-1.2rem)' }}>
           Desarrollado por{' '}
           <a
             href="https://www.pymerp.cl"

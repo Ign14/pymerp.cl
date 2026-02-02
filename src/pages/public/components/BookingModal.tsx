@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale/es';
 import { motion } from 'framer-motion';
@@ -71,10 +71,17 @@ export function BookingModal({
 }: BookingModalProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [occupiedSlots, setOccupiedSlots] = useState<CalendarInventoryEntry[]>([]);
-  const minDate = new Date();
-  minDate.setHours(0, 0, 0, 0);
-  const maxDate = new Date(Date.now() + 35 * 24 * 60 * 60 * 1000);
-  maxDate.setHours(0, 0, 0, 0);
+  const minDate = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
+  const maxDate = useMemo(() => {
+    const date = new Date(Date.now() + 35 * 24 * 60 * 60 * 1000);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
 
   useEffect(() => {
     if (isOpen) {

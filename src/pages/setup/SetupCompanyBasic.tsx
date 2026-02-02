@@ -5,6 +5,7 @@ import { getCompany, updateCompany } from '../../services/firestore';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { generateSlug } from '../../utils/slug';
+import { env } from '../../config/env';
 import {
   validateRequired,
   validateRut,
@@ -324,7 +325,7 @@ export default function SetupCompanyBasic() {
               Slug de tu URL pública *
             </label>
             <p className="text-xs text-gray-500 mb-2">
-              Así se verá tu enlace público: https://pymerp.cl/negocios/<strong>{formData.slug || 'tu-slug'}</strong>
+              Así se verá tu enlace público: {env.publicBaseUrl}/<strong>{formData.slug || 'tu-slug'}</strong>
             </p>
             <input
               type="text"

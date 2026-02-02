@@ -13,7 +13,7 @@
       "pro": "Pro"
     },
     "acceptBetaLabel": "Acepto los términos beta",
-    "betaTermsLink": "Ver términos beta",
+    "betaTermsLink": "Ver condiciones",
     "submitButton": "Enviar solicitud",
     "sendingButton": "Enviando...",
     "checkingButton": "Verificando...",
@@ -29,12 +29,12 @@
     "cannotSubmitWithRegisteredEmail": "No puedes enviar la solicitud con un email ya registrado",
     "successTitle": "¡Solicitud enviada!",
     "successMessage": "Hemos recibido tu solicitud. Te enviaremos un correo con las instrucciones para establecer tu contraseña.",
-    "betaConditionsTitle": "Condiciones de la versión Beta",
-    "betaCondition1": "Esta es una versión beta del producto, por lo que pueden existir errores o funcionalidades incompletas.",
-    "betaCondition2": "Tus datos y contenido pueden ser eliminados o modificados sin previo aviso durante el período beta.",
-    "betaCondition3": "El acceso al servicio puede ser interrumpido en cualquier momento para mantenimiento o mejoras.",
-    "betaCondition4": "No nos hacemos responsables por pérdidas de datos o problemas derivados del uso del servicio en esta fase.",
-    "betaCondition5": "Al aceptar estos términos, confirmas que entiendes y aceptas las limitaciones de una versión beta."
+    "betaConditionsTitle": "Condiciones de uso en beta",
+    "betaCondition1": "La plataforma puede cambiar, actualizarse o presentar incidencias propias de una etapa beta.",
+    "betaCondition2": "El servicio puede presentar interrupciones temporales por mantenimiento, mejoras o correcciones.",
+    "betaCondition3": "Tu información es tuya: no la vendemos ni la compartimos con terceros. Solo la usamos para operar pymerp.cl y la protegemos con medidas de seguridad.",
+    "betaCondition4": "La información publicada (textos, imágenes, precios, horarios) es responsabilidad de cada usuario.",
+    "betaCondition5": "Si en el futuro se habilitan pagos por suscripción, te avisaremos con anticipación y podrás decidir si continuar."
   },
   "appointments": {
     "title": "Citas",

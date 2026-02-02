@@ -445,7 +445,7 @@ export default function NearbyCompaniesPage() {
           '@type': 'WebPage',
           name: t('nearby.title'),
           description: t('nearby.subtitle'),
-          url: 'https://www.pymerp.cl/pymes-cercanas',
+          url: `${env.publicBaseUrl}/pymes-cercanas`,
         }}
       />
       <div className="min-h-screen bg-slate-950 text-white">
@@ -536,7 +536,7 @@ export default function NearbyCompaniesPage() {
                 className="block w-full text-center px-4 py-2.5 bg-white text-gray-900 rounded-lg font-medium shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 active:scale-[0.98]"
                 onClick={() => navigate('/request-access')}
               >
-                Comenzar Gratis
+                Regístrate gratis
               </button>
             </div>
           </div>
@@ -603,8 +603,19 @@ export default function NearbyCompaniesPage() {
                                 minWidth: 260,
                               }}
                             >
-                              <div className="text-slate-900" style={{ width: '260px', maxWidth: '300px', boxSizing: 'border-box' }}>
-                                <div className="flex flex-col items-center text-center px-2 py-1">
+                              <div
+                                className="relative text-slate-900 bg-slate-200/60 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-md"
+                                style={{ width: '260px', maxWidth: '300px', boxSizing: 'border-box' }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCompany(null)}
+                                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 text-slate-700 hover:text-slate-900 hover:bg-white shadow-sm flex items-center justify-center"
+                                  aria-label="Cerrar"
+                                >
+                                  ✕
+                                </button>
+                                <div className="flex flex-col items-center text-center px-3 py-4">
                                   {selectedCompany.categoryId && (
                                     <span
                                       className="px-2.5 py-1 rounded-full text-[9px] font-semibold text-white mb-2 shadow-sm"
@@ -620,8 +631,8 @@ export default function NearbyCompaniesPage() {
                                   <h3 className="text-sm font-bold text-slate-900 leading-tight mb-2 line-clamp-2">
                                     {selectedCompany.name}
                                   </h3>
-                                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-600 mb-2.5">
-                                    <svg className="w-3 h-3 flex-shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-white mb-2.5">
+                                    <svg className="w-3 h-3 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
@@ -640,7 +651,7 @@ export default function NearbyCompaniesPage() {
                                     })()}
                                   </div>
                                   {selectedCompany.shortDescription && (
-                                    <p className="text-[10px] text-slate-600 line-clamp-2 mb-3 leading-relaxed max-w-full">
+                                    <p className="text-[10px] text-white line-clamp-2 mb-3 leading-relaxed max-w-full">
                                       {selectedCompany.shortDescription}
                                     </p>
                                   )}
@@ -681,7 +692,7 @@ export default function NearbyCompaniesPage() {
                       </GoogleMap>
                       
                       {/* Controles de zoom personalizados (badges) */}
-                      <div className="absolute top-12 right-4 flex flex-col gap-2 z-10">
+                      <div className="absolute top-[4.5rem] right-4 flex flex-col gap-2 z-10">
                         <button
                           type="button"
                           onClick={handleZoomIn}
@@ -918,33 +929,16 @@ export default function NearbyCompaniesPage() {
         >
           <div className="bg-slate-950/95 border-t border-white/10 backdrop-blur-xl shadow-2xl">
             <div className="max-w-7xl mx-auto px-4">
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-center py-3">
                 <button
                   type="button"
                   onClick={() => setShowFilters((prev) => !prev)}
-                  className="flex items-center gap-2 text-sm font-semibold text-white"
+                  className="flex items-center gap-2 text-sm font-semibold text-white border border-white/30 rounded-full px-4 py-2 hover:border-white/60 hover:bg-white/10 transition-colors"
                 >
                   <span className="w-2 h-2 rounded-full bg-cyan-400" />
                   Filtros
                   <span className="text-xs text-slate-400">{showFilters ? 'Ocultar' : 'Mostrar'}</span>
                 </button>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowList(true)}
-                    className="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg hover:bg-indigo-700 transition-all"
-                  >
-                    Mostrar lista de emprendimientos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFilters(false)}
-                    className="w-9 h-9 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center"
-                    aria-label="Cerrar filtros"
-                  >
-                    ✕
-                  </button>
-                </div>
               </div>
               <div className="pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

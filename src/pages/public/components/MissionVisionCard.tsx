@@ -53,10 +53,19 @@ export function MissionVisionCard({ company, theme, isCarousel = false }: Missio
     );
   }
 
+  const borderColor =
+    theme.titleColor && theme.titleColor.startsWith('#')
+      ? `${theme.titleColor}20`
+      : 'rgba(148,163,184,0.25)';
   return (
     <div
-      className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm sm:shadow-md overflow-hidden"
-      style={{ backgroundColor: theme.cardColor, color: theme.textColor, fontFamily: theme.fontBody }}
+      className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm sm:shadow-md overflow-hidden border"
+      style={{
+        backgroundColor: theme.cardColor,
+        color: theme.textColor,
+        fontFamily: theme.fontBody,
+        borderColor,
+      }}
     >
       {company.mission && (
         <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4 md:mb-5 last:mb-0">

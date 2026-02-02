@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 export const Trust = () => {
   return (
-    <section className="py-16 bg-white border-y border-gray-200">
+    <section className="py-16 bg-gray-300 border-y border-gray-300">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -89,4 +89,3 @@ export const Trust = () => {
     </section>
   );
 };
-

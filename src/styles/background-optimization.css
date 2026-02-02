@@ -180,3 +180,37 @@
   }
 }
 
+/* ========================================
+   PÁGINAS PÚBLICAS - Layout y Responsividad
+   ======================================== */
+
+/* Safe area para dispositivos con notch/home indicator */
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Secciones públicas: scroll suave y espaciado */
+.public-section {
+  scroll-margin-top: 6rem;
+}
+@media (min-width: 640px) {
+  .public-section {
+    scroll-margin-top: 5rem;
+  }
+}
+
+/* Contenedor de contenido público: evitar overflow */
+#main-content {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Overscroll horizontal en navegación de categorías */
+.overscroll-x-contain {
+  overscroll-behavior-x: contain;
+}
+

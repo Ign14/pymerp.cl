@@ -49,7 +49,7 @@ function BarberServiceCard({
   priceLabel: string;
 }) {
   const hasDuration = service.estimated_duration_minutes && service.estimated_duration_minutes > 0;
-  
+
   const handleBookClick = (e: MouseEvent) => {
     e.stopPropagation();
     if (onBook && isAvailable) {
@@ -57,91 +57,112 @@ function BarberServiceCard({
     }
   };
 
-  // Calcular colores derivados del theme
-  const borderColor = theme.cardColor ? `${theme.cardColor}80` : 'rgba(148, 163, 184, 0.3)';
-  const availableBadgeBg = theme.buttonColor ? `${theme.buttonColor}15` : 'rgba(34, 197, 94, 0.1)';
-  const availableBadgeText = theme.buttonColor || '#16a34a';
-  const unavailableBadgeBg = theme.textColor ? `${theme.textColor}15` : 'rgba(148, 163, 184, 0.1)';
-  const unavailableBadgeText = theme.textColor || '#64748b';
+  const accentColor = theme.buttonColor || '#2563eb';
+  const availableBadgeBg = accentColor + '18';
+  const availableBadgeText = accentColor;
+  const unavailableBadgeBg = theme.textColor ? theme.textColor + '18' : 'rgba(148, 163, 184, 0.15)';
+  const unavailableBadgeText = theme.subtitleColor || theme.textColor || '#64748b';
+  const cardShadow = `0 4px 20px ${accentColor}12`;
+  const hoverShadow = `0 12px 32px ${accentColor}20`;
+  const cardGradientEnd = theme.cardColor ? theme.cardColor + 'e8' : '#fafbfc';
+  const cardGradient = `linear-gradient(165deg, ${theme.cardColor || '#ffffff'} 0%, ${cardGradientEnd} 100%)`;
 
   return (
     <article
       key={service.id}
       onClick={() => onServiceClick?.(service)}
-      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-      style={{ 
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border-0 shadow-lg transition-all duration-300 hover:-translate-y-1.5"
+      style={{
         color: theme.textColor,
-        borderColor: borderColor,
-        backgroundColor: theme.cardColor || '#ffffff'
+        backgroundColor: theme.cardColor || '#ffffff',
+        borderLeft: `4px solid ${isAvailable ? accentColor : 'transparent'}`,
+        boxShadow: cardShadow,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = hoverShadow;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = cardShadow;
       }}
     >
-      <div 
-        className="absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-semibold ring-1"
+      <div
+        className="absolute right-3 top-3 rounded-full px-3 py-1.5 text-xs font-semibold"
         style={{
           backgroundColor: isAvailable ? availableBadgeBg : unavailableBadgeBg,
           color: isAvailable ? availableBadgeText : unavailableBadgeText,
-          borderColor: isAvailable ? availableBadgeText : unavailableBadgeText,
+          border: `1px solid ${isAvailable ? accentColor + '40' : unavailableBadgeText + '30'}`,
         }}
       >
         {isAvailable ? availabilityLabel : unavailableLabel}
       </div>
+
       <div
-        className="flex-1 space-y-3 p-4"
-        style={{ background: `linear-gradient(135deg, ${theme.cardColor} 0%, ${theme.cardColor}dd 100%)` }}
+        className="flex-1 space-y-3 p-4 pt-5"
+        style={{
+          background: cardGradient,
+        }}
       >
-        <div className="flex items-center justify-between gap-3">
-          <h3
-            className="line-clamp-2 text-lg font-semibold leading-tight"
-            style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
-          >
-            {service.name}
-          </h3>
-        </div>
+        <h3
+          className="line-clamp-2 text-lg font-bold leading-tight"
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+        >
+          {service.name}
+        </h3>
         {service.description && (
-          <p 
-            className="line-clamp-3 text-sm"
-            style={{ 
+          <p
+            className="line-clamp-3 text-sm leading-relaxed"
+            style={{
               color: theme.descriptionColor || theme.textColor || '#6b7280',
-              opacity: 0.85
+              opacity: 0.9,
             }}
           >
             {service.description}
           </p>
         )}
-        <div className="flex items-center justify-between text-sm font-semibold">
-          <span style={{ color: theme.buttonColor }}>{priceLabel}</span>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span
+            className="text-base font-bold"
+            style={{ color: accentColor, fontFamily: theme.fontTitle }}
+          >
+            {priceLabel}
+          </span>
           {hasDuration && (
-            <span 
-              className="flex items-center gap-1 text-xs font-medium" 
-              style={{ color: theme.textColor || '#64748b' }}
+            <span
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{
+                color: theme.subtitleColor || theme.textColor || '#64748b',
+                backgroundColor: theme.textColor ? `${theme.textColor}0c` : 'rgba(100, 116, 139, 0.12)',
+              }}
               title={`Duración: ${service.estimated_duration_minutes} minutos`}
             >
-              <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>{service.estimated_duration_minutes} min</span>
+              {service.estimated_duration_minutes} min
             </span>
           )}
         </div>
       </div>
-      <div 
-        className="border-t p-3" 
-        style={{ 
-          borderTopColor: borderColor,
-          backgroundColor: theme.cardColor || '#ffffff'
+
+      <div
+        className="border-t p-3"
+        style={{
+          borderTopColor: theme.cardColor ? `${theme.cardColor}99` : 'rgba(148, 163, 184, 0.25)',
+          backgroundColor: theme.cardColor || '#ffffff',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <AnimatedButton
           onClick={handleBookClick}
           disabled={!isAvailable}
-          className={`w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition ${
-            isAvailable ? 'hover:shadow-md' : 'opacity-50 cursor-not-allowed'
+          className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+            isAvailable ? 'hover:opacity-95 hover:scale-[1.02]' : 'opacity-55 cursor-not-allowed'
           }`}
-          style={{ 
-            backgroundColor: isAvailable ? theme.buttonColor : '#9ca3af', 
-            color: theme.buttonTextColor, 
-            fontFamily: theme.fontButton 
+          style={{
+            backgroundColor: isAvailable ? accentColor : '#9ca3af',
+            color: theme.buttonTextColor || '#ffffff',
+            fontFamily: theme.fontButton,
+            boxShadow: isAvailable ? `0 4px 14px ${accentColor}40` : 'none',
           }}
           ariaLabel={isAvailable ? `Agendar ${service.name}` : `${service.name} no disponible`}
         >
@@ -163,30 +184,32 @@ function TeamCard({
 }) {
   const initials = getInitials(professional.name);
   const specialties = professional.specialties?.filter(Boolean) ?? [];
-
-  const teamCardBorder = theme.cardColor ? `${theme.cardColor}80` : 'rgba(148, 163, 184, 0.3)';
-  const teamCardBg = theme.cardColor || '#ffffff';
+  const accentColor = theme.buttonColor || '#2563eb';
 
   return (
-    <div 
-      className="flex items-center gap-3 rounded-xl border p-3 shadow-sm"
-      style={{ 
-        borderColor: teamCardBorder,
-        backgroundColor: teamCardBg
+    <div
+      className="flex items-center gap-4 rounded-xl border-0 p-4 shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+      style={{
+        backgroundColor: theme.cardColor || '#ffffff',
+        boxShadow: `0 4px 16px ${accentColor}10`,
+        borderLeft: `3px solid ${accentColor}`,
       }}
     >
       <div
-        className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner"
-        style={{ backgroundColor: theme.buttonColor }}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner"
+        style={{
+          backgroundColor: accentColor,
+          boxShadow: `0 2px 8px ${accentColor}50`,
+        }}
         aria-hidden
       >
         {initials}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-semibold" style={{ color: theme.titleColor }}>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold" style={{ color: theme.titleColor }}>
           {professional.name}
         </p>
-        <p className="truncate text-xs" style={{ color: theme.textColor || '#64748b' }}>
+        <p className="truncate text-xs font-medium" style={{ color: theme.subtitleColor || theme.textColor || '#64748b', opacity: 0.9 }}>
           {specialties.length > 0 ? specialties.join(' • ') : fallbackSpecialty}
         </p>
       </div>
@@ -616,10 +639,11 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
     </div>
   );
 
-  const sectionBorder = theme.cardColor ? `${theme.cardColor}80` : 'rgba(148, 163, 184, 0.3)';
+  const accentColor = theme.buttonColor || '#2563eb';
+  const sectionBorder = theme.cardColor ? `${theme.cardColor}99` : 'rgba(148, 163, 184, 0.3)';
   const sectionBg = theme.cardColor || '#ffffff';
-  const badgeBg = theme.buttonColor ? `${theme.buttonColor}15` : 'rgba(34, 197, 94, 0.1)';
-  const badgeText = theme.buttonColor || '#16a34a';
+  const badgeBg = `${accentColor}18`;
+  const badgeText = accentColor;
   const hideEmptyServicesCard = ['restaurantes', 'bares', 'foodtruck', 'restaurantes_comida_rapida'].includes(
     categoryId || ''
   );
@@ -629,11 +653,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
   const servicesSection =
     hasServices && onBookService ? (
-      <section 
-        className="space-y-4 rounded-2xl border p-4 shadow-sm sm:p-5"
+      <section
+        className="space-y-4 rounded-2xl border-0 p-4 shadow-lg sm:p-5"
         style={{
-          borderColor: sectionBorder,
-          backgroundColor: sectionBg
+          backgroundColor: sectionBg,
+          boxShadow: `0 4px 24px ${accentColor}0f`,
+          borderLeft: `4px solid ${accentColor}`,
         }}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -651,12 +676,13 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               {t('publicPage.barberLayout.servicesTitle')}
             </h2>
           </div>
-          <span 
-            className="rounded-full px-3 py-1 text-xs font-semibold ring-1"
+          <span
+            className="rounded-full px-4 py-2 text-xs font-bold"
             style={{
               backgroundColor: badgeBg,
               color: badgeText,
-              borderColor: badgeText
+              border: `1px solid ${badgeText}40`,
+              boxShadow: `0 2px 8px ${badgeText}20`,
             }}
           >
             {t('publicPage.barberLayout.availableToday')}
@@ -680,10 +706,10 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             } as React.CSSProperties}
           />
           <div 
-            className="absolute left-3 top-1/2 -translate-y-1/2"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 flex items-center justify-center pointer-events-none"
             style={{ color: theme.textColor || '#94a3b8' }}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 min-w-[20px] min-h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -715,10 +741,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                   key={filter}
                   type="button"
                   onClick={() => setFilterByAvailability((prev) => (prev === filter ? 'all' : filter))}
-                  className="rounded-full px-4 py-2 text-sm font-semibold transition shadow-sm"
+                  className="rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200"
                   style={{
-                    backgroundColor: isActive ? (theme.buttonColor || '#1e293b') : (theme.cardColor ? `${theme.cardColor}80` : '#f1f5f9'),
+                    backgroundColor: isActive ? accentColor : (theme.cardColor ? `${theme.cardColor}e6` : '#f8fafc'),
                     color: isActive ? (theme.buttonTextColor || '#ffffff') : (theme.textColor || '#1e293b'),
+                    border: isActive ? 'none' : `1px solid ${sectionBorder}`,
+                    boxShadow: isActive ? `0 2px 10px ${accentColor}35` : 'none',
                   }}
                 >
                   {t(`publicPage.barberLayout.filterAvailability.${filter}`)}
@@ -758,7 +786,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
         {paginatedServices.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {paginatedServices.map((service) => {
                 const isAvailable = isServiceAvailable(service);
                 return (
@@ -814,8 +842,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               backgroundColor: theme.bgColor ? `${theme.bgColor}80` : '#f8fafc'
             }}
           >
-            <div className="space-y-2">
-              <div className="text-3xl mb-2">🔍</div>
+            <div className="space-y-2 flex flex-col items-center">
+              <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center mb-2" style={{ color: theme.textColor || '#94a3b8' }}>
+                <svg className="w-8 h-8 min-w-[32px] min-h-[32px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <p 
                 className="text-sm font-medium"
                 style={{ color: theme.textColor || '#374151' }}
@@ -863,11 +895,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
     );
 
   const teamSection = showTeam ? (
-    <section 
-      className="space-y-4 rounded-2xl border p-4 shadow-sm sm:p-5"
+    <section
+      className="space-y-4 rounded-2xl border-0 p-4 shadow-lg sm:p-5"
       style={{
-        borderColor: sectionBorder,
-        backgroundColor: sectionBg
+        backgroundColor: sectionBg,
+        boxShadow: `0 4px 24px ${accentColor}0f`,
+        borderLeft: `4px solid ${accentColor}`,
       }}
     >
       <div className="flex items-center justify-between">
@@ -934,11 +967,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   ) : null;
 
   const scheduleSection = hideScheduleSection ? null : (
-    <section 
-      className="space-y-3 rounded-2xl border p-4 shadow-sm sm:p-5"
+    <section
+      className="space-y-3 rounded-2xl border-0 p-4 shadow-lg sm:p-5"
       style={{
-        borderColor: sectionBorder,
-        backgroundColor: sectionBg
+        backgroundColor: sectionBg,
+        boxShadow: `0 4px 24px ${accentColor}0f`,
+        borderLeft: `4px solid ${accentColor}`,
       }}
     >
       <div className="flex items-center justify-between">
@@ -969,35 +1003,40 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
       {scheduleStrips.length > 0 ? (
         <div className="space-y-2">
-          {scheduleStrips.map((strip, index) => (
-            <div
-              key={`${strip.label}-${index}`}
-              className="flex items-center justify-between gap-3 rounded-xl border px-3 py-3 shadow-sm"
-              style={{
-                borderColor: sectionBorder,
-                backgroundColor: theme.bgColor || '#ffffff'
-              }}
-            >
-              <div className="flex items-center gap-2">
+          {scheduleStrips.map((strip, index) => {
+            const accentColor = theme.buttonColor || (strip.accent === 'emerald' ? '#059669' : '#0284c7');
+            return (
+              <div
+                key={`${strip.label}-${index}`}
+                className="flex items-center justify-between gap-3 rounded-xl border-0 px-4 py-3 shadow-sm transition-all duration-200 hover:shadow-md"
+                style={{
+                  backgroundColor: theme.cardColor || '#ffffff',
+                  borderLeft: `4px solid ${accentColor}`,
+                  boxShadow: `0 2px 12px ${accentColor}15`,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: accentColor,
+                      boxShadow: `0 0 0 3px ${accentColor}30`,
+                    }}
+                    aria-hidden
+                  />
+                  <span className="text-sm font-bold" style={{ color: theme.titleColor }}>
+                    {strip.label}
+                  </span>
+                </div>
                 <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{
-                    backgroundColor: theme.buttonColor || (strip.accent === 'emerald' ? '#10b981' : '#0ea5e9')
-                  }}
-                  aria-hidden
-                />
-                <span className="text-sm font-semibold" style={{ color: theme.titleColor }}>
-                  {strip.label}
+                  className="text-sm font-semibold"
+                  style={{ color: theme.textColor || '#374151', opacity: 0.9 }}
+                >
+                  {strip.hours}
                 </span>
               </div>
-              <span 
-                className="text-sm font-medium"
-                style={{ color: theme.textColor || '#374151' }}
-              >
-                {strip.hours}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div 

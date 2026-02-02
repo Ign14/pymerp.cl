@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCompany } from '../../services/firestore';
+import { getCompany, updateCompany } from '../../services/firestore';
 import { getPublicPageEvents, getAppointmentRequests, getProductOrderRequests } from '../../services/firestore';
 import { getAppointmentsByCompany } from '../../services/appointments';
 import { listProfessionals } from '../../services/professionals';
@@ -14,6 +14,7 @@ import DashboardQuickActions from '../../components/dashboard/DashboardQuickActi
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import MenuQRModal from '../../components/dashboard/MenuQRModal';
 import { getCategoryConfig, isModuleEnabled, resolveCategoryId } from '../../config/categories';
+import { env } from '../../config/env';
 import { useTranslation } from 'react-i18next';
 
 export default function DashboardOverview() {
@@ -41,6 +42,7 @@ export default function DashboardOverview() {
   });
   const [loading, setLoading] = useState(true);
   const [showMenuQr, setShowMenuQr] = useState(false);
+  const [updatingPublicEnabled, setUpdatingPublicEnabled] = useState(false);
 
   useEffect(() => {
     if (firestoreUser?.company_id) {
@@ -158,11 +160,31 @@ export default function DashboardOverview() {
   const hasSchedule = isModuleEnabled(categoryId, 'schedule');
   const hasProfessionals = isModuleEnabled(categoryId, 'professionals');
   const hasCatalog = isModuleEnabled(categoryId, 'catalog');
-  const hasOrders = isModuleEnabled(categoryId, 'orders');
   const hasMenuCategories = isModuleEnabled(categoryId, 'menu-categories');
   const hasMenuQr = isModuleEnabled(categoryId, 'menu-qr');
 
-  const publicUrl = `${window.location.origin}/${company.slug}`;
+  const publicUrl = `${env.publicBaseUrl}/${company.slug}`;
+  const publicEnabled = Boolean(company?.publicEnabled);
+
+  const handlePublicEnabledToggle = async () => {
+    if (!firestoreUser?.company_id || !company) return;
+    const nextValue = !publicEnabled;
+    try {
+      setUpdatingPublicEnabled(true);
+      await updateCompany(firestoreUser.company_id, { publicEnabled: nextValue });
+      setCompany((prev: any) => ({ ...prev, publicEnabled: nextValue }));
+      toast.success(
+        nextValue
+          ? 'Tu negocio ahora es público.'
+          : 'Tu negocio ya no aparece en Pymes cercanas.'
+      );
+    } catch (error) {
+      handleError(error);
+      toast.error('No se pudo actualizar la visibilidad pública.');
+    } finally {
+      setUpdatingPublicEnabled(false);
+    }
+  };
 
   const copyPublicUrl = async () => {
     try {
@@ -229,22 +251,44 @@ export default function DashboardOverview() {
               
               {/* URL Display */}
               <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200 shadow-sm">
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <a 
                     href={publicUrl} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="text-blue-600 hover:text-blue-800 font-medium break-all flex-1 min-w-0 transition-colors"
+                    className="text-blue-600 hover:text-blue-800 font-medium break-all w-full sm:flex-1 min-w-0 transition-colors"
                   >
                     {publicUrl}
                   </a>
                   <button
                     type="button"
                     onClick={copyPublicUrl}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap shadow-sm hover:shadow-md"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm hover:shadow-md w-full sm:w-auto"
                   >
                     📋 Copiar URL
                   </button>
+                </div>
+              </div>
+
+              {/* Public toggle */}
+              <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-100 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">🌐 Publicar mi Negocio</h3>
+                    <p className="text-sm text-gray-600">
+                      Tu negocio aparece en "Pymes cercanas" y puede ser encontrado por clientes cercanos.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={publicEnabled}
+                      disabled={updatingPublicEnabled}
+                      onChange={handlePublicEnabledToggle}
+                    />
+                    <div className="w-11 h-6 rounded-full peer transition-colors bg-slate-300 peer-checked:bg-blue-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
+                  </label>
                 </div>
               </div>
 

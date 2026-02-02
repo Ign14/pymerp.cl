@@ -347,6 +347,13 @@ export const upsertVariantPrices = async (
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw await parseApiError(response);
+    const text = await response.text();
+    let payloadData: unknown = null;
+    try {
+      payloadData = text ? JSON.parse(text) : null;
+    } catch {
+      payloadData = null;
+    }
+    throw parseApiError(payloadData, response.status);
   }
 };

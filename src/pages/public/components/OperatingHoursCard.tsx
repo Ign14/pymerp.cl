@@ -59,39 +59,70 @@ export function OperatingHoursCard({ company, theme, isCarousel = false }: Opera
     );
   }
 
+  // Badges interactivos para horario
   return (
     <div
-      className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 shadow-sm sm:shadow-md"
-      style={{ backgroundColor: theme.cardColor, color: theme.textColor, fontFamily: theme.fontBody }}
+      className="mb-4 sm:mb-6"
+      style={{
+        fontFamily: theme.fontBody,
+      }}
     >
-      <h2 className="font-semibold text-sm sm:text-base md:text-lg lg:text-xl mb-3 sm:mb-4" style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}>
-        Horario de atención
-      </h2>
-      <div className="space-y-2.5 sm:space-y-3">
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Badge de título */}
+        <div
+          className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-semibold text-xs sm:text-sm shadow-sm"
+          style={{
+            backgroundColor: theme.buttonColor,
+            color: theme.buttonTextColor,
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Horario</span>
+        </div>
+
+        {/* Badge de días de semana */}
         {company.weekday_days?.length ? (
-          <div>
-            <p className="font-semibold text-xs sm:text-sm md:text-base mb-1.5 sm:mb-2" style={{ color: theme.subtitleColor, fontFamily: theme.fontTitle }}>
-              Semana
-            </p>
-            <p className="text-xs sm:text-sm md:text-base leading-relaxed sm:leading-loose">
-              {company.weekday_days.map((d: string) => DAY_NAMES_ES[d] || d).join(', ')}{' '}
-              {company.weekday_open_time && company.weekday_close_time
-                ? `• ${company.weekday_open_time} - ${company.weekday_close_time}`
-                : ''}
-            </p>
+          <div
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm shadow-sm border"
+            style={{
+              backgroundColor: theme.cardColor,
+              color: theme.textColor,
+              borderColor: theme.buttonColor,
+            }}
+          >
+            <span className="font-semibold" style={{ color: theme.titleColor }}>
+              {company.weekday_days.map((d: string) => DAY_NAMES_ES[d]?.[0] || d[0]).join('')}
+            </span>
+            {company.weekday_open_time && company.weekday_close_time && (
+              <>
+                <span style={{ color: theme.subtitleColor }}>•</span>
+                <span>{company.weekday_open_time} - {company.weekday_close_time}</span>
+              </>
+            )}
           </div>
         ) : null}
+
+        {/* Badge de fin de semana */}
         {company.weekend_days?.length ? (
-          <div>
-            <p className="font-semibold text-xs sm:text-sm md:text-base mb-1.5 sm:mb-2" style={{ color: theme.subtitleColor, fontFamily: theme.fontTitle }}>
-              Fin de semana
-            </p>
-            <p className="text-xs sm:text-sm md:text-base leading-relaxed sm:leading-loose">
-              {company.weekend_days.map((d: string) => DAY_NAMES_ES[d] || d).join(', ')}{' '}
-              {company.weekend_open_time && company.weekend_close_time
-                ? `• ${company.weekend_open_time} - ${company.weekend_close_time}`
-                : ''}
-            </p>
+          <div
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm shadow-sm border"
+            style={{
+              backgroundColor: theme.cardColor,
+              color: theme.textColor,
+              borderColor: theme.buttonColor,
+            }}
+          >
+            <span className="font-semibold" style={{ color: theme.titleColor }}>
+              {company.weekend_days.map((d: string) => DAY_NAMES_ES[d]?.[0] || d[0]).join('')}
+            </span>
+            {company.weekend_open_time && company.weekend_close_time && (
+              <>
+                <span style={{ color: theme.subtitleColor }}>•</span>
+                <span>{company.weekend_open_time} - {company.weekend_close_time}</span>
+              </>
+            )}
           </div>
         ) : null}
       </div>

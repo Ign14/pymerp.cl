@@ -12,6 +12,8 @@ body {
   /* Eliminar fondo azul en iOS cuando hay imagen de fondo */
   background-color: transparent;
   -webkit-background-color: transparent;
+  /* Permitir overflow para páginas públicas con fondos personalizados */
+  overflow: unset;
 }
 
 /* Asegurar que #root también sea transparente */
@@ -25,52 +27,68 @@ code {
     monospace;
 }
 
-/* Simple theme overrides */
-body[data-theme='dark'] {
+/* ========================================
+   PÁGINAS PÚBLICAS - DESHABILITAR DARK MODE
+   Las páginas públicas usan temas personalizados de la DB.
+   Solo reseteamos body; las reglas dark mode ya excluyen .public-page-mode
+   ======================================== */
+body.public-page-mode[data-theme='dark'] {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Simple theme overrides - SOLO para páginas internas (dashboard) */
+body[data-theme='dark']:not(.public-page-mode) {
   background-color: #0f172a;
   color: #e5e7eb;
 }
 
-body[data-theme='dark'] .bg-white {
+/* ========================================
+   DARK MODE STYLES - SOLO PARA DASHBOARD
+   NO aplican a páginas públicas con clase .public-page-custom-theme
+   ======================================== */
+
+/* Dark mode para dashboard - NO afecta páginas públicas */
+body[data-theme='dark']:not(.public-page-mode) .bg-white {
   background-color: #111827 !important;
 }
 
-body[data-theme='dark'] .bg-gray-50 {
+body[data-theme='dark']:not(.public-page-mode) .bg-gray-50 {
   background-color: #0f172a !important;
 }
 
-body[data-theme='dark'] .text-gray-900 {
+body[data-theme='dark']:not(.public-page-mode) .text-gray-900 {
   color: #f3f4f6 !important;
 }
 
-body[data-theme='dark'] .text-gray-700,
-body[data-theme='dark'] .text-gray-600 {
+body[data-theme='dark']:not(.public-page-mode) .text-gray-700,
+body[data-theme='dark']:not(.public-page-mode) .text-gray-600 {
   color: #e5e7eb !important;
 }
 
-body[data-theme='dark'] input,
-body[data-theme='dark'] textarea,
-body[data-theme='dark'] select {
+body[data-theme='dark']:not(.public-page-mode) input,
+body[data-theme='dark']:not(.public-page-mode) textarea,
+body[data-theme='dark']:not(.public-page-mode) select {
   background-color: #111827;
   color: #e5e7eb;
   border-color: #1f2937;
 }
 
-body[data-theme='dark'] .shadow {
+body[data-theme='dark']:not(.public-page-mode) .shadow {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
 }
 
 /* Keep light badges readable in dark mode */
-body[data-theme='dark'] .badge-light {
+body[data-theme='dark']:not(.public-page-mode) .badge-light {
   color: #1e3a8a !important;
 }
 
 /* Horarios: mantener texto azul oscuro al hacer hover en modo oscuro */
-body[data-theme='dark'] .schedule-slot:hover {
+body[data-theme='dark']:not(.public-page-mode) .schedule-slot:hover {
   color: #1e3a8a !important;
 }
-body[data-theme='dark'] .schedule-slot:hover .text-gray-600,
-body[data-theme='dark'] .schedule-slot:hover .font-medium {
+body[data-theme='dark']:not(.public-page-mode) .schedule-slot:hover .text-gray-600,
+body[data-theme='dark']:not(.public-page-mode) .schedule-slot:hover .font-medium {
   color: #1e3a8a !important;
 }
 
@@ -1317,4 +1335,25 @@ body[data-theme='dark'] .hover\:shadow-lg:hover {
 
 .animate-scaleIn {
   animation: scaleIn 0.3s ease-out;
+}
+/* Google Maps InfoWindow styling */
+.gm-style .gm-style-iw-c {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.gm-style .gm-style-iw-d {
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+.gm-style .gm-style-iw-chr {
+  display: none !important;
+}
+
+.gm-style .gm-style-iw-tc::after {
+  background: transparent !important;
 }

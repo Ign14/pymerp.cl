@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { QRCodeSVG } from 'qrcode.react';
 import AnimatedButton from '../../animations/AnimatedButton';
+import { ensureButtonContrast } from '../../../utils/colorContrast';
 import { PublicLayoutShell } from '../../../pages/public/layouts/PublicLayoutShell';
 import { type PublicLayoutProps, type PublicLayoutSections } from '../../../pages/public/layouts/types';
 import { getProductCardLayout } from '../../../pages/public/components/cardLayouts/ProductCardLayouts';
 import { type Product, BusinessType } from '../../../types';
-import { isModuleEnabled, resolveCategoryId } from '../../../config/categories';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { filterProductsBySearch } from '../../../utils/productSearch';
 
@@ -72,24 +71,18 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
   const [activeTab, setActiveTab] = useState<'products' | 'services'>(
     hasProducts ? 'products' : services.length > 0 ? 'services' : 'products'
   );
-  const [activeCategory, setActiveCategory] = useState<string | null>(menuCategories[0]?.id ?? null);
+  const [activeCategory, setActiveCategory] = useState<string | null>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [categoryPage, setCategoryPage] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const ITEMS_PER_PAGE = 24;
-  const categoryId = resolveCategoryId(company);
-  const showQrSection = isModuleEnabled(categoryId, 'menu-qr');
+  const CATEGORIES_PER_PAGE = 3;
   const isIOS = useMemo(
     () => typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent || ''),
     []
   );
 
-  const menuUrl = useMemo(() => {
-    if (typeof window === 'undefined') return '';
-    const baseUrl = window.location.origin;
-    const slug = company.slug || company.id;
-    return slug ? `${baseUrl}/${slug}/menu` : '';
-  }, [company.id, company.slug]);
   const logoUrl = appearance?.logo_url || (appearance as any)?.logo;
   const appearanceForLayout = appearance || {
     id: `fallback-${company.id}`,
@@ -136,12 +129,13 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       categories.push({ id: 'menu', name: t('publicPage.restaurantsLayout.allCategory') });
     }
 
-    return categories;
+    // Prepend "Todos" (all) para filtrar como en producción
+    return [{ id: 'all', name: t('publicPage.restaurantsLayout.menuFilterAll') }, ...categories];
   }, [menuCategories, products, t]);
 
   const productsByCategory = useMemo(() => {
     const grouped: Record<string, Product[]> = {};
-    const fallbackCategory = resolvedCategories[0]?.id ?? 'menu';
+    const fallbackCategory = resolvedCategories.find((c) => c.id !== 'all')?.id ?? 'menu';
 
     resolvedCategories.forEach((cat) => {
       grouped[cat.id] = [];
@@ -156,8 +150,13 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       grouped[targetId].push(product);
     });
 
+    // "all" muestra todos los productos
+    grouped['all'] = [...products].sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0));
+
     Object.keys(grouped).forEach((key) => {
-      grouped[key] = grouped[key].sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0));
+      if (key !== 'all') {
+        grouped[key] = grouped[key].sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0));
+      }
     });
 
     return grouped;
@@ -178,26 +177,39 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       }
     });
 
+    // "all" con búsqueda: todos los resultados
+    const allFiltered = Object.values(filtered).flat();
+    const uniqueAll = Array.from(new Map(allFiltered.map((p) => [p.id, p])).values());
+    if (uniqueAll.length > 0) {
+      filtered['all'] = uniqueAll;
+    }
+
     return filtered;
   }, [productsByCategory, debouncedSearchTerm]);
 
   const searchActive = debouncedSearchTerm.trim().length > 0;
 
+  const realCategories = useMemo(
+    () => resolvedCategories.filter((c) => c.id !== 'all'),
+    [resolvedCategories]
+  );
+
   const orderedProducts = useMemo(
     () =>
-      resolvedCategories.flatMap((category) => {
+      realCategories.flatMap((category) => {
         const categoryProducts = productsByCategory[category.id] || [];
         return categoryProducts;
       }),
-    [resolvedCategories, productsByCategory]
+    [realCategories, productsByCategory]
   );
 
-  // Aplanar productos filtrados para paginación cuando hay búsqueda
+  // Aplanar productos filtrados para paginación cuando hay búsqueda (sin duplicados)
   const allFilteredProducts = useMemo(() => {
     if (!searchActive) {
       return [];
     }
-    return Object.values(filteredProductsByCategory).flat();
+    const flat = Object.values(filteredProductsByCategory).flat();
+    return Array.from(new Map(flat.map((p) => [p.id, p])).values());
   }, [filteredProductsByCategory, searchActive]);
 
   const totalItems = searchActive ? allFilteredProducts.length : orderedProducts.length;
@@ -213,7 +225,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
 
   const groupProductsByCategory = (items: Product[]) => {
     const grouped: Record<string, Product[]> = {};
-    resolvedCategories.forEach((cat) => {
+    realCategories.forEach((cat) => {
       grouped[cat.id] = [];
     });
 
@@ -221,7 +233,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       const targetId =
         (product.menuCategoryId && grouped[product.menuCategoryId] ? product.menuCategoryId : null) ||
         (!product.menuCategoryId && grouped.uncategorized ? 'uncategorized' : null) ||
-        resolvedCategories[0]?.id ||
+        realCategories[0]?.id ||
         'menu';
       grouped[targetId] = grouped[targetId] || [];
       grouped[targetId].push(product);
@@ -231,10 +243,8 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
   };
 
   const displayProductsByCategory = useMemo(() => {
-    if (paginatedProducts.length === 0) {
-      return groupProductsByCategory([]);
-    }
     if (searchActive) {
+      if (paginatedProducts.length === 0) return groupProductsByCategory([]);
       return groupProductsByCategory(
         paginatedProducts.filter((product) => {
           if (!product.menuCategoryId && filteredProductsByCategory.uncategorized?.includes(product)) {
@@ -246,7 +256,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
         })
       );
     }
-    return groupProductsByCategory(paginatedProducts);
+    return filteredProductsByCategory;
   }, [paginatedProducts, searchActive, filteredProductsByCategory, resolvedCategories]);
 
   // Resetear página cuando cambia categoría activa o búsqueda
@@ -254,24 +264,25 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
     setCurrentPage(1);
   }, [activeCategory, debouncedSearchTerm]);
 
-  const categoriesForNavigation = useMemo(
-    () => resolvedCategories.filter((category) => (displayProductsByCategory[category.id] || []).length > 0),
-    [displayProductsByCategory, resolvedCategories]
-  );
+  const categoriesForNavigation = useMemo(() => {
+    const withProducts = resolvedCategories.filter(
+      (category) => (displayProductsByCategory[category.id] || []).length > 0
+    );
+    return withProducts;
+  }, [displayProductsByCategory, resolvedCategories]);
 
   useEffect(() => {
-    const firstCategoryId = categoriesForNavigation[0]?.id || resolvedCategories[0]?.id;
-    if (!activeCategory && firstCategoryId) {
-      setActiveCategory(firstCategoryId);
+    if (!activeCategory && categoriesForNavigation.length > 0) {
+      setActiveCategory(categoriesForNavigation[0]?.id ?? 'all');
     }
-  }, [activeCategory, categoriesForNavigation, resolvedCategories]);
+  }, [activeCategory, categoriesForNavigation]);
 
   const cardLayout = theme.cardLayout || 1;
   const useListLayout = appearance?.layout === 'LIST' || cardLayout === 2;
   const CardComponent = getProductCardLayout(cardLayout);
   const gridClasses = useListLayout
     ? 'grid grid-cols-1 gap-3 sm:gap-4'
-    : 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4';
+    : 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5';
   const textColor = theme.textColor || '#0f172a';
   const subtitleColor = theme.subtitleColor || '#475569';
   const surfaceColor = theme.cardColor || '#ffffff';
@@ -295,83 +306,70 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
 
   const handleCategoryClick = (category: CategoryOption) => {
     setActiveCategory(category.id);
-    scrollToId(`menu-${category.id}`);
+    const scrollTargetId = category.id === 'all' ? realCategories[0]?.id : category.id;
+    if (scrollTargetId) {
+      scrollToId(`menu-${scrollTargetId}`);
+    }
+  };
+
+  const borderColor =
+    theme.cardColor && theme.cardColor.startsWith('#')
+      ? `${theme.cardColor}50`
+      : 'rgba(148, 163, 184, 0.35)';
+  const navInactiveBg = theme.cardColor || theme.bgColor || '#f8fafc';
+  const navActiveBg = theme.buttonColor || '#0f172a';
+  const navActiveText = ensureButtonContrast(navActiveBg, theme.buttonTextColor || '#ffffff');
+  const navInactiveText = ensureButtonContrast(navInactiveBg, theme.textColor || '#1e293b');
+
+  const categoriesToRender = useMemo(() => {
+    if (activeCategory === 'all') return realCategories;
+    return realCategories.filter((c) => c.id === activeCategory);
+  }, [activeCategory, realCategories]);
+
+  // Paginación de categorías para desktop (columnas)
+  const hasMultipleCategories = realCategories.length > 1;
+  const totalCategoryPages = Math.ceil(realCategories.length / CATEGORIES_PER_PAGE);
+  const startCatIdx = categoryPage * CATEGORIES_PER_PAGE;
+  const endCatIdx = startCatIdx + CATEGORIES_PER_PAGE;
+  const visibleCategoriesForColumns = realCategories.slice(startCatIdx, endCatIdx);
+
+  const handlePrevCategoryPage = () => {
+    setCategoryPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextCategoryPage = () => {
+    setCategoryPage(prev => Math.min(totalCategoryPages - 1, prev + 1));
   };
 
   const categoryNavigation =
     categoriesForNavigation.length > 1 ? (
-      <div className="sticky top-3 z-20">
-        <div className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/60">
-          {categoriesForNavigation.map((category) => {
-            const isActive = activeCategory === category.id;
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => handleCategoryClick(category)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  isActive
-                    ? 'bg-slate-900 text-white shadow'
-                    : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                }`}
-                aria-pressed={isActive}
-              >
-                {category.name}
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        {categoriesForNavigation.map((category) => {
+          const isActive = activeCategory === category.id;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => handleCategoryClick(category)}
+              className="rounded-full px-4 py-2 text-xs sm:text-sm font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{
+                backgroundColor: isActive ? navActiveBg : navInactiveBg,
+                color: isActive ? navActiveText : navInactiveText,
+              }}
+              aria-pressed={isActive}
+            >
+              {category.name}
+            </button>
+          );
+        })}
       </div>
     ) : null;
 
-  const qrSection =
-    showQrSection && menuUrl ? (
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
-              {t('publicPage.restaurantsLayout.qrKicker')}
-            </p>
-            <h3 className="text-xl font-bold" style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}>
-              {t('publicPage.restaurantsLayout.qrTitle')}
-            </h3>
-            <p className="text-sm text-slate-600" style={{ fontFamily: theme.fontBody }}>
-              {t('publicPage.restaurantsLayout.qrDescription')}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <AnimatedButton
-                onClick={() => window.open(menuUrl, '_blank')}
-                className="px-4 py-2 text-sm font-semibold shadow-sm"
-                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
-              >
-                {t('publicPage.restaurantsLayout.qrView')}
-              </AnimatedButton>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(menuUrl);
-                  } catch {
-                    // clipboard no disponible
-                  }
-                }}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
-              >
-                {t('publicPage.restaurantsLayout.qrCopy')}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center justify-center">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-inner">
-              <QRCodeSVG value={menuUrl} size={148} />
-            </div>
-          </div>
-        </div>
-      </div>
-    ) : null;
+  // Sección QR removida según solicitud de mejoras UI/UX
+  const qrSection = null;
 
   const productsContent = (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Barra de búsqueda */}
       <div className="relative">
         <input
@@ -379,11 +377,20 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('publicPage.restaurantsLayout.searchPlaceholder')}
-          className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 pl-10 pr-10 text-sm shadow-sm transition focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-0"
-          style={{ fontFamily: theme.fontBody, color: textColor }}
+          className="w-full rounded-xl border px-4 py-3 pl-10 pr-10 text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-0"
+          style={{
+            fontFamily: theme.fontBody,
+            color: textColor,
+            borderColor,
+            backgroundColor: theme.cardColor ? `${theme.cardColor}E6` : 'rgba(255,255,255,0.9)',
+            ['--tw-ring-color' as string]: theme.buttonColor || '#3b82f6',
+          }}
         />
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 flex items-center justify-center pointer-events-none"
+          style={{ color: theme.subtitleColor || '#94a3b8' }}
+        >
+          <svg className="w-5 h-5 min-w-[20px] min-h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -391,7 +398,11 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
           <button
             type="button"
             onClick={() => setSearchTerm('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition"
+            style={{
+              color: theme.subtitleColor || '#94a3b8',
+              backgroundColor: theme.textColor ? `${theme.textColor}15` : 'rgba(0,0,0,0.05)',
+            }}
             aria-label="Limpiar búsqueda"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,60 +412,200 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
         )}
       </div>
       {categoryNavigation}
-      {resolvedCategories.map((category) => {
-        const categoryProducts = displayProductsByCategory[category.id] || [];
-        if (categoryProducts.length === 0) return null;
-
-        return (
-          <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-                  {t('publicPage.restaurantsLayout.sectionKicker')}
-                </p>
-                <h3
-                  className="text-lg font-bold sm:text-xl"
-                  style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
-                >
-                  {category.name}
-                </h3>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                {t('publicPage.restaurantsLayout.itemsCount', {
-                  count: debouncedSearchTerm.trim()
-                    ? filteredProductsByCategory[category.id]?.length || 0
-                    : productsByCategory[category.id]?.length || 0,
-                })}
-              </span>
-            </div>
-            <div className={gridClasses}>
-              {categoryProducts.map((product, index) => {
-                const quantity = getProductQuantity(product.id);
-                const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
-
-                return (
-                  <div key={product.id} className="relative h-full">
-                    {!isAvailable && (
-                      <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow">
-                        {t('publicPage.restaurantsLayout.unavailable')}
-                      </div>
-                    )}
-                    <CardComponent
-                      product={product}
-                      theme={theme}
-                      quantity={quantity}
-                      onAddToCart={handleAddProduct}
-                      onUpdateQuantity={handleUpdateQuantity}
-                      onProductClick={(item) => onProductClick?.(item)}
-                      index={index}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+      
+      {/* Navegación de paginación de categorías (solo desktop cuando hay más de 3 categorías) */}
+      {hasMultipleCategories && activeCategory === 'all' && totalCategoryPages > 1 && (
+        <div className="hidden lg:flex items-center justify-between mb-4">
+          <button
+            onClick={handlePrevCategoryPage}
+            disabled={categoryPage === 0}
+            className="p-2 rounded-full shadow-md hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: theme.buttonColor,
+              color: theme.buttonTextColor,
+            }}
+            aria-label="Categorías anteriores"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalCategoryPages }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCategoryPage(idx)}
+                className="w-2 h-2 rounded-full transition"
+                style={{
+                  backgroundColor: idx === categoryPage ? theme.buttonColor : `${theme.buttonColor}40`,
+                }}
+                aria-label={`Ir a página ${idx + 1}`}
+              />
+            ))}
           </div>
-        );
-      })}
+
+          <button
+            onClick={handleNextCategoryPage}
+            disabled={categoryPage === totalCategoryPages - 1}
+            className="p-2 rounded-full shadow-md hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: theme.buttonColor,
+              color: theme.buttonTextColor,
+            }}
+            aria-label="Siguientes categorías"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Grid de columnas por categoría (desktop) o lista (mobile) */}
+      {hasMultipleCategories && activeCategory === 'all' ? (
+        <div className="lg:grid lg:gap-6" style={{ 
+          gridTemplateColumns: `repeat(${Math.min(visibleCategoriesForColumns.length, 3)}, 1fr)` 
+        }}>
+          {/* En mobile: mostrar todas las categorías en lista vertical */}
+          <div className="lg:hidden space-y-8">
+            {categoriesToRender.map((category) => {
+              const categoryProducts = displayProductsByCategory[category.id] || [];
+              if (categoryProducts.length === 0) return null;
+
+              return (
+                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+                  <h3
+                    className="text-lg sm:text-xl font-bold pb-2 border-b"
+                    style={{ 
+                      color: theme.titleColor, 
+                      fontFamily: theme.fontTitle,
+                      borderColor: `${theme.buttonColor}40`
+                    }}
+                  >
+                    {category.name}
+                  </h3>
+                  <div className={gridClasses}>
+                    {categoryProducts.map((product, index) => {
+                      const quantity = getProductQuantity(product.id);
+                      const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
+
+                      return (
+                        <div key={`${category.id}-${product.id}`} className="relative h-full">
+                          {!isAvailable && (
+                            <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow">
+                              {t('publicPage.restaurantsLayout.unavailable')}
+                            </div>
+                          )}
+                          <CardComponent
+                            product={product}
+                            theme={theme}
+                            quantity={quantity}
+                            onAddToCart={handleAddProduct}
+                            onUpdateQuantity={handleUpdateQuantity}
+                            onProductClick={(item) => onProductClick?.(item)}
+                            index={index}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* En desktop: mostrar categorías en columnas con paginación */}
+          <div className="hidden lg:contents">
+            {visibleCategoriesForColumns.map((category) => {
+              const categoryProducts = displayProductsByCategory[category.id] || [];
+              if (categoryProducts.length === 0) return null;
+
+              return (
+                <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+                  <h3
+                    className="text-lg sm:text-xl font-bold pb-2 border-b"
+                    style={{ 
+                      color: theme.titleColor, 
+                      fontFamily: theme.fontTitle,
+                      borderColor: `${theme.buttonColor}40`
+                    }}
+                  >
+                    {category.name}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                    {categoryProducts.map((product, index) => {
+                      const quantity = getProductQuantity(product.id);
+                      const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
+
+                      return (
+                        <div key={`${category.id}-${product.id}`} className="relative h-full">
+                          {!isAvailable && (
+                            <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow">
+                              {t('publicPage.restaurantsLayout.unavailable')}
+                            </div>
+                          )}
+                          <CardComponent
+                            product={product}
+                            theme={theme}
+                            quantity={quantity}
+                            onAddToCart={handleAddProduct}
+                            onUpdateQuantity={handleUpdateQuantity}
+                            onProductClick={(item) => onProductClick?.(item)}
+                            index={index}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        // Sin categorías múltiples o categoría específica seleccionada: mantener diseño original
+        categoriesToRender.map((category) => {
+          const categoryProducts = displayProductsByCategory[category.id] || [];
+          if (categoryProducts.length === 0) return null;
+
+          return (
+            <div key={category.id} id={`menu-${category.id}`} className="scroll-mt-32 space-y-3">
+              <h3
+                className="text-lg sm:text-xl font-bold"
+                style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+              >
+                {category.name}
+              </h3>
+              <div className={gridClasses}>
+                {categoryProducts.map((product, index) => {
+                  const quantity = getProductQuantity(product.id);
+                  const isAvailable = product.isAvailable !== false && product.status !== 'INACTIVE';
+
+                  return (
+                    <div key={`${category.id}-${product.id}`} className="relative h-full">
+                      {!isAvailable && (
+                        <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow">
+                          {t('publicPage.restaurantsLayout.unavailable')}
+                        </div>
+                      )}
+                      <CardComponent
+                        product={product}
+                        theme={theme}
+                        quantity={quantity}
+                        onAddToCart={handleAddProduct}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onProductClick={(item) => onProductClick?.(item)}
+                        index={index}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
+      )}
       {/* Paginación (solo cuando hay búsqueda) */}
       {totalItems > 0 && totalPages > 1 && (
         <div className="flex flex-col items-center gap-4 py-4">
@@ -467,7 +618,13 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
               {t('publicPage.restaurantsLayout.loadMore')}
             </AnimatedButton>
           ) : (
-            <p className="text-sm text-slate-500" style={{ fontFamily: theme.fontBody }}>
+            <p
+              className="text-sm"
+              style={{
+                fontFamily: theme.fontBody,
+                color: theme.subtitleColor || theme.textColor || '#64748b',
+              }}
+            >
               {t('publicPage.restaurantsLayout.noMoreProducts')}
             </p>
           )}
@@ -475,7 +632,14 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       )}
       {/* Mensaje cuando no hay productos */}
       {!hasProducts && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4 text-sm text-slate-600 shadow-sm sm:p-6">
+        <div
+          className="rounded-2xl border border-dashed p-4 text-sm shadow-sm sm:p-6"
+          style={{
+            borderColor,
+            backgroundColor: theme.cardColor ? `${theme.cardColor}B3` : 'rgba(255,255,255,0.85)',
+            color: theme.descriptionColor || theme.textColor || '#475569',
+          }}
+        >
           {searchActive
             ? t('common.noResults')
             : t('publicPage.restaurantsLayout.emptyMenu')}
@@ -483,7 +647,14 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       )}
       {/* Mensaje cuando hay búsqueda pero no resultados */}
       {searchActive && allFilteredProducts.length === 0 && hasProducts && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4 text-sm text-slate-600 shadow-sm sm:p-6">
+        <div
+          className="rounded-2xl border border-dashed p-4 text-sm shadow-sm sm:p-6"
+          style={{
+            borderColor,
+            backgroundColor: theme.cardColor ? `${theme.cardColor}B3` : 'rgba(255,255,255,0.85)',
+            color: theme.descriptionColor || theme.textColor || '#475569',
+          }}
+        >
           {t('common.noResults')}
         </div>
       )}
@@ -493,31 +664,42 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
 
   const servicesContent =
     hasServices && sections.services ? (
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm sm:p-5">{sections.services}</div>
+      <div
+        className="rounded-2xl border p-4 shadow-sm sm:p-5"
+        style={{
+          borderColor,
+          backgroundColor: theme.cardColor ? `${theme.cardColor}F2` : 'rgba(255,255,255,0.95)',
+        }}
+      >
+        {sections.services}
+      </div>
     ) : null;
 
   const modeTabs =
     hasProducts && hasServices ? (
-      <div className="flex gap-2 rounded-full bg-slate-100 p-1">
+      <div
+        className="flex gap-2 rounded-full p-1"
+        style={{ backgroundColor: theme.bgColor ? `${theme.bgColor}99` : 'rgba(241,245,249,0.9)' }}
+      >
         <button
           type="button"
           onClick={() => setActiveTab('products')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            activeTab === 'products'
-              ? 'bg-white shadow text-slate-900'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition shadow-sm"
+          style={{
+            backgroundColor: activeTab === 'products' ? (theme.cardColor || '#ffffff') : 'transparent',
+            color: activeTab === 'products' ? (theme.titleColor || theme.textColor || '#0f172a') : (theme.textColor || '#475569'),
+          }}
         >
           {t('publicPage.restaurantsLayout.productsTab')}
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('services')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            activeTab === 'services'
-              ? 'bg-white shadow text-slate-900'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
+          className="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition shadow-sm"
+          style={{
+            backgroundColor: activeTab === 'services' ? (theme.cardColor || '#ffffff') : 'transparent',
+            color: activeTab === 'services' ? (theme.titleColor || theme.textColor || '#0f172a') : (theme.textColor || '#475569'),
+          }}
         >
           {t('publicPage.restaurantsLayout.servicesTab')}
         </button>
@@ -527,34 +709,24 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
   const catalogSection = (
     <section
       id="menu-section"
-      className="space-y-5 rounded-3xl border border-slate-200/70 p-4 shadow-sm backdrop-blur sm:p-6"
-      style={{ backgroundColor: surfaceColor }}
+      className="mb-8 sm:mb-10 relative z-10"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-            {t('publicPage.restaurantsLayout.menuKicker')}
-          </p>
-          <h2
-            className="text-2xl font-bold sm:text-3xl"
-            style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
-          >
-            {t('publicPage.restaurantsLayout.menuTitle', { name: company.name })}
-          </h2>
-          <p className="text-sm" style={{ fontFamily: theme.fontBody, color: subtitleColor }}>
-            {t('publicPage.restaurantsLayout.menuSubtitle')}
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5 mb-6 sm:mb-8 relative z-10">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight"
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+        >
+          {t('publicPage.restaurantsLayout.productsSectionTitle')}
+        </h2>
         {modeTabs}
       </div>
-
       {activeTab === 'services' ? servicesContent ?? productsContent : productsContent}
     </section>
   );
 
   const heroBlock = (
     <div
-      className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center"
+      className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
       style={{
         backgroundColor: 'transparent',
         boxShadow: 'none',
@@ -565,7 +737,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       }}
     >
       <div
-        className="space-y-4"
+        className="space-y-3"
         style={{
           backgroundColor: heroCardBg,
           background: heroCardBg,
@@ -579,7 +751,10 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
         }}
       >
         {heroKicker && (
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+          <p
+            className="text-xs uppercase tracking-[0.35em]"
+            style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+          >
             {heroKicker}
           </p>
         )}
@@ -595,7 +770,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
       </div>
       {(logoUrl || appearance?.banner_url) && (
         <div
-          className={`items-center justify-center ${hideHeroLogoOnMobile ? 'hidden sm:flex' : 'flex'}`}
+          className={`relative w-full sm:w-auto sm:flex-shrink-0 items-center justify-center ${hideHeroLogoOnMobile ? 'hidden sm:flex' : 'flex'}`}
           style={{
             backgroundColor: heroLogoCardBg,
             background: heroLogoCardBg,
@@ -611,7 +786,8 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
           <img
             src={logoUrl || appearance?.banner_url || ''}
             alt={company.name}
-            className="max-h-56 sm:max-h-72 w-auto object-contain"
+            className="w-full max-w-[140px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[260px] h-auto object-contain transition duration-500 ease-out"
+            style={{ maxHeight: 'clamp(80px, 14vw, 260px)' }}
             loading="lazy"
           />
         </div>
@@ -635,13 +811,22 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
   const cartSummary =
     cartItems > 0 && onOpenCart ? (
       <>
-        <div className="fixed inset-x-4 bottom-20 z-40 sm:hidden">
+        <div className="fixed inset-x-4 bottom-20 z-40 sm:hidden safe-area-inset-bottom">
           <div
-            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3 shadow-lg backdrop-blur"
-            style={{ backgroundColor: surfaceColor, color: textColor }}
+            className="flex items-center justify-between gap-3 rounded-2xl border p-3 shadow-lg backdrop-blur"
+            style={{
+              backgroundColor: surfaceColor,
+              color: textColor,
+              borderColor,
+            }}
           >
             <div>
-              <p className="text-xs font-semibold text-slate-500">{t('publicPage.restaurantsLayout.cartLabel')}</p>
+              <p
+                className="text-xs font-semibold"
+                style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+              >
+                {t('publicPage.restaurantsLayout.cartLabel')}
+              </p>
               <p className="text-sm font-bold" style={{ color: theme.titleColor }}>
                 {formattedTotal}
               </p>
@@ -657,17 +842,27 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
         </div>
         <div className="fixed right-6 top-28 z-30 hidden w-72 lg:block">
           <div
-            className="rounded-2xl border border-slate-200 p-4 shadow-2xl backdrop-blur"
-            style={{ backgroundColor: surfaceColor, color: textColor }}
+            className="rounded-2xl border p-4 shadow-2xl backdrop-blur"
+            style={{
+              backgroundColor: surfaceColor,
+              color: textColor,
+              borderColor,
+            }}
           >
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+              <p
+                className="text-xs font-semibold uppercase tracking-[0.25em]"
+                style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+              >
                 {t('publicPage.restaurantsLayout.cartLabel')}
               </p>
               <p className="text-xl font-bold" style={{ color: theme.titleColor }}>
                 {formattedTotal}
               </p>
-              <p className="text-xs text-slate-500">
+              <p
+                className="text-xs"
+                style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+              >
                 {t('publicPage.restaurantsLayout.cartHint', { count: cartItems })}
               </p>
             </div>
@@ -687,7 +882,8 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
 
   return (
     <>
-      <PublicLayoutShell
+      <div className={cartItems > 0 ? 'lg:pr-80' : ''}>
+        <PublicLayoutShell
         {...props}
         appearance={appearanceForLayout}
         variant={variant}
@@ -695,6 +891,7 @@ export function RestaurantesComidaRapidaPublicLayout(props: PublicLayoutProps) {
         contactActions={contactActions}
         floatingCta={floatingCta}
       />
+      </div>
       {cartSummary}
     </>
   );

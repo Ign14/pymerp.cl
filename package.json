@@ -29,7 +29,8 @@
     "verify:secrets": "scripts\\verify-secrets.bat",
     "setup:vercel": "vercel link",
     "deploy:vercel:preview": "vercel",
-    "deploy:vercel:prod": "vercel --prod"
+    "deploy:vercel:prod": "vercel --prod",
+    "firebase:download": "powershell -ExecutionPolicy Bypass -File scripts/firebase-download-all.ps1"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.3",

@@ -1,5 +1,6 @@
 import AnimatedButton from '../../../components/animations/AnimatedButton';
 import { CartBadge } from '../../../components/animations/AnimatedCart';
+import { ensureButtonContrast } from '../../../utils/colorContrast';
 import { AppearanceTheme } from '../types';
 
 interface ContactActionsProps {
@@ -27,7 +28,13 @@ export function ContactActions({ theme, onWhatsApp, onOpenCart, cartItems = 0, s
       {showCartCta && onOpenCart && (
         <AnimatedButton
           onClick={onOpenCart}
-          className="px-6 sm:px-8 py-3 sm:py-3.5 text-blue-700 border-2 border-blue-300 rounded-lg font-semibold hover:bg-blue-50 w-full sm:w-auto min-w-[200px] sm:min-w-[240px] relative text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-300"
+          className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-semibold w-full sm:w-auto min-w-[200px] sm:min-w-[240px] relative text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-300 border-2"
+          style={{
+            color: ensureButtonContrast(theme.cardColor || '#ffffff', theme.buttonColor || theme.titleColor || '#1d4ed8'),
+            borderColor: theme.buttonColor ? `${theme.buttonColor}99` : 'rgba(59, 130, 246, 0.5)',
+            backgroundColor: theme.buttonColor ? `${theme.buttonColor}12` : 'rgba(59, 130, 246, 0.08)',
+            fontFamily: theme.fontButton,
+          }}
           ariaLabel={`Ver carrito con ${cartItems} productos`}
         >
           🛒 Ver carrito ({cartItems})
