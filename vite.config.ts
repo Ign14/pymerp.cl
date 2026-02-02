@@ -172,6 +172,14 @@ export default defineConfig({
         secure: true,
       },
     },
+    hmr: {
+      overlay: true,
+    },
+    watch: {
+      // Forzar full reload para páginas públicas cuando cambian
+      // Esto ayuda con estilos inline dinámicos
+      usePolling: false,
+    },
   },
   test: {
     globals: true,
