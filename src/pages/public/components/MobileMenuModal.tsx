@@ -52,11 +52,11 @@ export function MobileMenuModal({ isOpen, onClose, sections, theme, appearance }
   const { t } = useTranslation();
 
   // Usar los mismos colores que la barra superior móvil
-  // Priorizar colores del menú si están disponibles, sino usar los generales
+  // Priorizar colores generales para títulos, colores del menú para botones
   const backgroundColor = appearance?.card_color || theme.cardColor;
   const buttonColor = appearance?.menu_button_color || appearance?.button_color || theme.buttonColor;
   const buttonTextColor = appearance?.menu_button_text_color || appearance?.button_text_color || theme.buttonTextColor;
-  const titleColor = appearance?.menu_title_color || appearance?.title_color || theme.titleColor;
+  const titleColor = theme.titleColor || appearance?.title_color || appearance?.menu_title_color;
 
   const handleSectionClick = (section: Section) => {
     const targetId = section.scrollToId || `section-${section.id}`;

@@ -361,21 +361,32 @@ export function ScheduleList({
         />
       </div>
 
-      {/* Modal para selección de fechas personalizadas */}
+      {/* Modal para selección de fechas personalizadas - MEJORADO */}
       <AnimatedModal
         isOpen={showCustomDateModal}
         onClose={handleCancelCustomDates}
         ariaLabel="Seleccionar rango de fechas personalizado"
-        className="max-w-md"
+        className="max-w-2xl"
       >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Seleccionar Rango de Fechas
-            </h2>
+        <div className="p-6 sm:p-8">
+          {/* Header del modal */}
+          <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-indigo-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Rango Personalizado
+                </h2>
+                <p className="text-sm text-gray-600 mt-0.5">Selecciona cualquier período de fechas</p>
+              </div>
+            </div>
             <button
               onClick={handleCancelCustomDates}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
               aria-label="Cerrar"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,68 +395,192 @@ export function ScheduleList({
             </button>
           </div>
 
+          {/* Contenido del modal */}
           <div className="space-y-6">
-            {/* Fecha de inicio */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Fecha de inicio
-              </label>
-              <DatePicker
-                selected={tempStartDate}
-                onChange={(date: Date | null) => setTempStartDate(date)}
-                dateFormat="dd/MM/yyyy"
-                locale="es"
-                className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors dark:bg-gray-700 dark:text-white"
-                maxDate={tempEndDate || undefined}
-                placeholderText="dd/mm/aaaa"
-              />
-            </div>
-
-            {/* Fecha de fin */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Fecha de fin
-              </label>
-              <DatePicker
-                selected={tempEndDate}
-                onChange={(date: Date | null) => setTempEndDate(date)}
-                dateFormat="dd/MM/yyyy"
-                locale="es"
-                className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors dark:bg-gray-700 dark:text-white"
-                minDate={tempStartDate || undefined}
-                placeholderText="dd/mm/aaaa"
-              />
-            </div>
-
-            {/* Mensaje de error */}
-            {dateError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                <p className="text-sm text-red-700 dark:text-red-400 font-medium flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            {/* Grid de calendarios */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Fecha de inicio */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  {dateError}
-                </p>
+                  Fecha de inicio
+                </label>
+                <div className="border-2 border-indigo-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <DatePicker
+                    selected={tempStartDate}
+                    onChange={(date: Date | null) => setTempStartDate(date)}
+                    dateFormat="dd/MM/yyyy"
+                    locale="es"
+                    inline
+                    maxDate={tempEndDate || undefined}
+                    calendarClassName="custom-datepicker"
+                  />
+                </div>
+                {tempStartDate && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-semibold text-indigo-700">
+                      {format(tempStartDate, "dd 'de' MMMM, yyyy", { locale: es })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Fecha de fin */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  Fecha de fin
+                </label>
+                <div className="border-2 border-indigo-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <DatePicker
+                    selected={tempEndDate}
+                    onChange={(date: Date | null) => setTempEndDate(date)}
+                    dateFormat="dd/MM/yyyy"
+                    locale="es"
+                    inline
+                    minDate={tempStartDate || undefined}
+                    calendarClassName="custom-datepicker"
+                  />
+                </div>
+                {tempEndDate && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-semibold text-indigo-700">
+                      {format(tempEndDate, "dd 'de' MMMM, yyyy", { locale: es })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Resumen del rango seleccionado */}
+            {tempStartDate && tempEndDate && (
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-indigo-900">Período seleccionado:</p>
+                    <p className="text-base font-semibold text-indigo-700">
+                      {format(tempStartDate, "dd 'de' MMMM", { locale: es })} → {format(tempEndDate, "dd 'de' MMMM, yyyy", { locale: es })}
+                    </p>
+                    <p className="text-xs text-indigo-600">
+                      {Math.ceil((tempEndDate.getTime() - tempStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} días en total
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Botones de acción */}
-            <div className="flex gap-3 pt-4">
+            {/* Mensaje de error */}
+            {dateError && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 animate-in fade-in duration-300">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-bold text-red-900 mb-0.5">Error de validación</p>
+                    <p className="text-sm text-red-700">{dateError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botones de acción mejorados */}
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={handleCancelCustomDates}
-                className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
                 Cancelar
               </button>
               <button
                 onClick={handleApplyCustomDates}
-                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md"
+                disabled={!tempStartDate || !tempEndDate}
+                className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
               >
-                Aplicar
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Aplicar Rango
               </button>
             </div>
           </div>
         </div>
+
+        {/* Estilos para los calendarios inline */}
+        <style>{`
+          .custom-datepicker {
+            width: 100% !important;
+            font-family: inherit !important;
+          }
+          .custom-datepicker .react-datepicker__header {
+            background-color: #eef2ff !important;
+            border-bottom: 2px solid #c7d2fe !important;
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+          }
+          .custom-datepicker .react-datepicker__current-month {
+            color: #1e293b !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+          }
+          .custom-datepicker .react-datepicker__day-name {
+            color: #475569 !important;
+            font-weight: 600 !important;
+            font-size: 0.75rem !important;
+          }
+          .custom-datepicker .react-datepicker__day {
+            color: #1e293b !important;
+            font-weight: 500 !important;
+            border-radius: 0.5rem !important;
+            margin: 0.15rem !important;
+          }
+          .custom-datepicker .react-datepicker__day:hover {
+            background-color: #e0e7ff !important;
+            transform: scale(1.1) !important;
+          }
+          .custom-datepicker .react-datepicker__day--selected {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.5) !important;
+          }
+          .custom-datepicker .react-datepicker__day--keyboard-selected {
+            background-color: #c7d2fe !important;
+            color: #1e293b !important;
+          }
+          .custom-datepicker .react-datepicker__day--today {
+            font-weight: 700 !important;
+            color: #4f46e5 !important;
+            border: 2px solid #4f46e5 !important;
+          }
+          .custom-datepicker .react-datepicker__day--disabled {
+            color: #cbd5e1 !important;
+            cursor: not-allowed !important;
+          }
+          .custom-datepicker .react-datepicker__navigation {
+            top: 0.75rem !important;
+          }
+          .custom-datepicker .react-datepicker__navigation-icon::before {
+            border-color: #4f46e5 !important;
+            border-width: 2px 2px 0 0 !important;
+          }
+        `}</style>
       </AnimatedModal>
     </>
   );
@@ -607,11 +742,28 @@ function FiltersSection({
           </button>
         </div>
         {dateRange === 'custom' && (
-          <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
-            <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-              <span className="font-semibold">Rango seleccionado:</span>{' '}
-              {formatDateForDisplay(customStartDate)} - {formatDateForDisplay(customEndDate)}
-            </p>
+          <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl shadow-sm">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <div className="flex-1 space-y-1">
+                <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide">Rango personalizado activo</p>
+                <p className="text-sm font-semibold text-indigo-700">
+                  {formatDateForDisplay(customStartDate)} → {formatDateForDisplay(customEndDate)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onDateRangeChange('custom')}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 underline mt-1 inline-flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Cambiar fechas
+                </button>
+              </div>
+            </div>
           </div>
         )}
         {dateError && (

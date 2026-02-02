@@ -1095,64 +1095,23 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
   const mobileCta =
     company.business_type === BusinessType.SERVICES && hasPrimaryAction ? (
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-[0_-4px_20px_rgba(0,0,0,0.1)] sm:hidden supports-[backdrop-filter]:backdrop-blur-sm"
+      <button
+        type="button"
+        onClick={handleMobileCtaPress}
+        className="fixed right-6 z-40 h-14 w-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center sm:hidden"
         style={{
-          backgroundColor: theme.bgColor ? `${theme.bgColor}F0` : 'rgba(255, 255, 255, 0.95)',
-          borderTopColor: sectionBorder,
-          transform: isMobileCtaMinimized ? 'translateY(calc(100% - 0.9rem))' : 'translateY(0)',
-          transition: 'transform 0.35s ease',
-          willChange: 'transform',
+          backgroundColor: theme.buttonColor || '#10b981',
+          color: theme.buttonTextColor || '#ffffff',
+          bottom: 'calc(1.5rem + 56px + 0.75rem)', // 24px (bottom-6) + 56px (altura FAB) + 12px (gap-3)
         }}
-        onClick={(event) => {
-          if (!isMobileCtaMinimized) return;
-          event.preventDefault();
-          event.stopPropagation();
-          setIsMobileCtaMinimized(false);
-        }}
-        onTouchStart={(event) => {
-          if (!isMobileCtaMinimized) return;
-          event.preventDefault();
-          event.stopPropagation();
-          setIsMobileCtaMinimized(false);
-        }}
+        aria-label={t('publicPage.barberLayout.primaryCta')}
       >
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <button
-            type="button"
-            onClick={handleMobileCtaPress}
-            onPointerUp={(e) => {
-              // Safari iOS: asegurar respuesta al toque
-              e.preventDefault();
-              handleMobileCtaPress();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handleMobileCtaPress();
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 font-semibold text-base touch-manipulation"
-            style={{
-              backgroundColor: theme.buttonColor || '#10b981',
-              color: theme.buttonTextColor || '#ffffff',
-              '--tw-ring-color': theme.buttonColor || '#10b981',
-              touchAction: 'manipulation'
-            } as React.CSSProperties}
-            aria-label={t('publicPage.barberLayout.primaryCta')}
-          >
-            {ctaState === 'sent' ? (
-              <>
-                <span className="text-lg">✓</span>
-                <span>{t('publicPage.barberLayout.ctaSent')}</span>
-              </>
-            ) : (
-              <>
-                <span className="text-lg">{theme.serviceCtaEmoji || '✂️'}</span>
-                <span>{t('publicPage.barberLayout.primaryCta')}</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+        {ctaState === 'sent' ? (
+          <span className="text-2xl">✓</span>
+        ) : (
+          <span className="text-2xl">{theme.serviceCtaEmoji || '✂️'}</span>
+        )}
+      </button>
     ) : (
       floatingCta
     );
@@ -1167,17 +1126,18 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         floatingCta={mobileCta}
       />
 
-      {/* Selector de servicios (mobile): se abre desde el CTA inferior */}
+      {/* Selector de servicios (mobile): se abre desde el FAB */}
       {isServicePickerOpen && hasServices && onBookService && (
         <div
-          className="fixed inset-0 z-[60] sm:hidden"
+          className="fixed inset-0 z-[60] sm:hidden animate-in fade-in duration-300"
           role="dialog"
           aria-modal="true"
           aria-label="Seleccionar servicio para agendar"
         >
+          {/* Overlay con blur */}
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeServicePicker}
             onTouchEnd={(e) => {
               e.preventDefault();
@@ -1185,54 +1145,67 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             }}
             aria-label="Cerrar selector de servicios"
           />
+          
+          {/* Modal drawer desde abajo */}
           <div
-            className="absolute bottom-0 left-0 right-0 max-h-[85vh] rounded-t-3xl border-t shadow-2xl overflow-hidden"
+            className="absolute bottom-0 left-0 right-0 max-h-[90vh] rounded-t-[2rem] border-t-2 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
             style={{
               backgroundColor: theme.cardColor || '#ffffff',
-              borderTopColor: sectionBorder,
+              borderTopColor: theme.buttonColor || sectionBorder,
               WebkitOverflowScrolling: 'touch',
             } as React.CSSProperties}
           >
-            <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+            {/* Handle visual para indicar que se puede arrastrar */}
+            <div className="flex justify-center pt-2 pb-1">
+              <div 
+                className="w-12 h-1.5 rounded-full opacity-40"
+                style={{ backgroundColor: theme.textColor }}
+              />
+            </div>
+
+            {/* Header mejorado */}
+            <div className="px-5 pt-2 pb-3 flex items-center justify-between gap-3 border-b" style={{ borderColor: sectionBorder }}>
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.25em] opacity-70" style={{ color: theme.textColor }}>
-                  Agendar
+                <p className="text-xs uppercase tracking-[0.3em] font-semibold opacity-60" style={{ color: theme.textColor }}>
+                  ✂️ AGENDAR
                 </p>
-                <p className="text-base font-bold truncate" style={{ color: theme.titleColor }}>
+                <p className="text-lg font-bold truncate mt-0.5" style={{ color: theme.titleColor }}>
                   Selecciona un servicio
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeServicePicker}
-                className="h-10 w-10 rounded-full flex items-center justify-center border"
+                className="h-11 w-11 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
                 style={{
-                  borderColor: sectionBorder,
-                  color: theme.textColor,
-                  backgroundColor: theme.bgColor ? `${theme.bgColor}40` : 'rgba(255,255,255,0.6)',
+                  backgroundColor: theme.buttonColor ? `${theme.buttonColor}15` : 'rgba(0,0,0,0.08)',
+                  color: theme.buttonColor || theme.textColor,
                 }}
                 aria-label="Cerrar"
               >
-                ✕
+                <span className="text-xl font-light">✕</span>
               </button>
             </div>
 
+            {/* Filtro por profesional mejorado */}
             {pickerProfessionals.length > 0 && (
-              <div className="px-4 pb-3">
-                <label className="block text-xs font-semibold mb-1" style={{ color: theme.textColor }}>
-                  Filtrar por profesional
+              <div className="px-5 pt-4 pb-3">
+                <label className="flex items-center gap-2 text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: theme.textColor }}>
+                  <span className="text-base">👤</span>
+                  Profesional
                 </label>
                 <select
                   value={pickerProfessionalId}
                   onChange={(e) => setPickerProfessionalId(e.target.value)}
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  className="w-full rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all focus:ring-2 focus:ring-offset-2"
                   style={{
                     borderColor: sectionBorder,
-                    backgroundColor: theme.bgColor ? `${theme.bgColor}20` : 'rgba(255,255,255,0.8)',
+                    backgroundColor: theme.bgColor ? `${theme.bgColor}15` : 'rgba(255,255,255,0.95)',
                     color: theme.textColor,
-                  }}
+                    '--tw-ring-color': theme.buttonColor,
+                  } as React.CSSProperties}
                 >
-                  <option value="">Cualquiera</option>
+                  <option value="">Cualquier profesional</option>
                   {pickerProfessionals.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -1242,10 +1215,11 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               </div>
             )}
 
+            {/* Lista de servicios mejorada */}
             <div
-              className="px-4 pb-4 overflow-y-auto overscroll-contain"
+              className="px-5 pb-6 overflow-y-auto overscroll-contain"
               style={{
-                maxHeight: pickerProfessionals.length > 0 ? 'calc(85vh - 150px)' : 'calc(85vh - 90px)',
+                maxHeight: pickerProfessionals.length > 0 ? 'calc(90vh - 190px)' : 'calc(90vh - 120px)',
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-y',
               }}
@@ -1261,24 +1235,28 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               onPointerMove={(e) => movePickerGesture(e.clientX, e.clientY)}
             >
               {pickerFilteredServices.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-4 text-center text-sm opacity-80" style={{ borderColor: sectionBorder, color: theme.textColor }}>
-                  No hay servicios disponibles para este profesional.
+                <div className="rounded-2xl border-2 border-dashed p-6 text-center" style={{ borderColor: sectionBorder, color: theme.textColor }}>
+                  <div className="text-3xl mb-2 opacity-40">🔍</div>
+                  <p className="text-sm font-medium opacity-70">
+                    No hay servicios disponibles para este profesional.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {pickerFilteredServices.map((service) => {
+                <div className="space-y-3 pt-2">
+                  {pickerFilteredServices.map((service, index) => {
                     const duration = service.estimated_duration_minutes ? `${service.estimated_duration_minutes} min` : null;
                     const showPrice = !service.hide_price && service.price > 0;
                     return (
                       <button
                         key={service.id}
                         type="button"
-                        className="w-full text-left rounded-2xl border p-3 flex items-center justify-between gap-3 active:scale-[0.99] transition touch-manipulation"
+                        className="w-full text-left rounded-2xl border-2 p-4 flex items-center justify-between gap-4 active:scale-[0.98] transition-all duration-200 hover:shadow-lg touch-manipulation"
                         style={{
                           borderColor: sectionBorder,
-                          backgroundColor: theme.bgColor ? `${theme.bgColor}12` : 'rgba(255,255,255,0.75)',
+                          backgroundColor: theme.bgColor ? `${theme.bgColor}08` : 'rgba(255,255,255,0.95)',
                           color: theme.textColor,
                           touchAction: 'pan-y',
+                          animationDelay: `${index * 30}ms`,
                         } as React.CSSProperties}
                         onClick={() => {
                           if (!canCommitPickerTap()) return;
@@ -1286,7 +1264,6 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                           onBookService(service, pickerProfessionalId || null);
                         }}
                         onPointerUp={(e) => {
-                          // Si fue un tap (no scroll), capturarlo acá para iOS.
                           e.preventDefault();
                           if (!canCommitPickerTap()) return;
                           closeServicePicker();
@@ -1294,21 +1271,39 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                         }}
                         aria-label={`Agendar ${service.name}`}
                       >
-                        <div className="min-w-0">
-                          <p className="font-semibold truncate" style={{ color: theme.titleColor }}>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-base truncate" style={{ color: theme.titleColor }}>
                             {service.name}
                           </p>
-                          <p className="text-xs opacity-80 mt-0.5" style={{ color: theme.descriptionColor || theme.textColor }}>
-                            {[duration, showPrice ? `$${service.price.toLocaleString()}` : service.hide_price ? 'Precio a consultar' : null]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {duration && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ 
+                                backgroundColor: theme.buttonColor ? `${theme.buttonColor}15` : 'rgba(0,0,0,0.08)',
+                                color: theme.buttonColor || theme.textColor 
+                              }}>
+                                ⏱️ {duration}
+                              </span>
+                            )}
+                            {showPrice && (
+                              <span className="text-sm font-bold" style={{ color: theme.buttonColor }}>
+                                ${service.price.toLocaleString()}
+                              </span>
+                            )}
+                            {!showPrice && service.hide_price && (
+                              <span className="text-xs opacity-60" style={{ color: theme.textColor }}>
+                                Precio a consultar
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs font-semibold" style={{ color: theme.buttonColor }}>
-                            Agendar
-                          </span>
-                          <span aria-hidden>›</span>
+                        <div 
+                          className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                          style={{ 
+                            backgroundColor: theme.buttonColor || '#10b981',
+                            color: theme.buttonTextColor || '#ffffff'
+                          }}
+                        >
+                          <span className="text-lg font-bold">›</span>
                         </div>
                       </button>
                     );
