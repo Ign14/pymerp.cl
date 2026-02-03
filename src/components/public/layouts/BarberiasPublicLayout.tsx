@@ -236,8 +236,6 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
     hideHeroLogoOnMobile,
   } = props;
   const { t, i18n } = useTranslation();
-  const [ctaState, setCtaState] = useState<'idle' | 'sent'>('idle');
-  const [lastTrackedService, setLastTrackedService] = useState<string | null>(null);
   const [isServicePickerOpen, setIsServicePickerOpen] = useState(false);
   const [pickerProfessionalId, setPickerProfessionalId] = useState<string>(''); // '' = cualquiera
   const [isMobileCtaMinimized, setIsMobileCtaMinimized] = useState(false);
@@ -468,22 +466,21 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterByAvailability, sortBy]);
 
+  const openServicePicker = useCallback(() => {
+    if (!hasServices || !onBookService) {
+      onWhatsAppClick?.();
+      return;
+    }
+    setIsServicePickerOpen(true);
+  }, [hasServices, onBookService, onWhatsAppClick]);
+
   const handlePrimaryCta = useCallback(() => {
     if (hasServices && onBookService) {
-      // Tracking solo si no se ha trackeado recientemente el mismo servicio
-      const firstService = services[0];
-      if (firstService && lastTrackedService !== firstService.id) {
-        setLastTrackedService(firstService.id);
-        // El tracking se hace en PublicPage.handleBookService, no duplicar aquí
-      }
-      onBookService(firstService);
+      openServicePicker();
     } else {
       onWhatsAppClick?.();
     }
-
-    setCtaState('sent');
-    setTimeout(() => setCtaState('idle'), 1200);
-  }, [hasServices, onBookService, services, onWhatsAppClick, lastTrackedService]);
+  }, [hasServices, onBookService, onWhatsAppClick, openServicePicker]);
 
   const bookableServices = useMemo(() => {
     if (!hasServices) return [];
@@ -509,14 +506,6 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
       return s.professional_ids.includes(pickerProfessionalId);
     });
   }, [bookableServices, pickerProfessionalId]);
-
-  const openServicePicker = useCallback(() => {
-    if (!hasServices || !onBookService) {
-      onWhatsAppClick?.();
-      return;
-    }
-    setIsServicePickerOpen(true);
-  }, [hasServices, onBookService, onWhatsAppClick]);
 
   const closeServicePicker = useCallback(() => {
     setIsServicePickerOpen(false);
@@ -1085,12 +1074,23 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
     </section>
   );
 
+  const teamScheduleSection =
+    teamSection && scheduleSection ? (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-6">
+        <div className="min-w-0">{teamSection}</div>
+        <div className="min-w-0">{scheduleSection}</div>
+      </div>
+    ) : teamSection ? (
+      teamSection
+    ) : scheduleSection ? (
+      scheduleSection
+    ) : undefined;
+
   const mergedSections: PublicLayoutSections = {
     ...sections,
     hero: heroBlock,
     services: servicesSection,
-    schedule: scheduleSection,
-    team: teamSection ?? undefined,
+    teamSchedule: teamScheduleSection,
   };
 
   const mobileCta =
@@ -1102,15 +1102,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         style={{
           backgroundColor: theme.buttonColor || '#10b981',
           color: theme.buttonTextColor || '#ffffff',
-          bottom: 'calc(1.5rem + 56px + 0.75rem)', // 24px (bottom-6) + 56px (altura FAB) + 12px (gap-3)
+          right: 'calc(1.5rem - 0.5cm)', // 0.5cm más a la derecha
+          bottom: 'calc(1.5rem + 56px + 0.75rem - 0.5cm)', // 0.5cm hacia abajo
         }}
         aria-label={t('publicPage.barberLayout.primaryCta')}
       >
-        {ctaState === 'sent' ? (
-          <span className="text-2xl">✓</span>
-        ) : (
-          <span className="text-2xl">{theme.serviceCtaEmoji || '✂️'}</span>
-        )}
+        <span className="text-2xl leading-[1] select-none flex items-center justify-center" style={{ lineHeight: 1 }}>{theme.serviceCtaEmoji || '✂️'}</span>
       </button>
     ) : (
       floatingCta
@@ -1126,10 +1123,10 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         floatingCta={mobileCta}
       />
 
-      {/* Selector de servicios (mobile): se abre desde el FAB */}
+      {/* Selector de servicios: se abre desde FAB o botón Agendar de la sección Horarios */}
       {isServicePickerOpen && hasServices && onBookService && (
         <div
-          className="fixed inset-0 z-[60] sm:hidden animate-in fade-in duration-300"
+          className="fixed inset-0 z-[60] flex animate-in fade-in duration-300 sm:items-center sm:justify-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Seleccionar servicio para agendar"
@@ -1146,17 +1143,18 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             aria-label="Cerrar selector de servicios"
           />
           
-          {/* Modal drawer desde abajo */}
+          {/* Modal: drawer en mobile, centrado en desktop */}
           <div
-            className="absolute bottom-0 left-0 right-0 max-h-[90vh] rounded-t-[2rem] border-t-2 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+            className="absolute bottom-0 left-0 right-0 max-h-[90vh] w-full rounded-t-[2rem] border-t-2 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 sm:relative sm:bottom-auto sm:max-w-lg sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-t-2"
             style={{
               backgroundColor: theme.cardColor || '#ffffff',
+              borderColor: theme.buttonColor || sectionBorder,
               borderTopColor: theme.buttonColor || sectionBorder,
               WebkitOverflowScrolling: 'touch',
             } as React.CSSProperties}
           >
-            {/* Handle visual para indicar que se puede arrastrar */}
-            <div className="flex justify-center pt-2 pb-1">
+            {/* Handle visual (mobile) para indicar que se puede arrastrar */}
+            <div className="flex justify-center pt-2 pb-1 sm:hidden">
               <div 
                 className="w-12 h-1.5 rounded-full opacity-40"
                 style={{ backgroundColor: theme.textColor }}

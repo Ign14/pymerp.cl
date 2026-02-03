@@ -21,6 +21,8 @@ export interface PublicLayoutSections {
   products?: React.ReactNode;
   properties?: React.ReactNode;
   schedule?: React.ReactNode;
+  /** Equipo + Horarios en grid 2 columnas desktop (barberías) */
+  teamSchedule?: React.ReactNode;
   reviews?: React.ReactNode;
   faqs?: React.ReactNode;
   missionVision?: React.ReactNode;

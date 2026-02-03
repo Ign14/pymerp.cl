@@ -1,11 +1,45 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Service, Professional } from '../../../types';
 import { AppearanceTheme } from '../types';
+import type { CategoryId } from '../../../config/categories';
+
+/** Emoji por categoría para la sección "Profesionales disponibles" */
+const PROFESSIONALS_EMOJI_BY_CATEGORY: Partial<Record<CategoryId, string>> = {
+  agenda_profesionales: '💼',
+  agenda_profesionales_independientes: '💼',
+  barberias: '✂️',
+  peluquerias: '💇',
+  centros_estetica: '💁',
+  unas: '💅',
+  tatuajes_piercing: '🖋️',
+  masajes_spa: '💆',
+  clinicas_odontologicas: '🦷',
+  clinicas_kinesiologicas: '🏥',
+  centros_entrenamiento: '💪',
+  actividad_entrenamiento_fisico: '🏃',
+  centros_terapia: '🩺',
+  psicologia: '🧠',
+  nutricion: '🥗',
+  cursos_capacitaciones: '📚',
+  servicios_legales: '⚖️',
+  contabilidad: '📊',
+  taller_vehiculos: '🔧',
+  mascotas_veterinarias: '🐾',
+  fotografia: '📷',
+  deporte_aventura: '⛰️',
+  turismo: '✈️',
+};
+
+function getProfessionalsEmoji(categoryId?: string | null): string {
+  if (!categoryId) return '👨‍⚕️';
+  return PROFESSIONALS_EMOJI_BY_CATEGORY[categoryId as CategoryId] ?? '👨‍⚕️';
+}
 
 interface ServiceDetailModalProps {
   service: Service | null;
   professionals: Professional[];
   theme: AppearanceTheme;
+  categoryId?: string | null;
   onClose: () => void;
   onBook: () => void;
 }
@@ -14,6 +48,7 @@ export function ServiceDetailModal({
   service,
   professionals,
   theme,
+  categoryId,
   onClose,
   onBook,
 }: ServiceDetailModalProps) {
@@ -126,7 +161,7 @@ export function ServiceDetailModal({
                   className="text-lg font-semibold mb-3"
                   style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
                 >
-                  👨‍⚕️ Profesionales disponibles
+                  {getProfessionalsEmoji(categoryId)} Profesionales disponibles
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {assignedProfessionals.map((prof) => (

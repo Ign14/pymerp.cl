@@ -21,6 +21,8 @@ registerLocale('es', es);
 
 interface BookingModalV2Props {
   isOpen: boolean;
+  /** Muestra overlay de carga mientras se obtienen horarios (evita parpadeo) */
+  isLoading?: boolean;
   theme: AppearanceTheme;
   serviceName?: string;
   servicePrice?: number;
@@ -45,6 +47,7 @@ interface BookingModalV2Props {
 
 export function BookingModalV2({
   isOpen,
+  isLoading = false,
   theme,
   serviceName,
   servicePrice,
@@ -387,9 +390,40 @@ export function BookingModalV2({
     <AnimatedModal
       isOpen={isOpen}
       onClose={onClose}
-      className="p-0 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col booking-modal-container"
+      className="p-0 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col booking-modal-container relative"
       ariaLabel={`Agendar servicio: ${serviceName}`}
     >
+      {/* Overlay de carga para evitar parpadeo al abrir */}
+      {isLoading && (
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-xl"
+          style={{
+            backgroundColor: `${colorPalette.surface}ee`,
+            backdropFilter: 'blur(4px)',
+          }}
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div
+            className="h-12 w-12 animate-spin rounded-full border-4 border-t-transparent"
+            style={{
+              borderColor: `${colorPalette.primary}40`,
+              borderTopColor: colorPalette.primary,
+            }}
+          />
+          <p className="text-sm font-semibold" style={{ color: colorPalette.text }}>
+            Cargando horarios...
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm font-medium underline transition hover:opacity-80"
+            style={{ color: colorPalette.primary }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
       <style>{`
         /* CSS Variables para el modal */
         .booking-modal-container {

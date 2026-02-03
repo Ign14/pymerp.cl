@@ -65,6 +65,8 @@ import OrdersPage from './pages/dashboard/OrdersPage';
 
 // Public
 import PublicPage from './pages/public/PublicPage';
+import PublicMenu from './pages/public/PublicMenu';
+import OrderTrackingPage from './pages/public/OrderTrackingPage';
 import Transparencia from './pages/info/Transparencia';
 import About from './pages/info/About';
 import Costos from './pages/info/Costos';
@@ -424,6 +426,9 @@ function AnimatedRoutes() {
           <Route path="/condiciones-beta" element={<PageTransition><CondicionesBeta /></PageTransition>} />
           <Route path="/pymes-cercanas" element={<PageTransition><NearbyCompanies /></PageTransition>} />
 
+          {/* Rutas públicas por categoría - más específicas primero */}
+          <Route path="/:slug/tracking/:pedidoId" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
+          <Route path="/:slug/menu" element={<PageTransition><PublicMenu /></PageTransition>} />
           <Route path="/:slug" element={<PageTransition><PublicPage /></PageTransition>} />
         </Routes>
       </AnimatePresence>
