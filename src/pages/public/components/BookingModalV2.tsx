@@ -341,47 +341,45 @@ export function BookingModalV2({
     return luminance < 0.5;
   }, [theme.calendarCardColor, theme.bgColor]);
 
-  // Paleta de colores según tema
+  // Paleta de colores simplificada: sólidos, sin azul forzado. Usa theme.buttonColor o neutros.
   const colorPalette = useMemo(() => {
-    const primaryColor = theme.calendarButtonColor || theme.buttonColor || '#0078d4';
-    
+    const primaryColor = theme.calendarButtonColor || theme.buttonColor || '#171717';
+
     if (isDarkTheme) {
-      // Tema oscuro: blancos y azules oscuros
       return {
-        surface: '#1e293b',           // Azul oscuro principal
-        surfaceLight: '#334155',      // Azul oscuro claro
-        surfaceDark: '#0f172a',       // Azul muy oscuro
-        text: '#f8fafc',              // Blanco suave
-        textSecondary: '#cbd5e1',     // Gris claro
-        textMuted: '#94a3b8',         // Gris medio
+        surface: '#1e293b',
+        surfaceLight: '#334155',
+        surfaceDark: '#0f172a',
+        text: '#f8fafc',
+        textSecondary: '#cbd5e1',
+        textMuted: '#94a3b8',
         primary: primaryColor,
-        primaryLight: primaryColor + '30',
-        primaryDark: primaryColor + 'cc',
-        border: '#475569',            // Borde visible
-        borderLight: '#334155',       // Borde sutil
+        primaryLight: '#334155',
+        primaryDark: primaryColor,
+        border: '#475569',
+        borderLight: '#334155',
         success: '#10b981',
         warning: '#f59e0b',
         error: '#ef4444',
         overlay: 'rgba(15, 23, 42, 0.95)',
       };
     } else {
-      // Tema claro: celestes, blancos y negros
       return {
-        surface: '#ffffff',           // Blanco
-        surfaceLight: '#f8fafc',      // Blanco azulado
-        surfaceDark: '#e2e8f0',       // Gris muy claro
-        text: '#1e293b',              // Negro azulado
-        textSecondary: '#475569',     // Gris oscuro
-        textMuted: '#64748b',         // Gris medio
-        primary: '#0ea5e9',           // Celeste vibrante
-        primaryLight: '#e0f2fe',      // Celeste muy claro
-        primaryDark: '#0284c7',       // Celeste oscuro
-        border: '#cbd5e1',            // Borde suave
-        borderLight: '#e2e8f0',       // Borde muy suave
+        surface: '#ffffff',
+        surfaceLight: '#f8fafc',
+        surfaceDark: '#f1f5f9',
+        text: '#171717',
+        textSecondary: '#475569',
+        textMuted: '#64748b',
+        primary: primaryColor,
+        primaryLight: '#f1f5f9',
+        primaryDark: primaryColor,
+        border: '#e2e8f0',
+        borderLight: '#e2e8f0',
         success: '#10b981',
         warning: '#f59e0b',
         error: '#ef4444',
-        overlay: 'rgba(15, 23, 42, 0.85)',
+        overlay: 'rgba(0, 0, 0, 0.5)',
       };
     }
   }, [isDarkTheme, theme.calendarButtonColor, theme.buttonColor]);
@@ -443,7 +441,7 @@ export function BookingModalV2({
           --error: ${colorPalette.error};
           background: ${colorPalette.surface};
           border-radius: 1rem;
-          box-shadow: 0 25px 50px -12px ${colorPalette.overlay};
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         /* Scrollbar personalizado */
@@ -485,14 +483,13 @@ export function BookingModalV2({
           }
         }
 
-        /* Estilos del calendario - Diseño moderno y profesional */
+        /* Calendario: colores sólidos, usa primary del tema */
         .react-datepicker {
           font-family: inherit !important;
-          border: 2px solid #0ea5e9 !important;
+          border: 2px solid var(--border) !important;
           background: #ffffff !important;
-          box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.3), 0 8px 10px -6px rgba(14, 165, 233, 0.2) !important;
           border-radius: 1rem !important;
-          color: #000000 !important;
+          color: #171717 !important;
           padding: 0.5rem !important;
         }
 
@@ -500,11 +497,11 @@ export function BookingModalV2({
           background: transparent !important;
           border: none !important;
           padding: 0.25rem 0.25rem 0.5rem !important;
-          border-bottom: 2px solid #0ea5e9 !important;
+          border-bottom: 2px solid var(--border) !important;
         }
 
         .react-datepicker__current-month {
-          color: #000000 !important;
+          color: #171717 !important;
           font-weight: 700 !important;
           font-size: 0.9rem !important;
           margin-bottom: 0.5rem !important;
@@ -516,7 +513,7 @@ export function BookingModalV2({
 
         .react-datepicker__month {
           background: #ffffff !important;
-          color: #000000 !important;
+          color: #171717 !important;
         }
 
         .react-datepicker__day-names {
@@ -527,7 +524,7 @@ export function BookingModalV2({
         }
 
         .react-datepicker__day-name {
-          color: #6b7280 !important;
+          color: #64748b !important;
           font-weight: 700 !important;
           font-size: 0.65rem !important;
           text-transform: uppercase !important;
@@ -555,37 +552,32 @@ export function BookingModalV2({
           border-radius: 0.5rem !important;
           font-weight: 600 !important;
           font-size: 0.8rem !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          border: 2px solid #bfdbfe !important;
-          color: #000000 !important;
+          transition: all 0.2s ease !important;
+          border: 2px solid var(--border-light) !important;
+          color: #171717 !important;
           background: #ffffff !important;
           cursor: pointer !important;
           position: relative !important;
         }
 
         .react-datepicker__day:hover:not(.react-datepicker__day--disabled) {
-          background: #dbeafe !important;
-          border-color: #0ea5e9 !important;
-          transform: scale(1.05) !important;
-          box-shadow: 0 4px 12px -2px rgba(14, 165, 233, 0.3) !important;
+          background: var(--surface-dark) !important;
+          border-color: var(--primary) !important;
         }
 
         .react-datepicker__day--selected {
-          background: #0ea5e9 !important;
+          background: var(--primary) !important;
           color: #ffffff !important;
-          border-color: #0ea5e9 !important;
-          box-shadow: 0 4px 16px -4px rgba(14, 165, 233, 0.5), 0 0 0 3px rgba(14, 165, 233, 0.2) !important;
+          border-color: var(--primary) !important;
           font-weight: 700 !important;
-          transform: scale(1.05) !important;
         }
 
         .react-datepicker__day--today:not(.react-datepicker__day--selected) {
-          border-color: #0ea5e9 !important;
+          border-color: var(--primary) !important;
           border-width: 2px !important;
           font-weight: 700 !important;
-          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2) !important;
           background: #ffffff !important;
-          color: #000000 !important;
+          color: #171717 !important;
         }
 
         .react-datepicker__day--disabled {
@@ -598,18 +590,15 @@ export function BookingModalV2({
         }
 
         .react-datepicker__day--disabled:hover {
-          transform: none !important;
-          box-shadow: none !important;
           background: #f9fafb !important;
           border-color: #e5e7eb !important;
         }
 
-        /* Estados de disponibilidad con mejor contraste */
         .react-datepicker__day.booking-day-available {
           border-color: #10b981 !important;
           border-width: 2px !important;
           background: #ffffff !important;
-          color: #000000 !important;
+          color: #171717 !important;
         }
 
         .react-datepicker__day.booking-day-available::after {
@@ -621,14 +610,13 @@ export function BookingModalV2({
           height: 6px;
           border-radius: 50%;
           background: #10b981;
-          box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
         }
 
         .react-datepicker__day.booking-day-low-slots {
           border-color: #f59e0b !important;
           border-width: 2px !important;
           background: #ffffff !important;
-          color: #000000 !important;
+          color: #171717 !important;
         }
 
         .react-datepicker__day.booking-day-low-slots::after {
@@ -640,15 +628,14 @@ export function BookingModalV2({
           height: 6px;
           border-radius: 50%;
           background: #f59e0b;
-          box-shadow: 0 0 4px rgba(245, 158, 11, 0.5);
         }
 
         .react-datepicker__day.booking-day-no-slots {
-          border-color: #ef4444 !important;
+          border-color: #e5e7eb !important;
           border-width: 2px !important;
-          background: #ffffff !important;
-          color: #6b7280 !important;
-          opacity: 0.6 !important;
+          background: #f9fafb !important;
+          color: #9ca3af !important;
+          opacity: 0.8 !important;
         }
 
         .react-datepicker__day.booking-day-blocked {
@@ -666,7 +653,7 @@ export function BookingModalV2({
         className="px-4 sm:px-5 py-3 border-b-2"
         style={{ 
           borderColor: colorPalette.border,
-          background: `linear-gradient(to bottom, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
+          backgroundColor: colorPalette.surface
         }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -743,8 +730,8 @@ export function BookingModalV2({
             onClick={onClose}
             className="text-xl leading-none flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-w-[36px] min-h-[36px] flex items-center justify-center font-light"
             style={{ 
-              color: '#000000',
-              background: colorPalette.surfaceLight,
+              color: colorPalette.text,
+              backgroundColor: colorPalette.surfaceLight,
               border: `2px solid ${colorPalette.borderLight}`
             }}
             aria-label="Cerrar"
@@ -771,10 +758,7 @@ export function BookingModalV2({
                     style={{
                       backgroundColor: step >= stepData.num ? colorPalette.primary : colorPalette.surfaceLight,
                       borderColor: step >= stepData.num ? colorPalette.primary : colorPalette.border,
-                      color: step >= stepData.num ? '#ffffff' : colorPalette.textMuted,
-                      boxShadow: step >= stepData.num 
-                        ? `0 4px 12px -2px ${colorPalette.primary}, 0 0 0 3px ${colorPalette.primaryLight}` 
-                        : 'none'
+                      color: step >= stepData.num ? '#ffffff' : colorPalette.textMuted
                     }}
                     aria-current={step === stepData.num ? 'step' : undefined}
                   >
@@ -851,8 +835,7 @@ export function BookingModalV2({
                         style={{ 
                           borderColor: colorPalette.border,
                           backgroundColor: colorPalette.surface,
-                          color: '#000000',
-                          boxShadow: `0 2px 8px -2px ${colorPalette.overlay}`
+                          color: colorPalette.text
                         }}
                         aria-label={`Ir a ${action.label}`}
                       >
@@ -865,11 +848,10 @@ export function BookingModalV2({
                 {/* Calendario */}
                 <div className="w-full flex justify-center">
                   <div 
-                    className="border-2 rounded-xl p-2 sm:p-3 shadow-lg transition-all w-full max-w-full sm:max-w-sm mx-auto flex flex-col items-center"
+                    className="border-2 rounded-xl p-2 sm:p-3 transition-all w-full max-w-full sm:max-w-sm mx-auto flex flex-col items-center"
                     style={{ 
                       backgroundColor: '#ffffff',
-                      borderColor: '#0ea5e9',
-                      boxShadow: `0 10px 30px -5px rgba(14, 165, 233, 0.3)`
+                      borderColor: colorPalette.border
                     }}
                   >
                     <DatePicker
@@ -920,12 +902,11 @@ export function BookingModalV2({
                     className="mt-2 p-3 rounded-lg border-2"
                     style={{ 
                       backgroundColor: colorPalette.primaryLight,
-                      borderColor: colorPalette.primary,
-                      boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
+                      borderColor: colorPalette.primary
                     }}
                   >
                     <p className="text-xs font-bold flex items-center gap-1.5" 
-                      style={{ color: '#000000' }}
+                      style={{ color: colorPalette.text }}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -957,8 +938,7 @@ export function BookingModalV2({
                   className="p-3 rounded-lg border-2"
                   style={{ 
                     backgroundColor: colorPalette.primaryLight,
-                    borderColor: colorPalette.primary,
-                    boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
+                    borderColor: colorPalette.primary
                   }}
                 >
                   <p className="text-xs font-bold flex items-center gap-1.5" 
@@ -1000,10 +980,7 @@ export function BookingModalV2({
                         borderColor: selectedSchedule === schedule.id ? colorPalette.primary : colorPalette.border,
                         backgroundColor: selectedSchedule === schedule.id 
                           ? colorPalette.primary 
-                          : colorPalette.surface,
-                        boxShadow: selectedSchedule === schedule.id 
-                          ? `0 4px 16px -4px ${colorPalette.primary}, 0 0 0 3px ${colorPalette.primaryLight}`
-                          : `0 2px 8px -2px ${colorPalette.overlay}`
+                          : colorPalette.surface
                       }}
                     >
                       <div className="space-y-0.5">
@@ -1057,8 +1034,7 @@ export function BookingModalV2({
                 className="p-3 rounded-lg border-2"
                 style={{ 
                   backgroundColor: colorPalette.primaryLight,
-                  borderColor: colorPalette.primary,
-                  boxShadow: `0 4px 12px -2px ${colorPalette.primary}`
+                  borderColor: colorPalette.primary
                 }}
               >
                 <h4 className="font-bold mb-2 flex items-center gap-1.5 text-sm" style={{ color: colorPalette.text }}>
@@ -1096,10 +1072,7 @@ export function BookingModalV2({
                           borderColor: selectedProfessionalId === pro.id ? colorPalette.primary : colorPalette.border,
                           backgroundColor: selectedProfessionalId === pro.id 
                             ? colorPalette.primaryLight
-                            : colorPalette.surface,
-                          boxShadow: selectedProfessionalId === pro.id 
-                            ? `0 4px 12px -2px ${colorPalette.primary}`
-                            : `0 2px 6px -2px ${colorPalette.overlay}`
+                            : colorPalette.surface
                         }}
                       >
                         <div className="font-bold" style={{ color: colorPalette.text }}>{pro.name}</div>
@@ -1236,8 +1209,7 @@ export function BookingModalV2({
                   className="w-16 h-16 rounded-full mx-auto flex items-center justify-center border-4"
                   style={{ 
                     backgroundColor: colorPalette.primaryLight,
-                    borderColor: colorPalette.success,
-                    boxShadow: `0 8px 24px -6px ${colorPalette.success}`
+                    borderColor: colorPalette.success
                   }}
                 >
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: colorPalette.success }} strokeWidth={3}>
@@ -1256,11 +1228,10 @@ export function BookingModalV2({
 
                 {/* Resumen completo */}
                 <div 
-                  className="p-4 rounded-xl border-2 text-left shadow-lg"
+                  className="p-4 rounded-xl border-2 text-left"
                   style={{ 
                     backgroundColor: colorPalette.surface,
-                    borderColor: colorPalette.border,
-                    boxShadow: `0 10px 30px -10px ${colorPalette.overlay}`
+                    borderColor: colorPalette.border
                   }}
                 >
                   <h4 className="font-bold mb-3 text-center text-sm" style={{ color: '#000000' }}>
@@ -1317,8 +1288,7 @@ export function BookingModalV2({
                     className="px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto transition-all hover:scale-105 active:scale-95"
                     style={{ 
                       backgroundColor: colorPalette.primary,
-                      color: '#ffffff',
-                      boxShadow: `0 6px 20px -6px ${colorPalette.primary}`
+                      color: '#ffffff'
                     }}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -1340,7 +1310,7 @@ export function BookingModalV2({
           className="px-4 sm:px-5 py-3 border-t-2 flex flex-col sm:flex-row justify-between gap-2 sm:gap-3"
           style={{ 
             borderColor: colorPalette.border,
-            background: `linear-gradient(to top, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
+            backgroundColor: colorPalette.surface
           }}
         >
           {step === 1 ? (
@@ -1362,10 +1332,7 @@ export function BookingModalV2({
                   disabled={!canProceedToStep2}
                   style={{ 
                     backgroundColor: colorPalette.primary,
-                    color: '#ffffff',
-                    boxShadow: canProceedToStep2 
-                      ? `0 4px 16px -4px ${colorPalette.primary}` 
-                      : 'none'
+                    color: '#ffffff'
                   }}
                   className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm min-w-[140px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 >
@@ -1400,10 +1367,7 @@ export function BookingModalV2({
                   disabled={!canProceedToStep3}
                   style={{ 
                     backgroundColor: colorPalette.primary,
-                    color: '#ffffff',
-                    boxShadow: canProceedToStep3 
-                      ? `0 4px 16px -4px ${colorPalette.primary}` 
-                      : 'none'
+                    color: '#ffffff'
                   }}
                   className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm min-w-[140px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all"
                 >
@@ -1437,10 +1401,7 @@ export function BookingModalV2({
                 disabled={!canProceedToStep4}
                 style={{ 
                   backgroundColor: canProceedToStep4 ? colorPalette.success : colorPalette.textMuted,
-                  color: '#ffffff',
-                  boxShadow: canProceedToStep4 
-                    ? `0 6px 20px -6px ${colorPalette.success}` 
-                    : 'none'
+                  color: '#ffffff'
                 }}
                 className="px-5 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 hover:scale-[1.02] active:scale-95 transition-all min-w-[140px]"
               >
@@ -1459,7 +1420,7 @@ export function BookingModalV2({
           className="px-4 sm:px-5 py-3 border-t-2 flex justify-center"
           style={{ 
             borderColor: colorPalette.border,
-            background: `linear-gradient(to top, ${colorPalette.surface}, ${colorPalette.surfaceLight})`
+            backgroundColor: colorPalette.surface
           }}
         >
           <AnimatedButton
@@ -1468,8 +1429,7 @@ export function BookingModalV2({
             style={{
               backgroundColor: colorPalette.primary,
               borderColor: colorPalette.primary,
-              color: '#ffffff',
-              boxShadow: `0 4px 16px -4px ${colorPalette.primary}`
+              color: '#ffffff'
             }}
           >
             Cerrar

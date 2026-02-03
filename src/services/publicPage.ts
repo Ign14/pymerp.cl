@@ -15,6 +15,7 @@ export type PublicLayoutKey =
   | 'minimarketShowcase'
   | 'inmobiliariaTerrenosCasasShowcase'
   | 'construccionShowcase'
+  | 'construccionIndustrialShowcase'
   | 'productosCuidadoPersonalShowcase';
 export type PublicLayoutVariant = PublicLayoutVariantChoice;
 
@@ -79,6 +80,7 @@ const LAYOUT_KEYS: PublicLayoutKey[] = [
   'minimarketShowcase',
   'inmobiliariaTerrenosCasasShowcase',
   'construccionShowcase',
+  'construccionIndustrialShowcase',
   'productosCuidadoPersonalShowcase',
 ];
 const LAYOUT_VARIANTS: PublicLayoutVariant[] = ['classic', 'modern', 'compact', 'immersive', 'minimal'];
@@ -196,6 +198,10 @@ export function resolvePublicLayout(company: Company | null | undefined): Resolv
     };
   }
 
+  const rawCategoryId = (company as any)?.category_id ?? (company as any)?.categoryId ?? null;
+  const isConstructionMaintenance =
+    typeof rawCategoryId === 'string' && rawCategoryId.trim().toLowerCase() === 'construccion_mantencion';
+
   // Resolver category_id de forma segura
   let categoryId: CategoryId | null = null;
   try {
@@ -233,6 +239,17 @@ export function resolvePublicLayout(company: Company | null | undefined): Resolv
   }
 
   // Intentar obtener layout por categoría
+  if (isConstructionMaintenance) {
+    return {
+      key: 'construccionIndustrialShowcase',
+      variant: resolvedVariant,
+      source: 'category',
+      variantSource: variantFromCompany ? 'company' : categoryVariant ? 'category' : 'fallback',
+      categoryId,
+      override: null,
+    };
+  }
+
   const categoryLayout = categoryId ? (CATEGORY_PUBLIC_LAYOUT_MAP[categoryId] || null) : null;
 
   if (categoryLayout) {

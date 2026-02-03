@@ -35,6 +35,11 @@ const LazyConstruccionPublicLayout = lazy(() =>
     default: mod.ConstruccionPublicLayout,
   }))
 );
+const LazyConstruccionIndustrialPublicLayout = lazy(() =>
+  import('../../../components/public/layouts/ConstruccionIndustrialPublicLayout').then((mod) => ({
+    default: mod.ConstruccionIndustrialPublicLayout,
+  }))
+);
 const LazyActividadEntrenamientoFisicoPublicLayout = lazy(() =>
   import('../../../components/public/layouts/ActividadEntrenamientoFisicoPublicLayout').then((mod) => ({
     default: mod.ActividadEntrenamientoFisicoPublicLayout,
@@ -134,6 +139,7 @@ const layoutRegistry: Record<PublicLayoutKey, LayoutRenderer> = {
   minimarketShowcase: withSuspense(LazyMinimarketPublicLayout),
   inmobiliariaTerrenosCasasShowcase: withSuspense(LazyInmobiliariaTerrenosCasasPublicLayout),
   construccionShowcase: withSuspense(LazyConstruccionPublicLayout),
+  construccionIndustrialShowcase: withSuspense(LazyConstruccionIndustrialPublicLayout),
   productosCuidadoPersonalShowcase: withSuspense(LazyProductosCuidadoPersonalPublicLayout),
 };
 
