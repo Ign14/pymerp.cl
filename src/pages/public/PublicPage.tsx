@@ -924,12 +924,22 @@ export default function PublicPage() {
     media: mediaSection,
   };
 
+  const isIndustrialConstructionLayout = layoutInfo.key === 'construccionIndustrialShowcase';
+
   const mobileSections = [
     descriptionSection
       ? {
           id: 'highlight',
           label: resolveLabel('publicPage.mobileMenu.about', 'Acerca de'),
           icon: '📋',
+        }
+      : null,
+    isIndustrialConstructionLayout
+      ? {
+          id: 'projects',
+          label: resolveLabel('publicPage.mobileMenu.projects', 'Proyectos'),
+          icon: '🏗️',
+          scrollToId: 'section-projects',
         }
       : null,
     servicesSection
@@ -976,14 +986,17 @@ export default function PublicPage() {
     },
   ].filter(Boolean) as Array<{ id: string; label: string; icon?: string; scrollToId?: string }>;
 
-  const mobileHeaderBg =
-    appearance?.card_color || theme.cardColor;
-  const mobileHeaderText =
-    appearance?.text_color || theme.titleColor || theme.textColor;
-  const mobileHeaderBorder =
-    appearance?.menu_button_color ||
-    appearance?.button_color ||
-    theme.buttonColor;
+  const mobileHeaderBg = isIndustrialConstructionLayout
+    ? '#0e1624'
+    : appearance?.card_color || theme.cardColor;
+  const mobileHeaderText = isIndustrialConstructionLayout
+    ? '#ffffff'
+    : appearance?.text_color || theme.titleColor || theme.textColor;
+  const mobileHeaderBorder = isIndustrialConstructionLayout
+    ? '#ffffff'
+    : appearance?.menu_button_color ||
+      appearance?.button_color ||
+      theme.buttonColor;
 
   const showStandardHeader = ['default', 'servicesShowcase', 'productsShowcase', 'beautyShowcase', 'propertyShowcase'].includes(
     layoutInfo.key
@@ -1108,7 +1121,7 @@ export default function PublicPage() {
             onClick={() => setIsMobileMenuOpen(true)}
             className="absolute right-4 h-10 w-10 rounded-full flex items-center justify-center transition hover:opacity-80"
             aria-label="Abrir menú"
-            style={{ color: mobileHeaderText }}
+            style={{ color: mobileHeaderText, marginTop: '0.5cm' }}
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

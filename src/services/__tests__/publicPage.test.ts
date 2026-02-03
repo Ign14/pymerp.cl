@@ -133,6 +133,14 @@ describe('resolvePublicLayout', () => {
     expect(layout3.key).toBe('propertyShowcase');
   });
 
+  it('debe usar layout industrial para construccion_mantencion', () => {
+    const company = createMockCompany('construccion_mantencion', undefined, BusinessType.SERVICES, 'slug-industrial');
+    const layout = resolvePublicLayout(company);
+
+    expect(layout.key).toBe('construccionIndustrialShowcase');
+    expect(layout.source).toBe('category');
+  });
+
   it('debe mantener consistencia: mismo company_id + mismo variant = mismo layout completo', () => {
     const company1 = createMockCompany('minimarket', 'compact', BusinessType.PRODUCTS, 'slug-a');
     const company2 = createMockCompany('minimarket', 'compact', BusinessType.PRODUCTS, 'slug-b');
@@ -222,4 +230,3 @@ describe('resolvePublicLayout', () => {
     expect(layout3.variantSource).toBe('company');
   });
 });
-
