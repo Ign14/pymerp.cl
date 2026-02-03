@@ -697,7 +697,8 @@
       "modal": {
         "aboutTitle": "Company description",
         "missionTitle": "Mission and vision",
-        "close": "Close"
+        "close": "Close",
+        "projectTitle": "Project detail"
       }
     },
     "fitnessLayout": {

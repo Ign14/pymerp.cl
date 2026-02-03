@@ -9,7 +9,7 @@ import { createWorkOrderLiteRequest } from '../../../services/workOrdersLite';
 import { createLead } from '../../../services/leads';
 import { sanitizeText, isValidPhone } from '../../../services/validation';
 import { RateLimiter } from '../../../utils/security';
-import type { Service } from '../../../types';
+import type { IndustrialProjectMedia, Service } from '../../../types';
 
 type FormState = {
   name: string;
@@ -67,6 +67,41 @@ function createServiceBullets(service: Service): string[] {
   return bullets;
 }
 
+const withOpacity = (color: string | undefined, opacity: number, fallback: string): string => {
+  const base = (color || fallback || '').trim();
+  const safeOpacity = Math.min(1, Math.max(0, opacity));
+  if (!base) return `rgba(255,255,255,${safeOpacity})`;
+  if (base.startsWith('rgba') || base.startsWith('rgb')) {
+    return base.replace(/rgba?\(([^)]+)\)/, (_, values) => {
+      const parts = values.split(',').map((v: string) => v.trim());
+      const [r, g, b] = parts;
+      return `rgba(${r}, ${g}, ${b}, ${safeOpacity})`;
+    });
+  }
+  const normalized = base.replace('#', '');
+  const fullHex =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized;
+  const intVal = parseInt(fullHex.substring(0, 6), 16);
+  const r = (intVal >> 16) & 255;
+  const g = (intVal >> 8) & 255;
+  const b = intVal & 255;
+  return `rgba(${r}, ${g}, ${b}, ${safeOpacity})`;
+};
+
+const resolveValue = (value: string | undefined | null, fallback: string): string =>
+  value && value.trim().length > 0 ? value : fallback;
+
+const getYouTubeId = (url?: string): string | null => {
+  if (!url) return null;
+  const match = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+  return match?.[1] || null;
+};
+
 export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
   const {
     company,
@@ -91,6 +126,7 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<'about' | 'mission' | null>(null);
+  const [activeProjectIndex, setActiveProjectIndex] = useState<number | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
   const rateLimiterRef = useRef(new RateLimiter(3, 60000));
 
@@ -135,7 +171,12 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
     return Array.from(new Set(assets)).filter(Boolean).slice(0, 9);
   }, [appearance?.banner_url, company, services]);
 
-  const heroImage = projectAssets[0] || appearance?.banner_url || (company as any)?.background_url || '';
+  const heroImage =
+    appearance?.industrial_hero_background_image ||
+    projectAssets[0] ||
+    appearance?.banner_url ||
+    (company as any)?.background_url ||
+    '';
 
   const isElectrical = useMemo(() => {
     const raw = `${company.industry || ''} ${company.sector || ''}`.toLowerCase();
@@ -143,29 +184,42 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
     return normalized.includes('electric') || normalized.includes('electr');
   }, [company.industry, company.sector]);
 
-  const heroTitle = isElectrical
-    ? text(
-        'publicPage.constructionIndustrial.heroTitleElectrical',
-        'Soluciones electricas para obras, industria y agricultura'
-      )
-    : text(
-        'publicPage.constructionIndustrial.heroTitleGeneral',
-        'Soluciones para obras y mantenciones en terreno'
-      );
+  const heroTitle = resolveValue(
+    appearance?.industrial_hero_title,
+    isElectrical
+      ? text(
+          'publicPage.constructionIndustrial.heroTitleElectrical',
+          'Soluciones electricas para obras, industria y agricultura'
+        )
+      : text(
+          'publicPage.constructionIndustrial.heroTitleGeneral',
+          'Soluciones para obras y mantenciones en terreno'
+        )
+  );
 
   const coverageLabel = company.region || company.commune || company.sector || text(
     'publicPage.constructionIndustrial.coverageFallback',
     'Cobertura a coordinar'
   );
 
-  const heroSubtitle = text(
-    'publicPage.constructionIndustrial.heroSubtitle',
-    '{{service}} - {{region}}'
-  )
-    .replace('{{service}}', company.sector || company.industry || text('publicPage.constructionIndustrial.heroSubtitleService', 'Servicios tecnicos'))
-    .replace('{{region}}', coverageLabel);
+  const heroSubtitle = resolveValue(
+    appearance?.industrial_hero_subtitle,
+    text('publicPage.constructionIndustrial.heroSubtitle', '{{service}} - {{region}}')
+      .replace(
+        '{{service}}',
+        company.sector ||
+          company.industry ||
+          text('publicPage.constructionIndustrial.heroSubtitleService', 'Servicios tecnicos')
+      )
+      .replace('{{region}}', coverageLabel)
+  );
 
   const servicePlaceholders = isElectrical ? PLACEHOLDER_SERVICES : FALLBACK_SERVICES;
+  const projects: IndustrialProjectMedia[] = appearance?.industrial_projects?.length
+    ? appearance.industrial_projects
+    : [];
+  const activeProject = activeProjectIndex !== null ? projects[activeProjectIndex] : null;
+  const activeProjectVideoId = getYouTubeId(activeProject?.video_url);
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -298,6 +352,99 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
     }
   }, [company, text]);
 
+  const heroTitleColor = appearance?.industrial_hero_title_color || '#ffffff';
+  const heroSubtitleColor = appearance?.industrial_hero_subtitle_color || '#e2e8f0';
+  const heroKickerColor = appearance?.industrial_hero_kicker_color || '#fbbf24';
+  const heroBadgeBg = appearance?.industrial_hero_badge_bg_color || '#f59e0b';
+  const heroBadgeBorder = appearance?.industrial_hero_badge_border_color || '#f59e0b';
+  const heroBadgeText = appearance?.industrial_hero_badge_text_color || '#fef3c7';
+  const heroPrimaryButtonColor = appearance?.industrial_hero_primary_button_color || '#10b981';
+  const heroPrimaryButtonText = appearance?.industrial_hero_primary_button_text_color || '#ffffff';
+  const heroSecondaryButtonColor = appearance?.industrial_hero_secondary_button_color || 'rgba(255,255,255,0.1)';
+  const heroSecondaryButtonText = appearance?.industrial_hero_secondary_button_text_color || '#ffffff';
+  const heroCardColor = withOpacity(
+    appearance?.industrial_hero_card_color,
+    appearance?.industrial_hero_card_opacity ?? 0.16,
+    '#ffffff'
+  );
+  const heroOverlayColor = appearance?.industrial_hero_overlay_color || '#0e1624';
+  const heroOverlayOpacity = appearance?.industrial_hero_overlay_opacity ?? 0.85;
+
+  const trustBg = withOpacity(
+    appearance?.industrial_trust_bg_color,
+    appearance?.industrial_trust_bg_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const trustTextColor = appearance?.industrial_trust_text_color || '#334155';
+  const trustIconBg = appearance?.industrial_trust_icon_bg_color || '#0f172a';
+
+  const servicesBg = withOpacity(
+    appearance?.industrial_services_bg_color,
+    appearance?.industrial_services_bg_opacity ?? 1,
+    '#ffffff'
+  );
+  const servicesCardBg = withOpacity(
+    appearance?.industrial_services_card_color,
+    appearance?.industrial_services_card_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const servicesTitleColor = appearance?.industrial_services_title_color || '#0f172a';
+  const servicesTextColor = appearance?.industrial_services_text_color || '#475569';
+  const servicesButtonColor = appearance?.industrial_services_button_color || '#10b981';
+  const servicesButtonText = appearance?.industrial_services_button_text_color || '#ffffff';
+
+  const processBg = withOpacity(
+    appearance?.industrial_process_bg_color,
+    appearance?.industrial_process_bg_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const processCardBg = withOpacity(
+    appearance?.industrial_process_card_color,
+    appearance?.industrial_process_card_opacity ?? 0.9,
+    '#f8fafc'
+  );
+  const processTitleColor = appearance?.industrial_process_title_color || '#0f172a';
+  const processTextColor = appearance?.industrial_process_text_color || '#334155';
+
+  const projectsBg = withOpacity(
+    appearance?.industrial_projects_bg_color,
+    appearance?.industrial_projects_bg_opacity ?? 1,
+    '#ffffff'
+  );
+  const projectsCardBg = withOpacity(
+    appearance?.industrial_projects_card_color,
+    appearance?.industrial_projects_card_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const projectsTitleColor = appearance?.industrial_projects_title_color || '#0f172a';
+  const projectsTextColor = appearance?.industrial_projects_text_color || '#475569';
+  const projectsButtonColor = appearance?.industrial_projects_button_color || '#ffffff';
+  const projectsButtonText = appearance?.industrial_projects_button_text_color || '#334155';
+
+  const coverageBg = withOpacity(
+    appearance?.industrial_coverage_bg_color,
+    appearance?.industrial_coverage_bg_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const coverageTitleColor = appearance?.industrial_coverage_title_color || '#0f172a';
+  const coverageTextColor = appearance?.industrial_coverage_text_color || '#475569';
+  const coverageChipBg = appearance?.industrial_coverage_chip_bg_color || '#ffffff';
+  const coverageChipText = appearance?.industrial_coverage_chip_text_color || '#475569';
+
+  const formBg = withOpacity(
+    appearance?.industrial_form_bg_color,
+    appearance?.industrial_form_bg_opacity ?? 0.95,
+    '#ffffff'
+  );
+  const formTitleColor = appearance?.industrial_form_title_color || '#0f172a';
+  const formTextColor = appearance?.industrial_form_text_color || '#475569';
+  const formButtonColor = appearance?.industrial_form_button_color || '#10b981';
+  const formButtonText = appearance?.industrial_form_button_text_color || '#ffffff';
+
+  const footerBg = appearance?.industrial_footer_bg_color || '#0e1624';
+  const footerTextColor = appearance?.industrial_footer_text_color || '#e2e8f0';
+  const footerLinkColor = appearance?.industrial_footer_link_color || '#86efac';
+
   const navItems = [
     { id: 'services', label: text('publicPage.constructionIndustrial.nav.services', 'Servicios') },
     { id: 'projects', label: text('publicPage.constructionIndustrial.nav.projects', 'Proyectos') },
@@ -364,25 +511,56 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
             aria-hidden="true"
           />
         ) : null}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0e1624]/85 via-[#0e1624]/70 to-[#0e1624]/90" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(180deg, ${withOpacity(heroOverlayColor, heroOverlayOpacity, '#0e1624')} 0%, ${withOpacity(
+              heroOverlayColor,
+              Math.max(0, heroOverlayOpacity - 0.15),
+              '#0e1624'
+            )} 50%, ${withOpacity(heroOverlayColor, Math.min(1, heroOverlayOpacity + 0.05), '#0e1624')} 100%)`,
+          }}
+        />
         <div className="relative z-10 grid gap-10 px-6 py-12 sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-12 lg:py-16">
           <div className="space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-400">
+            <p
+              className="text-xs font-semibold uppercase tracking-[0.32em]"
+              style={{ color: heroKickerColor }}
+            >
               {text('publicPage.constructionIndustrial.heroKicker', 'Industrial / Obras')}
             </p>
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl" style={{ fontFamily: theme.fontTitle }}>
+            <h1
+              className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl"
+              style={{ fontFamily: theme.fontTitle, color: heroTitleColor }}
+            >
               {heroTitle}
             </h1>
-            <p className="text-lg text-slate-200">{heroSubtitle}</p>
+            <p className="text-lg" style={{ color: heroSubtitleColor }}>
+              {heroSubtitle}
+            </p>
             <div className="flex flex-wrap gap-2">
               {[
-                text('publicPage.constructionIndustrial.badge.response', 'Respuesta < 24h'),
-                text('publicPage.constructionIndustrial.badge.onSite', 'Visita tecnica en terreno'),
-                text('publicPage.constructionIndustrial.badge.compliance', 'Cumplimiento normativo'),
+                resolveValue(
+                  appearance?.industrial_hero_badge_1,
+                  text('publicPage.constructionIndustrial.badge.response', 'Respuesta < 24h')
+                ),
+                resolveValue(
+                  appearance?.industrial_hero_badge_2,
+                  text('publicPage.constructionIndustrial.badge.onSite', 'Visita tecnica en terreno')
+                ),
+                resolveValue(
+                  appearance?.industrial_hero_badge_3,
+                  text('publicPage.constructionIndustrial.badge.compliance', 'Cumplimiento normativo')
+                ),
               ].map((badge) => (
                 <span
                   key={badge}
-                  className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200"
+                  className="rounded-full border px-3 py-1 text-xs font-semibold"
+                  style={{
+                    borderColor: withOpacity(heroBadgeBorder, 0.4, heroBadgeBorder),
+                    backgroundColor: withOpacity(heroBadgeBg, 0.1, heroBadgeBg),
+                    color: heroBadgeText,
+                  }}
                 >
                   {badge}
                 </span>
@@ -392,50 +570,100 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               <button
                 type="button"
                 onClick={scrollToForm}
-                className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+                className="rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{
+                  backgroundColor: heroPrimaryButtonColor,
+                  color: heroPrimaryButtonText,
+                  outlineColor: heroPrimaryButtonColor,
+                }}
               >
-                {text('publicPage.constructionIndustrial.heroCtaPrimary', 'Solicitar visita tecnica')}
+                {resolveValue(
+                  appearance?.industrial_hero_cta_primary,
+                  text('publicPage.constructionIndustrial.heroCtaPrimary', 'Solicitar visita tecnica')
+                )}
               </button>
               <button
                 type="button"
                 onClick={onWhatsAppClick ?? handleWhatsAppContact}
-                className="rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="rounded-full border px-5 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{
+                  borderColor: withOpacity(heroSecondaryButtonColor, 0.6, heroSecondaryButtonColor),
+                  backgroundColor: heroSecondaryButtonColor,
+                  color: heroSecondaryButtonText,
+                }}
               >
-                {text('publicPage.constructionIndustrial.heroCtaSecondary', 'Cotizar por WhatsApp')}
+                {resolveValue(
+                  appearance?.industrial_hero_cta_secondary,
+                  text('publicPage.constructionIndustrial.heroCtaSecondary', 'Cotizar por WhatsApp')
+                )}
               </button>
             </div>
           </div>
 
           <div className="space-y-4">
-            <aside className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur-sm">
+            <aside
+              className="rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur-sm"
+              style={{ backgroundColor: heroCardColor }}
+            >
             <p className="text-sm font-semibold text-white">
               {text('publicPage.constructionIndustrial.heroCard.title', 'Ficha tecnica rapida')}
             </p>
             <div className="mt-4 space-y-3 text-sm text-slate-200">
               <div className="flex items-center justify-between">
-                <span>{text('publicPage.constructionIndustrial.heroCard.clients', 'Tipo de clientes')}</span>
+                <span>{resolveValue(
+                  appearance?.industrial_hero_card_label_clients,
+                  text('publicPage.constructionIndustrial.heroCard.clients', 'Tipo de clientes')
+                )}</span>
                 <span className="font-semibold text-white">
-                  {text('publicPage.constructionIndustrial.heroCard.clientsValue', 'Industrial / Comercial / Obras')}
+                  {resolveValue(
+                    appearance?.industrial_hero_card_value_clients,
+                    text('publicPage.constructionIndustrial.heroCard.clientsValue', 'Industrial / Comercial / Obras')
+                  )}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>{text('publicPage.constructionIndustrial.heroCard.coverage', 'Cobertura')}</span>
-                <span className="font-semibold text-white">{coverageLabel}</span>
+                <span>{resolveValue(
+                  appearance?.industrial_hero_card_label_coverage,
+                  text('publicPage.constructionIndustrial.heroCard.coverage', 'Cobertura')
+                )}</span>
+                <span className="font-semibold text-white">
+                  {resolveValue(appearance?.industrial_hero_card_value_coverage, coverageLabel)}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>{text('publicPage.constructionIndustrial.heroCard.response', 'Tiempo de respuesta')}</span>
+                <span>{resolveValue(
+                  appearance?.industrial_hero_card_label_response,
+                  text('publicPage.constructionIndustrial.heroCard.response', 'Tiempo de respuesta')
+                )}</span>
                 <span className="font-semibold text-amber-300">
-                  {text('publicPage.constructionIndustrial.heroCard.responseValue', 'Menos de 24h')}
+                  {resolveValue(
+                    appearance?.industrial_hero_card_value_response,
+                    text('publicPage.constructionIndustrial.heroCard.responseValue', 'Menos de 24h')
+                  )}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>{text('publicPage.constructionIndustrial.heroCard.services', 'Servicios activos')}</span>
-                <span className="font-semibold text-white">{availableServices.length || 'N/A'}</span>
+                <span>{resolveValue(
+                  appearance?.industrial_hero_card_label_services,
+                  text('publicPage.constructionIndustrial.heroCard.services', 'Servicios activos')
+                )}</span>
+                <span className="font-semibold text-white">
+                  {resolveValue(
+                    appearance?.industrial_hero_card_value_services,
+                    availableServices.length ? String(availableServices.length) : 'N/A'
+                  )}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>{text('publicPage.constructionIndustrial.heroCard.attention', 'Atencion')}</span>
+                <span>{resolveValue(
+                  appearance?.industrial_hero_card_label_attention,
+                  text('publicPage.constructionIndustrial.heroCard.attention', 'Atencion')
+                )}</span>
                 <span className="font-semibold text-white">
-                  {text('publicPage.constructionIndustrial.heroCard.attentionValue', 'Coordinacion previa')}
+                  {resolveValue(
+                    appearance?.industrial_hero_card_value_attention,
+                    text('publicPage.constructionIndustrial.heroCard.attentionValue', 'Coordinacion previa')
+                  )}
                 </span>
               </div>
             </div>
@@ -466,41 +694,74 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white/95 px-6 py-5 shadow-sm">
+      <section
+        className="rounded-2xl border border-slate-200 px-6 py-5 shadow-sm"
+        style={{ backgroundColor: trustBg }}
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            text('publicPage.constructionIndustrial.trust.safety', 'Seguridad y calidad'),
-            text('publicPage.constructionIndustrial.trust.field', 'Ejecucion en terreno'),
-            text('publicPage.constructionIndustrial.trust.planning', 'Planificacion tecnica'),
-            text('publicPage.constructionIndustrial.trust.warranty', 'Garantia y respaldo'),
+            resolveValue(
+              appearance?.industrial_trust_label_1,
+              text('publicPage.constructionIndustrial.trust.safety', 'Seguridad y calidad')
+            ),
+            resolveValue(
+              appearance?.industrial_trust_label_2,
+              text('publicPage.constructionIndustrial.trust.field', 'Ejecucion en terreno')
+            ),
+            resolveValue(
+              appearance?.industrial_trust_label_3,
+              text('publicPage.constructionIndustrial.trust.planning', 'Planificacion tecnica')
+            ),
+            resolveValue(
+              appearance?.industrial_trust_label_4,
+              text('publicPage.constructionIndustrial.trust.warranty', 'Garantia y respaldo')
+            ),
           ].map((item) => (
-            <div key={item} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-white">OK</span>
-              <span>{item}</span>
+            <div key={item} className="flex items-center gap-3 text-sm font-semibold" style={{ color: trustTextColor }}>
+              <span
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                style={{ backgroundColor: trustIconBg }}
+              >
+                OK
+              </span>
+              <span style={{ color: trustTextColor }}>{item}</span>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="section-services" className="space-y-6">
+      <section id="section-services" className="space-y-6 rounded-3xl border border-slate-200 p-6" style={{ backgroundColor: servicesBg }}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">
               {text('publicPage.constructionIndustrial.servicesKicker', 'Especialidades')}
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              {text('publicPage.constructionIndustrial.servicesTitle', 'Especialidades tecnicas')}
+            <h2 className="text-2xl font-semibold" style={{ color: servicesTitleColor }}>
+              {resolveValue(
+                appearance?.industrial_services_title,
+                text('publicPage.constructionIndustrial.servicesTitle', 'Especialidades tecnicas')
+              )}
             </h2>
-            <p className="text-sm text-slate-600">
-              {text('publicPage.constructionIndustrial.servicesSubtitle', 'Obra nueva, mantencion o emergencia. Coordinamos cuadrillas en terreno.')}
+            <p className="text-sm" style={{ color: servicesTextColor }}>
+              {resolveValue(
+                appearance?.industrial_services_subtitle,
+                text(
+                  'publicPage.constructionIndustrial.servicesSubtitle',
+                  'Obra nueva, mantencion o emergencia. Coordinamos cuadrillas en terreno.'
+                )
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={scrollToForm}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold shadow-sm transition hover:-translate-y-0.5"
+            style={{ backgroundColor: servicesButtonColor, color: servicesButtonText }}
           >
-            {text('publicPage.constructionIndustrial.servicesCta', 'Solicitar visita tecnica')}
+            {resolveValue(
+              appearance?.industrial_services_cta,
+              text('publicPage.constructionIndustrial.servicesCta', 'Solicitar visita tecnica')
+            )}
           </button>
         </div>
 
@@ -515,11 +776,17 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
             ? availableServices.map((service) => {
                 const bullets = createServiceBullets(service);
                 return (
-                  <div key={service.id} className="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+                  <div
+                    key={service.id}
+                    className="rounded-2xl border border-slate-200 p-5 shadow-sm"
+                    style={{ backgroundColor: servicesCardBg }}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">{service.name}</h3>
-                        <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                        <h3 className="text-lg font-semibold" style={{ color: servicesTitleColor }}>
+                          {service.name}
+                        </h3>
+                        <ul className="mt-3 space-y-1 text-sm" style={{ color: servicesTextColor }}>
                           {bullets.map((bullet, idx) => (
                             <li key={`${service.id}-bullet-${idx}`}>- {bullet}</li>
                           ))}
@@ -528,20 +795,30 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
                       <button
                         type="button"
                         onClick={scrollToForm}
-                        className="mt-1 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                        className="mt-1 rounded-full px-3 py-1 text-xs font-semibold shadow-sm transition hover:opacity-90"
+                        style={{ backgroundColor: servicesButtonColor, color: servicesButtonText }}
                       >
-                        {text('publicPage.constructionIndustrial.servicesMiniCta', 'Cotizar')}
+                        {resolveValue(
+                          appearance?.industrial_services_cta,
+                          text('publicPage.constructionIndustrial.servicesMiniCta', 'Cotizar')
+                        )}
                       </button>
                     </div>
                   </div>
                 );
               })
             : servicePlaceholders.map((service) => (
-                <div key={service.title} className="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+                <div
+                  key={service.title}
+                  className="rounded-2xl border border-slate-200 p-5 shadow-sm"
+                  style={{ backgroundColor: servicesCardBg }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{service.title}</h3>
-                      <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                      <h3 className="text-lg font-semibold" style={{ color: servicesTitleColor }}>
+                        {service.title}
+                      </h3>
+                      <ul className="mt-3 space-y-1 text-sm" style={{ color: servicesTextColor }}>
                         {service.bullets.map((bullet) => (
                           <li key={bullet}>- {bullet}</li>
                         ))}
@@ -550,9 +827,13 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
                     <button
                       type="button"
                       onClick={scrollToForm}
-                      className="mt-1 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                      className="mt-1 rounded-full px-3 py-1 text-xs font-semibold shadow-sm transition hover:opacity-90"
+                      style={{ backgroundColor: servicesButtonColor, color: servicesButtonText }}
                     >
-                      {text('publicPage.constructionIndustrial.servicesMiniCta', 'Cotizar')}
+                      {resolveValue(
+                        appearance?.industrial_services_cta,
+                        text('publicPage.constructionIndustrial.servicesMiniCta', 'Cotizar')
+                      )}
                     </button>
                   </div>
                 </div>
@@ -560,108 +841,196 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white/95 px-6 py-6 shadow-sm">
+      <section
+        className="rounded-3xl border border-slate-200 px-6 py-6 shadow-sm"
+        style={{ backgroundColor: processBg }}
+      >
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">
           {text('publicPage.constructionIndustrial.processKicker', 'Proceso')}
         </p>
-        <h2 className="text-2xl font-semibold text-slate-900">
-          {text('publicPage.constructionIndustrial.processTitle', 'Como trabajamos')}
+        <h2 className="text-2xl font-semibold" style={{ color: processTitleColor }}>
+          {resolveValue(
+            appearance?.industrial_process_title,
+            text('publicPage.constructionIndustrial.processTitle', 'Como trabajamos')
+          )}
         </h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            text('publicPage.constructionIndustrial.process.step1', '1. Levantamiento / visita tecnica'),
-            text('publicPage.constructionIndustrial.process.step2', '2. Cotizacion y planificacion'),
-            text('publicPage.constructionIndustrial.process.step3', '3. Ejecucion segura'),
-            text('publicPage.constructionIndustrial.process.step4', '4. Entrega y respaldo'),
+            resolveValue(
+              appearance?.industrial_process_step_1,
+              text('publicPage.constructionIndustrial.process.step1', '1. Levantamiento / visita tecnica')
+            ),
+            resolveValue(
+              appearance?.industrial_process_step_2,
+              text('publicPage.constructionIndustrial.process.step2', '2. Cotizacion y planificacion')
+            ),
+            resolveValue(
+              appearance?.industrial_process_step_3,
+              text('publicPage.constructionIndustrial.process.step3', '3. Ejecucion segura')
+            ),
+            resolveValue(
+              appearance?.industrial_process_step_4,
+              text('publicPage.constructionIndustrial.process.step4', '4. Entrega y respaldo')
+            ),
           ].map((step) => (
-            <div key={step} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-700">
+            <div
+              key={step}
+              className="rounded-2xl border border-slate-200 px-4 py-5 text-sm font-semibold"
+              style={{ backgroundColor: processCardBg, color: processTextColor }}
+            >
               {step}
             </div>
           ))}
         </div>
       </section>
 
-      <section id="section-projects" className="space-y-5">
+      <section
+        id="section-projects"
+        className="space-y-5 rounded-3xl border border-slate-200 px-6 py-6 shadow-sm"
+        style={{ backgroundColor: projectsBg }}
+      >
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">
               {text('publicPage.constructionIndustrial.projectsKicker', 'Proyectos')}
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              {text('publicPage.constructionIndustrial.projectsTitle', 'Proyectos realizados')}
+            <h2 className="text-2xl font-semibold" style={{ color: projectsTitleColor }}>
+              {resolveValue(
+                appearance?.industrial_projects_title,
+                text('publicPage.constructionIndustrial.projectsTitle', 'Proyectos realizados')
+              )}
             </h2>
-            <p className="text-sm text-slate-600">
-              {text('publicPage.constructionIndustrial.projectsSubtitle', 'Obras recientes con entrega segura y respaldo tecnico.')}
+            <p className="text-sm" style={{ color: projectsTextColor }}>
+              {resolveValue(
+                appearance?.industrial_projects_subtitle,
+                text(
+                  'publicPage.constructionIndustrial.projectsSubtitle',
+                  'Obras recientes con entrega segura y respaldo tecnico.'
+                )
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={scrollToForm}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold shadow-sm transition hover:-translate-y-0.5"
+            style={{ backgroundColor: projectsButtonColor, color: projectsButtonText }}
           >
-            {text('publicPage.constructionIndustrial.projectsCta', 'Solicitar visita tecnica')}
+            {resolveValue(
+              appearance?.industrial_projects_cta,
+              text('publicPage.constructionIndustrial.projectsCta', 'Solicitar visita tecnica')
+            )}
           </button>
         </div>
-        {projectAssets.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+        {projects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-4 text-sm" style={{ color: projectsTextColor }}>
             {text('publicPage.constructionIndustrial.projectsEmpty', 'Coordina una visita tecnica para revisar necesidades y proximos proyectos.')}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projectAssets.map((asset, index) => (
-              <div key={`${asset}-${index}`} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                <div className="relative">
-                  <img src={asset} alt={text('publicPage.constructionIndustrial.projectAlt', 'Proyecto en terreno')} className="h-44 w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/30 to-transparent" />
-                  <div className="absolute bottom-3 left-3 space-y-1 text-xs text-white">
-                    <p className="font-semibold">
-                      {text('publicPage.constructionIndustrial.projectType', 'Obra industrial')}
-                    </p>
-                    <p>{coverageLabel}</p>
-                    <p className="text-emerald-200">
-                      {text('publicPage.constructionIndustrial.projectResult', 'Entrega segura')}
-                    </p>
+            {projects.map((project, index) => {
+              const videoId = getYouTubeId(project.video_url);
+              const coverImage = project.images?.[0];
+              const coverUrl = videoId
+                ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+                : coverImage;
+              return (
+                <button
+                  key={project.id || `${project.title}-${index}`}
+                  type="button"
+                  onClick={() => setActiveProjectIndex(index)}
+                  className="overflow-hidden rounded-2xl border border-slate-200 text-left shadow-sm transition hover:-translate-y-0.5"
+                  style={{ backgroundColor: projectsCardBg }}
+                >
+                  <div className="relative">
+                    {coverUrl ? (
+                      <img
+                        src={coverUrl}
+                        alt={project.title || text('publicPage.constructionIndustrial.projectAlt', 'Proyecto en terreno')}
+                        className="h-44 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-44 w-full items-center justify-center bg-slate-200 text-sm text-slate-600">
+                        {text('publicPage.constructionIndustrial.projectAlt', 'Proyecto en terreno')}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/30 to-transparent" />
+                    <div className="absolute bottom-3 left-3 space-y-1 text-xs text-white">
+                      <p className="font-semibold">{project.title || text('publicPage.constructionIndustrial.projectType', 'Obra industrial')}</p>
+                      <p>{project.location || coverageLabel}</p>
+                      <p className="text-emerald-200">{project.result || text('publicPage.constructionIndustrial.projectResult', 'Entrega segura')}</p>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
         {sections.media}
       </section>
 
-      <section id="section-location" className="rounded-3xl border border-slate-200 bg-white/95 px-6 py-6 shadow-sm">
+      <section
+        id="section-location"
+        className="rounded-3xl border border-slate-200 px-6 py-6 shadow-sm"
+        style={{ backgroundColor: coverageBg }}
+      >
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">
               {text('publicPage.constructionIndustrial.coverageKicker', 'Cobertura')}
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              {text('publicPage.constructionIndustrial.coverageTitle', 'Cobertura y ubicacion')}
+            <h2 className="text-2xl font-semibold" style={{ color: coverageTitleColor }}>
+              {resolveValue(
+                appearance?.industrial_coverage_title,
+                text('publicPage.constructionIndustrial.coverageTitle', 'Cobertura y ubicacion')
+              )}
             </h2>
-            <p className="text-sm text-slate-600">
-              {text('publicPage.constructionIndustrial.coverageSubtitle', 'Atendemos faenas e instalaciones con coordinacion previa.')}
+            <p className="text-sm" style={{ color: coverageTextColor }}>
+              {resolveValue(
+                appearance?.industrial_coverage_subtitle,
+                text(
+                  'publicPage.constructionIndustrial.coverageSubtitle',
+                  'Atendemos faenas e instalaciones con coordinacion previa.'
+                )
+              )}
             </p>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">{company.address || coverageLabel}</p>
+            <div
+              className="rounded-2xl border border-slate-200 px-4 py-4 text-sm"
+              style={{ backgroundColor: 'transparent', color: coverageTextColor }}
+            >
+              <p className="font-semibold" style={{ color: coverageTitleColor }}>
+                {company.address || coverageLabel}
+              </p>
               {company.commune || company.region ? (
-                <p className="text-slate-600">
+                <p style={{ color: coverageTextColor }}>
                   {[company.commune, company.region].filter(Boolean).join(', ')}
                 </p>
               ) : null}
-              <p className="mt-3 text-xs text-slate-500">
-                {text('publicPage.constructionIndustrial.coverageNote', 'Coordinamos acceso, seguridad y planificacion en terreno.')}
+              <p className="mt-3 text-xs" style={{ color: coverageTextColor }}>
+                {resolveValue(
+                  appearance?.industrial_coverage_note,
+                  text('publicPage.constructionIndustrial.coverageNote', 'Coordinamos acceso, seguridad y planificacion en terreno.')
+                )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                {text('publicPage.constructionIndustrial.coverageChip1', 'Industrial')}
+            <div className="flex flex-wrap gap-3 text-xs" style={{ color: coverageTextColor }}>
+              <span className="rounded-full border border-slate-200 px-3 py-1" style={{ backgroundColor: coverageChipBg, color: coverageChipText }}>
+                {resolveValue(
+                  appearance?.industrial_coverage_chip_1,
+                  text('publicPage.constructionIndustrial.coverageChip1', 'Industrial')
+                )}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                {text('publicPage.constructionIndustrial.coverageChip2', 'Comercial')}
+              <span className="rounded-full border border-slate-200 px-3 py-1" style={{ backgroundColor: coverageChipBg, color: coverageChipText }}>
+                {resolveValue(
+                  appearance?.industrial_coverage_chip_2,
+                  text('publicPage.constructionIndustrial.coverageChip2', 'Comercial')
+                )}
               </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                {text('publicPage.constructionIndustrial.coverageChip3', 'Obras')}
+              <span className="rounded-full border border-slate-200 px-3 py-1" style={{ backgroundColor: coverageChipBg, color: coverageChipText }}>
+                {resolveValue(
+                  appearance?.industrial_coverage_chip_3,
+                  text('publicPage.constructionIndustrial.coverageChip3', 'Obras')
+                )}
               </span>
             </div>
           </div>
@@ -675,17 +1044,28 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
         </div>
       </section>
 
-      <section id="section-contact" ref={formRef} className="rounded-3xl border border-slate-200 bg-white/95 px-6 py-6 shadow-lg">
+      <section
+        id="section-contact"
+        ref={formRef}
+        className="rounded-3xl border border-slate-200 px-6 py-6 shadow-lg"
+        style={{ backgroundColor: formBg }}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">
               {text('publicPage.constructionIndustrial.formKicker', 'Cotizacion')}
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              {text('publicPage.constructionIndustrial.formTitle', 'Coordina tu obra o visita tecnica')}
+            <h2 className="text-2xl font-semibold" style={{ color: formTitleColor }}>
+              {resolveValue(
+                appearance?.industrial_form_title,
+                text('publicPage.constructionIndustrial.formTitle', 'Coordina tu obra o visita tecnica')
+              )}
             </h2>
-            <p className="text-sm text-slate-600">
-              {text('publicPage.constructionIndustrial.formSubtitle', 'Respondemos en menos de 24 horas.')}
+            <p className="text-sm" style={{ color: formTextColor }}>
+              {resolveValue(
+                appearance?.industrial_form_subtitle,
+                text('publicPage.constructionIndustrial.formSubtitle', 'Respondemos en menos de 24 horas.')
+              )}
             </p>
           </div>
           {contactActions}
@@ -703,7 +1083,10 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               maxLength={100}
               required
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              placeholder={text('publicPage.constructionIndustrial.form.namePlaceholder', 'Ej. Carla Ramirez')}
+              placeholder={resolveValue(
+                appearance?.industrial_form_name_placeholder,
+                text('publicPage.constructionIndustrial.form.namePlaceholder', 'Ej. Carla Ramirez')
+              )}
               aria-label={text('publicPage.constructionIndustrial.form.name', 'Nombre completo')}
               aria-required="true"
             />
@@ -719,7 +1102,10 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               maxLength={20}
               required
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              placeholder={text('publicPage.constructionIndustrial.form.phonePlaceholder', '+56 9 1234 5678')}
+              placeholder={resolveValue(
+                appearance?.industrial_form_phone_placeholder,
+                text('publicPage.constructionIndustrial.form.phonePlaceholder', '+56 9 1234 5678')
+              )}
               aria-label={text('publicPage.constructionIndustrial.form.phone', 'WhatsApp')}
               aria-required="true"
             />
@@ -734,7 +1120,10 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value.slice(0, 120) }))}
               maxLength={120}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              placeholder={text('publicPage.constructionIndustrial.form.locationPlaceholder', 'Ej. Quilicura, Parque Industrial')}
+              placeholder={resolveValue(
+                appearance?.industrial_form_location_placeholder,
+                text('publicPage.constructionIndustrial.form.locationPlaceholder', 'Ej. Quilicura, Parque Industrial')
+              )}
               aria-label={text('publicPage.constructionIndustrial.form.location', 'Comuna o ubicacion')}
             />
           </label>
@@ -750,7 +1139,10 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
               placeholder={
                 availableServices[0]?.name ||
-                text('publicPage.constructionIndustrial.form.servicePlaceholder', 'Obra gruesa, mantencion, emergencia...')
+                resolveValue(
+                  appearance?.industrial_form_service_placeholder,
+                  text('publicPage.constructionIndustrial.form.servicePlaceholder', 'Obra gruesa, mantencion, emergencia...')
+                )
               }
               list="services-list"
               aria-label={text('publicPage.constructionIndustrial.form.serviceType', 'Tipo de servicio')}
@@ -773,7 +1165,12 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
               aria-label={text('publicPage.constructionIndustrial.form.urgency', 'Urgencia')}
             >
-              <option value="">{text('publicPage.constructionIndustrial.form.urgencyPlaceholder', 'Selecciona una opcion')}</option>
+              <option value="">
+                {resolveValue(
+                  appearance?.industrial_form_urgency_placeholder,
+                  text('publicPage.constructionIndustrial.form.urgencyPlaceholder', 'Selecciona una opcion')
+                )}
+              </option>
               <option value={text('publicPage.constructionIndustrial.form.urgencyHigh', 'Alta (24-48h)')}>
                 {text('publicPage.constructionIndustrial.form.urgencyHigh', 'Alta (24-48h)')}
               </option>
@@ -795,7 +1192,10 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               maxLength={500}
               rows={3}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              placeholder={text('publicPage.constructionIndustrial.form.descriptionPlaceholder', 'Metros aprox., materialidad o requerimientos de seguridad.')}
+              placeholder={resolveValue(
+                appearance?.industrial_form_description_placeholder,
+                text('publicPage.constructionIndustrial.form.descriptionPlaceholder', 'Metros aprox., materialidad o requerimientos de seguridad.')
+              )}
               aria-label={text('publicPage.constructionIndustrial.form.description', 'Descripcion o requerimiento')}
             />
             <p className="mt-1 text-xs text-slate-500">
@@ -854,37 +1254,50 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
               type="submit"
               disabled={status === 'sending' || status === 'success'}
               className="rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
-              style={{ backgroundColor: '#10b981', color: '#ffffff', fontFamily: theme.fontButton }}
-              ariaLabel={text('publicPage.constructionIndustrial.form.submit', 'Solicitar visita tecnica')}
+              style={{ backgroundColor: formButtonColor, color: formButtonText, fontFamily: theme.fontButton }}
+              ariaLabel={resolveValue(
+                appearance?.industrial_form_cta,
+                text('publicPage.constructionIndustrial.form.submit', 'Solicitar visita tecnica')
+              )}
             >
               {status === 'sending'
                 ? text('publicPage.constructionIndustrial.form.sending', 'Enviando...')
                 : status === 'success'
                 ? text('publicPage.constructionIndustrial.form.submitted', 'Solicitud enviada')
-                : text('publicPage.constructionIndustrial.form.submit', 'Solicitar visita tecnica')}
+                : resolveValue(
+                    appearance?.industrial_form_cta,
+                    text('publicPage.constructionIndustrial.form.submit', 'Solicitar visita tecnica')
+                  )}
             </AnimatedButton>
-            <p className="text-xs text-slate-500" style={{ fontFamily: theme.fontBody }}>
+            <p className="text-xs" style={{ fontFamily: theme.fontBody, color: formTextColor }}>
               {text('publicPage.constructionIndustrial.form.privacy', 'Tus datos estan protegidos.')}
             </p>
           </div>
         </form>
       </section>
 
-      <footer className="rounded-2xl border border-slate-200 bg-[#0e1624] px-6 py-6 text-slate-200">
+      <footer
+        className="rounded-2xl border border-slate-200 px-6 py-6"
+        style={{ backgroundColor: footerBg, color: footerTextColor }}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-white">{company.name}</p>
+            <p className="text-sm font-semibold">{company.name}</p>
             {company.address ? <p className="text-xs">{company.address}</p> : null}
             <p className="text-xs">{coverageLabel}</p>
             {company.whatsapp ? (
-              <a href={`tel:${company.whatsapp}`} className="text-xs text-emerald-300 hover:text-emerald-200">
+              <a
+                href={`tel:${company.whatsapp}`}
+                className="text-xs hover:opacity-90"
+                style={{ color: footerLinkColor }}
+              >
                 {company.whatsapp}
               </a>
             ) : null}
           </div>
           <div className="flex flex-col gap-2 text-xs">
             {navItems.map((item) => (
-              <a key={item.id} href={`#section-${item.id}`} className="hover:text-white">
+              <a key={item.id} href={`#section-${item.id}`} className="hover:opacity-90">
                 {item.label}
               </a>
             ))}
@@ -924,6 +1337,55 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
         </div>
         <div className="space-y-4 px-6 py-5">
           {activeModal === 'about' ? sections.highlight : sections.missionVision}
+        </div>
+      </AnimatedModal>
+
+      <AnimatedModal
+        isOpen={activeProjectIndex !== null}
+        onClose={() => setActiveProjectIndex(null)}
+        ariaLabel={text('publicPage.constructionIndustrial.modal.projectTitle', 'Detalle del proyecto')}
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h3 className="text-lg font-semibold text-slate-900">
+            {activeProject?.title || text('publicPage.constructionIndustrial.projectType', 'Obra industrial')}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setActiveProjectIndex(null)}
+            className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+            aria-label={text('publicPage.constructionIndustrial.modal.close', 'Cerrar')}
+          >
+            X
+          </button>
+        </div>
+        <div className="space-y-4 px-6 py-5">
+          {activeProjectVideoId ? (
+            <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <iframe
+                title={activeProject?.title || 'Video proyecto'}
+                className="h-full w-full"
+                src={`https://www.youtube.com/embed/${activeProjectVideoId}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : null}
+          {!activeProjectVideoId && activeProject?.images?.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {activeProject.images.map((image, idx) => (
+                <img
+                  key={`${image}-${idx}`}
+                  src={image}
+                  alt={activeProject?.title || 'Proyecto'}
+                  className="h-40 w-full rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          ) : null}
+          <div className="text-sm text-slate-600">
+            {activeProject?.location ? <p className="font-semibold">{activeProject.location}</p> : null}
+            {activeProject?.result ? <p className="mt-2">{activeProject.result}</p> : null}
+          </div>
         </div>
       </AnimatedModal>
     </div>
