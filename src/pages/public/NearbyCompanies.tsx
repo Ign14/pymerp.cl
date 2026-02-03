@@ -271,18 +271,28 @@ export default function NearbyCompaniesPage() {
   };
 
   const filteredCompanies = useMemo(() => {
-    console.log('[NearbyCompanies] Filtrado de empresas. Total companies:', companies.length);
     let filtered = [...companies];
 
-    // Filtrar por búsqueda de texto (nombre)
-    if (filters.searchQuery.trim()) {
-      const query = filters.searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((company) =>
-        company.name.toLowerCase().includes(query) ||
-        company.shortDescription?.toLowerCase().includes(query) ||
-        company.comuna?.toLowerCase().includes(query)
-      );
-      console.log('[NearbyCompanies] Después de filtro de búsqueda:', filtered.length);
+    // Filtrar por búsqueda de texto (nombre, descripción, comuna, sector/industria)
+    const query = filters.searchQuery.trim().toLowerCase();
+    if (query) {
+      const matchesQuery = (company: PublicCompany) => {
+        const name = (company.name ?? '').toLowerCase();
+        const shortDesc = (company.shortDescription ?? '').toLowerCase();
+        const desc = (company.description ?? '').toLowerCase();
+        const comuna = (company.comuna ?? '').toLowerCase();
+        const sector = (company.sector ?? '').toLowerCase();
+        const industry = (company.industry ?? '').toLowerCase();
+        return (
+          name.includes(query) ||
+          shortDesc.includes(query) ||
+          desc.includes(query) ||
+          comuna.includes(query) ||
+          sector.includes(query) ||
+          industry.includes(query)
+        );
+      };
+      filtered = filtered.filter(matchesQuery);
     }
 
     // Ordenar: primero por distancia (si hay referencia), luego por nombre
@@ -297,11 +307,10 @@ export default function NearbyCompaniesPage() {
       } else if (distB !== null) {
         return 1;
       } else {
-        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        return (a.name ?? '').localeCompare(b.name ?? '', 'es', { sensitivity: 'base' });
       }
     });
 
-    console.log('[NearbyCompanies] filteredCompanies final:', filtered.length);
     return filtered;
   }, [companies, filters.searchQuery, searchCenter, userLocation]);
 

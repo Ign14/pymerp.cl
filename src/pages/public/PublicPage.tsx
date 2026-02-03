@@ -49,6 +49,7 @@ import { ContactActions } from './components/ContactActions';
 import { MobileMenuModal } from './components/MobileMenuModal';
 import { BookingModalV2 } from './components/BookingModalV2';
 import { CartModal } from './components/CartModal';
+import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { ImagePreviewModal } from './components/ImagePreviewModal';
 import { VideoCard } from './components/VideoCard';
 import { VideoModal } from './components/VideoModal';
@@ -133,6 +134,7 @@ export default function PublicPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
@@ -159,6 +161,7 @@ export default function PublicPage() {
   const [modalQuantity, setModalQuantity] = useState<number>(0);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<{ id: string; link: string } | null>(null);
   const showWhatsAppFab = Boolean(appearance?.show_whatsapp_fab && company?.whatsapp);
   const showCartFab = Boolean(appearance?.show_cart_fab && company?.business_type === BusinessType.PRODUCTS);
   const showCallFab = Boolean(appearance?.show_call_fab && company?.whatsapp);
@@ -428,6 +431,8 @@ export default function PublicPage() {
         : professionals;
     setServiceProfessionals(prosForService);
     setSelectedProfessionalId(preferredProfessionalId || prosForService[0]?.id || null);
+    setShowBookingModal(true);
+    setIsBookingLoading(true);
 
     try {
       const serviceSchedules = await getServiceSchedules(service.id);
@@ -436,16 +441,19 @@ export default function PublicPage() {
         (slot) => slot.status === 'ACTIVE' && serviceSchedules.some((schedule) => schedule.schedule_slot_id === slot.id)
       );
       setAvailableSchedules(available);
-      setShowBookingModal(true);
       createPublicPageEvent(company.id, EventType.SERVICE_BOOK_CLICK);
     } catch (error) {
       toast.error('No pudimos cargar los horarios');
       handleError(error);
+      setShowBookingModal(false);
+    } finally {
+      setIsBookingLoading(false);
     }
   };
 
   const resetBookingState = () => {
     setShowBookingModal(false);
+    setIsBookingLoading(false);
     setSelectedService(null);
     setSelectedDate(null);
     setSelectedSchedule(null);
@@ -721,8 +729,9 @@ export default function PublicPage() {
         message += `\n\n*COMENTARIOS:*\n${clientComment}`;
       }
 
+      let orderId: string | null = null;
       try {
-        await createProductOrderRequest({
+        orderId = await createProductOrderRequest({
           company_id: company.id,
           items,
           total_estimated: total,
@@ -747,6 +756,12 @@ export default function PublicPage() {
           company_name: company.name,
           total_estimated: total,
         });
+
+        if (orderId) {
+          const trackingLink = `${env.publicBaseUrl}/${company.slug || company.id}/tracking/${orderId}`;
+          message += `\n\nRevisa el estado de tu pedido aquí:\n${trackingLink}`;
+          setOrderSuccess({ id: orderId, link: trackingLink });
+        }
       } catch (dbError) {
         logger.warn('No se pudo registrar el pedido en Firestore, continuando con WhatsApp.', dbError);
       }
@@ -1249,8 +1264,12 @@ export default function PublicPage() {
           appearance={appearance}
         />
 
+        {/* BookingModalV2: modal de citas para TODAS las categorías con servicios, incluyendo
+            BELLEZA (barberías, peluquerías, centros estética, uñas, tatuajes, masajes, agenda profesionales).
+            No sustituir por BookingModal (v1) en páginas públicas. */}
         <BookingModalV2
           isOpen={showBookingModal}
+          isLoading={isBookingLoading}
           theme={theme}
           serviceName={selectedService?.name}
           servicePrice={selectedService?.price}
@@ -1288,6 +1307,15 @@ export default function PublicPage() {
           theme={theme}
         />
 
+        {orderSuccess && (
+          <OrderSuccessModal
+            isOpen={Boolean(orderSuccess)}
+            onClose={() => setOrderSuccess(null)}
+            orderCode={orderSuccess.id.slice(-6).toUpperCase()}
+            trackingLink={orderSuccess.link}
+          />
+        )}
+
         <ImagePreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
 
         {/* Video Modal */}
@@ -1320,6 +1348,7 @@ export default function PublicPage() {
             service={selectedService}
             professionals={serviceProfessionals.length > 0 ? serviceProfessionals : professionals}
             theme={theme}
+            categoryId={company?.category_id ?? company?.categoryId}
             onClose={() => {
               setSelectedService(null);
               setServiceProfessionals([]);

@@ -45,6 +45,19 @@ const BEAUTY_ORDER: SectionKey[] = [
   'media',
 ];
 
+/** Equipo + Horarios en 2 columnas en desktop */
+const BARBERIAS_ORDER: SectionKey[] = [
+  'hero',
+  'highlight',
+  'services',
+  'teamSchedule',
+  'products',
+  'missionVision',
+  'hours',
+  'location',
+  'media',
+];
+
 const PRODUCTS_ORDER: SectionKey[] = [
   'hero',
   'highlight',
@@ -84,6 +97,7 @@ const FITNESS_ORDER: SectionKey[] = ['highlight', 'services', 'schedule', 'team'
 const INDIE_PROS_ORDER: SectionKey[] = ['hero', 'services', 'schedule', 'team', 'highlight', 'hours', 'location', 'faqs', 'reviews', 'media'];
 
 function resolveOrder(layoutKey: PublicLayoutProps['layoutKey']): SectionKey[] {
+  if (layoutKey === 'barberiasShowcase') return BARBERIAS_ORDER;
   if (layoutKey === 'beautyShowcase') return BEAUTY_ORDER;
   if (layoutKey === 'productsShowcase') return PRODUCTS_ORDER;
   if (layoutKey === 'restaurantesComidaRapidaShowcase') return RESTAURANTS_ORDER;

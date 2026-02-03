@@ -90,7 +90,8 @@ const scrollToCategory = (categoryId: string, tabsRef?: React.RefObject<HTMLDivE
 };
 
 export default function PublicMenu() {
-  const { companyId } = useParams();
+  const { slug } = useParams<{ slug: string }>();
+  const companyId = slug;
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -436,7 +437,7 @@ export default function PublicMenu() {
         channel: 'MENU',
         status: 'REQUESTED',
       });
-      const trackingLink = `${env.publicBaseUrl}/${company.slug || companyId}/tracking/${orderId}`;
+      const trackingLink = `${env.publicBaseUrl}/${company.slug || company?.id}/tracking/${orderId}`;
 
       // Tracking
       await createPublicPageEvent(company.id, EventType.PRODUCT_ORDER_CLICK);

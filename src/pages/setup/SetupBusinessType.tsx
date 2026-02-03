@@ -274,7 +274,7 @@ export default function SetupBusinessType() {
                   {selectedCategoryConfig.dashboardModules.map((module) => (
                     <span
                       key={module}
-                      className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-800"
+                      className="text-xs font-medium px-2.5 py-1 rounded-full bg-white border border-gray-200 text-gray-900"
                     >
                       {moduleLabels[module] || module}
                     </span>
