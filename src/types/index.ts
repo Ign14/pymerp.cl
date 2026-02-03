@@ -203,6 +203,130 @@ export interface CompanyAppearance {
   product_list_image_position?: 'left' | 'right'; // Posición de imagen en lista de productos
   // Header mobile
   hide_hero_logo_on_mobile?: boolean; // Ocultar logo del hero en mobile cuando header ya muestra logo
+
+  // Layout industrial (Construccion y Mantenciones)
+  industrial_hero_title?: string;
+  industrial_hero_subtitle?: string;
+  industrial_hero_badge_1?: string;
+  industrial_hero_badge_2?: string;
+  industrial_hero_badge_3?: string;
+  industrial_hero_cta_primary?: string;
+  industrial_hero_cta_secondary?: string;
+  industrial_hero_title_color?: string;
+  industrial_hero_subtitle_color?: string;
+  industrial_hero_kicker_color?: string;
+  industrial_hero_badge_bg_color?: string;
+  industrial_hero_badge_border_color?: string;
+  industrial_hero_badge_text_color?: string;
+  industrial_hero_primary_button_color?: string;
+  industrial_hero_primary_button_text_color?: string;
+  industrial_hero_secondary_button_color?: string;
+  industrial_hero_secondary_button_text_color?: string;
+  industrial_hero_card_color?: string;
+  industrial_hero_card_opacity?: number;
+  industrial_hero_overlay_color?: string;
+  industrial_hero_overlay_opacity?: number;
+  industrial_hero_background_image?: string;
+  industrial_hero_card_label_clients?: string;
+  industrial_hero_card_value_clients?: string;
+  industrial_hero_card_label_coverage?: string;
+  industrial_hero_card_value_coverage?: string;
+  industrial_hero_card_label_response?: string;
+  industrial_hero_card_value_response?: string;
+  industrial_hero_card_label_services?: string;
+  industrial_hero_card_value_services?: string;
+  industrial_hero_card_label_attention?: string;
+  industrial_hero_card_value_attention?: string;
+
+  industrial_trust_label_1?: string;
+  industrial_trust_label_2?: string;
+  industrial_trust_label_3?: string;
+  industrial_trust_label_4?: string;
+  industrial_trust_bg_color?: string;
+  industrial_trust_bg_opacity?: number;
+  industrial_trust_text_color?: string;
+  industrial_trust_icon_bg_color?: string;
+
+  industrial_services_title?: string;
+  industrial_services_subtitle?: string;
+  industrial_services_cta?: string;
+  industrial_services_bg_color?: string;
+  industrial_services_bg_opacity?: number;
+  industrial_services_card_color?: string;
+  industrial_services_card_opacity?: number;
+  industrial_services_title_color?: string;
+  industrial_services_text_color?: string;
+  industrial_services_button_color?: string;
+  industrial_services_button_text_color?: string;
+
+  industrial_process_title?: string;
+  industrial_process_step_1?: string;
+  industrial_process_step_2?: string;
+  industrial_process_step_3?: string;
+  industrial_process_step_4?: string;
+  industrial_process_bg_color?: string;
+  industrial_process_bg_opacity?: number;
+  industrial_process_card_color?: string;
+  industrial_process_card_opacity?: number;
+  industrial_process_title_color?: string;
+  industrial_process_text_color?: string;
+
+  industrial_projects_title?: string;
+  industrial_projects_subtitle?: string;
+  industrial_projects_cta?: string;
+  industrial_projects_bg_color?: string;
+  industrial_projects_bg_opacity?: number;
+  industrial_projects_card_color?: string;
+  industrial_projects_card_opacity?: number;
+  industrial_projects_title_color?: string;
+  industrial_projects_text_color?: string;
+  industrial_projects_button_color?: string;
+  industrial_projects_button_text_color?: string;
+  industrial_projects?: IndustrialProjectMedia[];
+
+  industrial_coverage_title?: string;
+  industrial_coverage_subtitle?: string;
+  industrial_coverage_chip_1?: string;
+  industrial_coverage_chip_2?: string;
+  industrial_coverage_chip_3?: string;
+  industrial_coverage_note?: string;
+  industrial_coverage_bg_color?: string;
+  industrial_coverage_bg_opacity?: number;
+  industrial_coverage_card_color?: string;
+  industrial_coverage_card_opacity?: number;
+  industrial_coverage_title_color?: string;
+  industrial_coverage_text_color?: string;
+  industrial_coverage_chip_bg_color?: string;
+  industrial_coverage_chip_text_color?: string;
+
+  industrial_form_title?: string;
+  industrial_form_subtitle?: string;
+  industrial_form_name_placeholder?: string;
+  industrial_form_phone_placeholder?: string;
+  industrial_form_location_placeholder?: string;
+  industrial_form_service_placeholder?: string;
+  industrial_form_urgency_placeholder?: string;
+  industrial_form_description_placeholder?: string;
+  industrial_form_cta?: string;
+  industrial_form_bg_color?: string;
+  industrial_form_bg_opacity?: number;
+  industrial_form_title_color?: string;
+  industrial_form_text_color?: string;
+  industrial_form_button_color?: string;
+  industrial_form_button_text_color?: string;
+
+  industrial_footer_bg_color?: string;
+  industrial_footer_text_color?: string;
+  industrial_footer_link_color?: string;
+}
+
+export interface IndustrialProjectMedia {
+  id?: string;
+  title?: string;
+  location?: string;
+  result?: string;
+  images?: string[];
+  video_url?: string;
 }
 
 export interface ScheduleSlot {

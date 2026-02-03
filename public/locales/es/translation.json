@@ -692,7 +692,8 @@
       "modal": {
         "aboutTitle": "Descripcion de la empresa",
         "missionTitle": "Mision y vision",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "projectTitle": "Detalle del proyecto"
       }
     },
     "fitnessLayout": {
