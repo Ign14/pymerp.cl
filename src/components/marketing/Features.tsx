@@ -35,22 +35,6 @@ export const Features = () => {
             />
           ))}
         </div>
-
-        {/* Beta Notice */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-center"
-        >
-          <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-            Funciones de los planes PRO en adelante disponibles en Enero - Febrero 2026.
-          </h3>
-          <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto">
-            Periodo beta 2026 promociones y uso limitado de plan starter por periodo de pruebas.
-          </p>
-        </motion.div>
       </div>
     </section>
   );

@@ -8,6 +8,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showMaintenanceNotice, setShowMaintenanceNotice] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [segmentationTab, setSegmentationTab] = useState<'servicios' | 'productos'>('servicios');
 
   const organizationSchema = useMemo(
     () =>
@@ -352,7 +353,7 @@ export default function Landing() {
                     { title: 'WhatsApp Integrado', body: 'Recibe notificaciones y confirmaciones directamente en tu WhatsApp personal o de negocio.', emoji: '💬', color: 'from-green-500 to-teal-600' },
                     { title: 'Página Pública Propia', body: 'Tu link único pymerp.cl/tu-negocio para compartir en redes, tarjetas o donde quieras.', emoji: '🌐', color: 'from-orange-500 to-red-600' },
                     { title: 'Personalización Visual', body: 'Elige colores, sube tu logo y personaliza tu página para que refleje tu marca.', emoji: '🎨', color: 'from-yellow-500 to-orange-600' },
-                    { title: 'App Instalable (PWA)', body: 'Tus clientes pueden instalar tu página como una app en su celular con un click.', emoji: '📱', color: 'from-indigo-500 to-purple-600' },
+                    { title: 'Gestión en todas partes', body: 'Tu sistema de gestión disponible en cualquier dispositivo. Tus datos se sincronizan en tiempo real y están siempre actualizados.', emoji: '📱', color: 'from-indigo-500 to-purple-600' },
                   ].map((feature) => (
                     <article key={feature.title} className="relative group">
                       <div
@@ -366,14 +367,6 @@ export default function Landing() {
                       </div>
                     </article>
                   ))}
-                </div>
-                <div className="text-center">
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                    Funciones de los planes PRO en adelante disponibles en Enero - Febrero 2026.
-                  </h3>
-                  <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto">
-                    Periodo beta 2026 promociones y uso limitado de plan starter por periodo de pruebas.
-                  </p>
                 </div>
               </div>
             </section>
@@ -392,61 +385,116 @@ export default function Landing() {
                   <div className="inline-flex bg-gray-100 rounded-xl p-1">
                     <button
                       role="tab"
-                      aria-selected="true"
+                      aria-selected={segmentationTab === 'servicios'}
                       aria-controls="servicios-panel"
-                      className="px-8 py-3 rounded-lg font-semibold transition-all duration-300 bg-white text-indigo-600 shadow-md"
+                      onClick={() => setSegmentationTab('servicios')}
+                      className={`px-8 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                        segmentationTab === 'servicios'
+                          ? 'bg-white text-indigo-600 shadow-md'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                     >
                       Servicios
                     </button>
                     <button
                       role="tab"
-                      aria-selected="false"
+                      aria-selected={segmentationTab === 'productos'}
                       aria-controls="productos-panel"
-                      className="px-8 py-3 rounded-lg font-semibold transition-all duration-300 text-gray-600 hover:text-gray-900"
+                      onClick={() => setSegmentationTab('productos')}
+                      className={`px-8 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                        segmentationTab === 'productos'
+                          ? 'bg-white text-indigo-600 shadow-md'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                     >
                       Productos
                     </button>
                   </div>
                 </div>
-                <div role="tabpanel" id="servicios-panel" className="flex flex-wrap justify-center gap-8 max-w-5xl mx-auto">
-                  <div className="w-full md:w-[480px]">
-                    <article className="relative overflow-hidden">
-                      <div className="h-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 md:p-8 border-2 border-white/20 transition-all duration-300 shadow-lg hover:shadow-2xl text-center flex flex-col items-center">
-                        <div className="flex flex-col items-center mb-6">
-                          <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-4xl mb-4 shadow-lg">
-                            📅
+                <div
+                  role="tabpanel"
+                  id={segmentationTab === 'servicios' ? 'servicios-panel' : 'productos-panel'}
+                  className="flex flex-wrap justify-center gap-8 max-w-5xl mx-auto"
+                >
+                  {segmentationTab === 'servicios' ? (
+                    <div className="w-full md:w-[480px]">
+                      <article className="relative overflow-hidden">
+                        <div className="h-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 md:p-8 border-2 border-white/20 transition-all duration-300 shadow-lg hover:shadow-2xl text-center flex flex-col items-center">
+                          <div className="flex flex-col items-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-4xl mb-4 shadow-lg">
+                              📅
+                            </div>
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Negocios de Servicios</h3>
+                            <p className="text-white/90 text-sm md:text-base font-medium">
+                              Pensado para Barberías y Agenda Profesionales que necesitan reservas online y gestión de horarios.
+                            </p>
                           </div>
-                          <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Negocios de Servicios</h3>
-                          <p className="text-white/90 text-sm md:text-base font-medium">
-                            Pensado para Barberías y Agenda Profesionales que necesitan reservas online y gestión de horarios.
-                          </p>
+                          <ul className="space-y-2.5 mb-6 w-full max-w-xl" role="list">
+                            {[
+                              'Agenda online 24/7 con reservas automáticas',
+                              'Gestión de horarios, profesionales y disponibilidad',
+                              'Confirmaciones y recordatorios por WhatsApp',
+                              'Catálogo de servicios personalizable',
+                              'Registro básico de clientes y seguimiento',
+                            ].map((item) => (
+                              <li key={item} className="flex items-start justify-center text-left">
+                                <svg className="w-5 h-5 text-white mr-3 flex-shrink-0 mt-0.5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span className="text-white/90 text-sm md:text-base font-medium">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <Link
+                            to="/request-access"
+                            className="w-full py-3 bg-white/15 text-white rounded-lg font-semibold hover:shadow-lg transition-shadow duration-300 border border-white/20"
+                          >
+                            Más Información →
+                          </Link>
+                          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 opacity-30 rounded-full blur-3xl" aria-hidden="true" />
                         </div>
-                        <ul className="space-y-2.5 mb-6 w-full max-w-xl" role="list">
-                          {[
-                            'Agenda online 24/7 con reservas automáticas',
-                            'Gestión de horarios, profesionales y disponibilidad',
-                            'Confirmaciones y recordatorios por WhatsApp',
-                            'Catálogo de servicios personalizable',
-                            'Registro básico de clientes y seguimiento',
-                          ].map((item) => (
-                            <li key={item} className="flex items-start justify-center text-left">
-                              <svg className="w-5 h-5 text-white mr-3 flex-shrink-0 mt-0.5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" stroke="currentColor">
-                                <path d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span className="text-white/90 text-sm md:text-base font-medium">{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <Link
-                          to="/request-access"
-                          className="w-full py-3 bg-white/15 text-white rounded-lg font-semibold hover:shadow-lg transition-shadow duration-300 border border-white/20"
-                        >
-                          Más Información →
-                        </Link>
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 opacity-30 rounded-full blur-3xl" aria-hidden="true" />
-                      </div>
-                    </article>
-                  </div>
+                      </article>
+                    </div>
+                  ) : (
+                    <div className="w-full md:w-[480px]">
+                      <article className="relative overflow-hidden">
+                        <div className="h-full bg-gradient-to-br from-amber-600 to-orange-700 rounded-2xl p-6 md:p-8 border-2 border-white/20 transition-all duration-300 shadow-lg hover:shadow-2xl text-center flex flex-col items-center">
+                          <div className="flex flex-col items-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-4xl mb-4 shadow-lg">
+                              🛍️
+                            </div>
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Negocios de Productos</h3>
+                            <p className="text-white/90 text-sm md:text-base font-medium">
+                              Pensado para tiendas, minimarkets, restaurantes con menú y negocios que ofrecen catálogo de productos.
+                            </p>
+                          </div>
+                          <ul className="space-y-2.5 mb-6 w-full max-w-xl" role="list">
+                            {[
+                              'Catálogo de productos con fotos y precios',
+                              'Pedidos integrados y notificaciones por WhatsApp',
+                              'Menú QR para restaurantes y bares',
+                              'Inventario básico y reportes',
+                              'Página pública con tu marca',
+                            ].map((item) => (
+                              <li key={item} className="flex items-start justify-center text-left">
+                                <svg className="w-5 h-5 text-white mr-3 flex-shrink-0 mt-0.5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span className="text-white/90 text-sm md:text-base font-medium">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <Link
+                            to="/request-access"
+                            className="w-full py-3 bg-white/15 text-white rounded-lg font-semibold hover:shadow-lg transition-shadow duration-300 border border-white/20"
+                          >
+                            Más Información →
+                          </Link>
+                          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 opacity-30 rounded-full blur-3xl" aria-hidden="true" />
+                        </div>
+                      </article>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
