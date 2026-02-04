@@ -27,26 +27,25 @@ const getAuthContinueUrl = () => {
 };
 
 /**
- * Configuración para correos de restablecimiento de contraseña usando la autenticación de Firebase Hosting
- * El handler real será https://pymerp.cl/__/auth/action cuando authDomain esté configurado con pymerp.cl.
- * El continueUrl lleva a /auth/action (nuestra pantalla).
+ * Configuración para correos de restablecimiento de contraseña.
+ * Usamos handleCodeInApp=true para que el link vaya directo a /auth/action
+ * y evitar el intermedio /__/auth/action que puede mostrar página en blanco.
  */
 export const getResetPasswordActionCodeSettings = () => {
   return {
     url: getAuthContinueUrl(),
-    handleCodeInApp: false,
+    handleCodeInApp: true,
   } as const;
 };
 
 /**
- * Configuración para correos de verificación de email usando la autenticación de Firebase Hosting
- * El handler real será https://pymerp.cl/__/auth/action cuando authDomain esté configurado con pymerp.cl.
- * El continueUrl lleva a /auth/action (nuestra pantalla).
+ * Configuración para correos de verificación de email.
+ * También usamos handleCodeInApp=true para mantener la misma ruta.
  */
 export const getVerifyEmailActionCodeSettings = () => {
   return {
     url: getAuthContinueUrl(),
-    handleCodeInApp: false,
+    handleCodeInApp: true,
   } as const;
 };
 

@@ -92,16 +92,14 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/auth/action" element={<PageTransition><AuthAction /></PageTransition>} />
         <Route path="/request-access" element={<PageTransition><RequestAccess /></PageTransition>} />
-          <Route
-            path="/change-password"
-            element={
-              <PageTransition>
-                <ProtectedRoute requireActive={false}>
-                  <ChangePassword />
-                </ProtectedRoute>
-              </PageTransition>
-            }
-          />
+        <Route
+          path="/change-password"
+          element={
+            <PageTransition>
+              <ChangePassword />
+            </PageTransition>
+          }
+        />
           
           <Route
             path="/admin"

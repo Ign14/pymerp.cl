@@ -5,11 +5,13 @@ import { auth } from '../config/firebase';
 import { changePassword } from '../services/auth';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ChangePassword() {
   const { handleError } = useErrorHandler();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { firebaseUser, loading: authLoading } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,14 @@ export default function ChangePassword() {
       setActionCode(code);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isPasswordReset && !firebaseUser) {
+      toast.error('Debes iniciar sesión para cambiar tu contraseña');
+      navigate('/login');
+    }
+  }, [authLoading, firebaseUser, isPasswordReset, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
