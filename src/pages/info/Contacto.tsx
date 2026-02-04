@@ -68,7 +68,7 @@ export default function Contacto() {
       value: 'subscription-plan',
       label: 'Solicitar plan de suscripción',
       icon: '💳',
-      description: 'Activa un plan STARTER, PRO, BUSINESS o ENTERPRISE'
+      description: 'Activación de planes por categoría según nivel de herramientas'
     },
     {
       value: 'solution',
@@ -162,11 +162,11 @@ export default function Contacto() {
     try {
       let messageBody = formData.message.trim();
 
-      if (selectedPlan && formData.contactType === 'subscription-plan') {
-        const planConfig = planOptions.find((plan) => plan.planId === selectedPlan);
-        messageBody = `Solicitud de activación del plan ${planConfig?.label || selectedPlan}\n\n`;
-        messageBody += `Plan: ${planConfig?.label || selectedPlan}\n`;
-        messageBody += `Precio: ${planConfig?.price || 'Consultar'}\n\n`;
+        if (selectedPlan && formData.contactType === 'subscription-plan') {
+          const planConfig = planOptions.find((plan) => plan.planId === selectedPlan);
+          messageBody = `Solicitud de activación del plan ${planConfig?.label || selectedPlan}\n\n`;
+          messageBody += `Plan: ${planConfig?.label || selectedPlan}\n`;
+          messageBody += `Precio: Sin precio público\n\n`;
 
         if (hasAccount === true) {
           messageBody += '✅ Ya tengo una cuenta creada\n';
@@ -327,7 +327,7 @@ export default function Contacto() {
               className="mb-12"
             >
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center">
-                ¿Solicitas un plan de suscripción?
+                Solicita un plan de suscripción
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {planOptions.map((plan) => (
@@ -343,7 +343,7 @@ export default function Contacto() {
                   >
                     <div className="font-bold text-xl mb-2">{plan.label}</div>
                     <div className="text-sm opacity-90 mb-3">{plan.description}</div>
-                    <div className="font-semibold">{plan.price}</div>
+                    <div className="text-xs opacity-80">Planes sin precio público</div>
                   </motion.button>
                 ))}
               </div>
@@ -365,7 +365,7 @@ export default function Contacto() {
                     Plan seleccionado: {planOptions.find((plan) => plan.planId === selectedPlan)?.label}
                   </h3>
                   <p className="text-gray-700">
-                    {planOptions.find((plan) => plan.planId === selectedPlan)?.description}
+                    {planOptions.find((plan) => plan.planId === selectedPlan)?.description}. Plan sin precio público.
                   </p>
                 </div>
                 <button
