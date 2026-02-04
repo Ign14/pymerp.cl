@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 import SEO, { createOrganizationSchema } from '../components/SEO';
 import { CategoryCarousel } from '../components/marketing/CategoryCarousel';
 import { env } from '../config/env';
@@ -9,6 +10,8 @@ export default function Landing() {
   const [showMaintenanceNotice, setShowMaintenanceNotice] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [segmentationTab, setSegmentationTab] = useState<'servicios' | 'productos'>('servicios');
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const featuresInView = useInView(featuresRef, { amount: 0.2, once: false });
 
   const organizationSchema = useMemo(
     () =>
@@ -189,7 +192,7 @@ export default function Landing() {
                   id="landing-hero-heading"
                   className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-5 sm:mb-6 leading-snug sm:leading-tight tracking-tight max-w-3xl mx-auto drop-shadow-lg"
                 >
-                  Transforma tu negocio a digital en minutos
+                  Transforma tu negocio a digital solo en minutos
                 </h1>
                 <p className="text-lg sm:text-xl text-gray-100 font-medium mb-8 sm:mb-9 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
                   Tu sitio web se ajusta a tu categoría: agenda, catálogo, menú QR, formulario de contacto o
@@ -346,7 +349,7 @@ export default function Landing() {
                     Funcionalidades pensadas para que tu negocio funcione solo
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center mb-12">
+                <div ref={featuresRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                   {[
                     { title: 'Agenda Online', body: 'Sistema de reservas automático donde tus clientes agendan 24/7 sin llamadas ni mensajes.', emoji: '📅', color: 'from-blue-500 to-indigo-600' },
                     { title: 'Catálogo de Productos/Servicios', body: 'Muestra lo que ofreces con fotos, descripciones y precios. Todo en un solo lugar.', emoji: '🛍️', color: 'from-purple-500 to-pink-600' },
@@ -354,19 +357,35 @@ export default function Landing() {
                     { title: 'Página Pública Propia', body: 'Tu link único pymerp.cl/tu-negocio para compartir en redes, tarjetas o donde quieras.', emoji: '🌐', color: 'from-orange-500 to-red-600' },
                     { title: 'Personalización Visual', body: 'Elige colores, sube tu logo y personaliza tu página para que refleje tu marca.', emoji: '🎨', color: 'from-yellow-500 to-orange-600' },
                     { title: 'Gestión en todas partes', body: 'Tu sistema de gestión disponible en cualquier dispositivo. Tus datos se sincronizan en tiempo real y están siempre actualizados.', emoji: '📱', color: 'from-indigo-500 to-purple-600' },
-                  ].map((feature) => (
-                    <article key={feature.title} className="relative group">
-                      <div
-                        className={`h-full bg-gradient-to-br ${feature.color} rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-white/20 flex flex-col items-center text-center`}
+                  ].map((feature, index) => {
+                    const FEATURES_LENGTH = 6;
+                    return (
+                      <motion.article
+                        key={feature.title}
+                        className="relative group"
+                        initial={false}
+                        animate={{
+                          opacity: featuresInView ? 1 : 0,
+                          x: featuresInView ? 0 : -40,
+                        }}
+                        transition={{
+                          duration: 0.5,
+                          delay: featuresInView ? index * 0.2 : (FEATURES_LENGTH - 1 - index) * 0.15,
+                          ease: [0.25, 0.46, 0.45, 0.94],
+                        }}
                       >
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/15 mb-6 text-3xl shadow-md">
-                          {feature.emoji}
+                        <div
+                          className={`h-full bg-gradient-to-br ${feature.color} rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-white/20 flex flex-col items-center text-center`}
+                        >
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/15 mb-6 text-3xl shadow-md">
+                            {feature.emoji}
+                          </div>
+                          <h3 className="text-lg md:text-xl font-bold text-white mb-3">{feature.title}</h3>
+                          <p className="text-white/90 leading-relaxed text-sm md:text-base font-medium">{feature.body}</p>
                         </div>
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-3">{feature.title}</h3>
-                        <p className="text-white/90 leading-relaxed text-sm md:text-base font-medium">{feature.body}</p>
-                      </div>
-                    </article>
-                  ))}
+                      </motion.article>
+                    );
+                  })}
                 </div>
               </div>
             </section>

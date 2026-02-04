@@ -79,7 +79,7 @@ import Contacto from './pages/info/Contacto';
 import Categorias from './pages/info/Categorias';
 import CondicionesBeta from './pages/info/CondicionesBeta';
 import { env } from './config/env';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -435,6 +435,16 @@ function AnimatedRoutes() {
     );
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   if (env.app.environment === 'e2e') {
     return <E2EHarness />;
@@ -444,6 +454,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ScrollToTop />
           <SkipLinks />
           <OfflineIndicator />
           <PWAUpdatePrompt />
@@ -493,6 +504,7 @@ export default App;
 function E2EHarness() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ScrollToTop />
       <Routes>
         <Route path="/login" element={<div style={{ padding: 32 }}><h1>Login</h1></div>} />
         <Route path="/dashboard" element={<DashboardStub />} />
