@@ -6,6 +6,7 @@ export { Features } from './Features';
 export { Segmentation } from './Segmentation';
 export { Trust } from './Trust';
 export { CTASection } from './CTASection';
+export { CategoryCarousel } from './CategoryCarousel';
 
 // Export types
 export type * from './types';
