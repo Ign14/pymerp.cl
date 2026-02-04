@@ -735,7 +735,7 @@ export const generateSitemap = functions
       res.set('Content-Type', 'application/xml');
       res.set('Cache-Control', 'public, max-age=3600'); // Cache 1 hora
 
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://agendaemprende-8ac77.web.app';
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://pymerp.cl';
       const currentDate = new Date().toISOString();
 
       // Páginas estáticas
