@@ -9,6 +9,7 @@ import { auth } from '../config/firebase';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import LoadingSpinner from '../components/animations/LoadingSpinner';
 import toast from 'react-hot-toast';
+import SEO from '../components/SEO';
 
 /**
  * Página que maneja las acciones de Firebase Auth (verificación de email, recuperación de contraseña)
@@ -125,16 +126,45 @@ export default function AuthAction() {
     processAction();
   }, [searchParams, navigate, handleError]);
 
+  const mode = searchParams.get('mode');
+  const getPageTitle = () => {
+    switch (mode) {
+      case 'verifyEmail':
+        return 'Verificar Email | PyM-ERP';
+      case 'resetPassword':
+        return 'Restablecer Contraseña | PyM-ERP';
+      case 'recoverEmail':
+        return 'Recuperar Email | PyM-ERP';
+      default:
+        return 'Verificación | PyM-ERP';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+    <>
+      <SEO
+        title={getPageTitle()}
+        description="Procesando tu solicitud de autenticación en PyM-ERP"
+        robots="noindex, nofollow"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center px-4 py-8">
+        {/* Logo en la parte superior */}
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2">
+          <img 
+            src="/logoapp.png" 
+            alt="PyM-ERP Logo" 
+            className="w-16 h-16 object-contain"
+          />
+        </div>
+
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 md:p-10 text-center">
         {status === 'loading' && (
           <>
             <LoadingSpinner size="lg" />
-            <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-3">
               Procesando tu solicitud...
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-base">
               Por favor espera mientras verificamos tu enlace.
             </p>
           </>
@@ -142,34 +172,60 @@ export default function AuthAction() {
 
         {status === 'success' && (
           <>
-            <div className="text-6xl text-green-500 mb-4">✓</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">
+              <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
               ¡Operación exitosa!
             </h2>
-            <p className="text-gray-600 mb-6">{message}</p>
-            <p className="text-sm text-gray-500">
-              Serás redirigido automáticamente...
-            </p>
+            <p className="text-gray-600 text-base mb-6">{message}</p>
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <LoadingSpinner size="sm" />
+              <span>Redirigiendo automáticamente...</span>
+            </div>
           </>
         )}
 
         {status === 'error' && (
           <>
-            <div className="text-6xl text-red-500 mb-4">✕</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-100 mb-6">
+              <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
               Error al procesar
             </h2>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <p className="text-gray-600 text-base mb-8">{message}</p>
             <button
               onClick={() => navigate('/login')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg transition-all duration-200"
             >
               Volver al inicio de sesión
             </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full mt-3 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold transition-all duration-200"
+            >
+              Ir al inicio
+            </button>
           </>
         )}
+
+        {/* Footer con branding */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-xs text-gray-500">
+            Powered by <span className="font-semibold text-indigo-600">PyM-ERP</span>
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Tu plataforma de gestión empresarial
+          </p>
+        </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
