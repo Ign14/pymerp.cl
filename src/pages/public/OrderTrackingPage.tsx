@@ -36,8 +36,25 @@ const STATUS_BADGES: Record<NonNullable<ProductOrderRequest['status']>, string> 
   CANCELLED: 'bg-rose-100 text-rose-800 border border-rose-200',
 };
 
-const formatDateTime = (value?: Date | number | string | null) =>
-  value ? new Date(value).toLocaleString() : '-';
+function toDate(value: unknown): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+    const d = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === 'object' && value !== null && 'seconds' in value && typeof (value as { seconds: number }).seconds === 'number') {
+    const d = new Date((value as { seconds: number }).seconds * 1000);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(value as Date | number | string);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const formatDateTime = (value?: unknown) => {
+  const d = toDate(value);
+  return d ? d.toLocaleString() : '-';
+};
 
 export default function OrderTrackingPage() {
   const { slug, pedidoId } = useParams<{ slug: string; pedidoId: string }>();
@@ -58,9 +75,11 @@ export default function OrderTrackingPage() {
       }>;
     }
     if (order.status_history && order.status_history.length > 0) {
-      return [...order.status_history].sort(
-        (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
-      );
+      return [...order.status_history].sort((a, b) => {
+        const ta = toDate(a.created_at)?.getTime() ?? 0;
+        const tb = toDate(b.created_at)?.getTime() ?? 0;
+        return ta - tb;
+      });
     }
     return [
       {
