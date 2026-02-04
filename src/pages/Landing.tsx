@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import SEO, { createOrganizationSchema } from '../components/SEO';
+import { CategoryCarousel } from '../components/marketing/CategoryCarousel';
 import { env } from '../config/env';
 
 export default function Landing() {
@@ -271,6 +272,8 @@ export default function Landing() {
               </div>
             </section>
           </div>
+
+          <CategoryCarousel />
 
           <div id="how-it-works">
             <section className="py-12 md:py-16 lg:py-20 relative overflow-hidden">
