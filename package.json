@@ -4,8 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev:core": "vite",
+    "build:core": "tsc && vite build",
+    "preview:core": "vite preview",
+    "build:minimarket": "node scripts/minimarket/build.cjs",
+    "preview:minimarket": "node scripts/minimarket/preview.cjs",
+    "build": "npm run build:core && npm run build:minimarket",
+    "preview": "concurrently -k -n core,minimarket -c blue,magenta \"npm run preview:core\" \"npm run preview:minimarket\"",
     "preview:prod": "vite preview --port 5173 --strictPort",
     "serve:prod": "npm run build && vite preview --port 5173 --strictPort",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -55,6 +60,7 @@
     "web-vitals": "^5.1.0"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "@playwright/test": "^1.50.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

@@ -18,7 +18,8 @@ type EnvKeys =
   | 'VITE_ENABLE_ANALYTICS'
   | 'VITE_SENTRY_DSN'
   | 'VITE_E2E_USER'
-  | 'VITE_PUBLIC_BASE_URL';
+  | 'VITE_PUBLIC_BASE_URL'
+  | 'VITE_MINIMARKET_APP_URL';
 
 const rawEnv = import.meta.env as unknown as Partial<Record<EnvKeys, string>>;
 
@@ -97,4 +98,10 @@ export const env = {
     }
     return configured;
   },
+
+  // URL de la app de minimarket (frontend dedicado)
+  minimarketAppUrl: getEnvVar('VITE_MINIMARKET_APP_URL', {
+    required: false,
+    fallback: 'http://localhost:5176',
+  }),
 };

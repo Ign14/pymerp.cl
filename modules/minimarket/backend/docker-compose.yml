@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: pymerp_minimarket_db
+    environment:
+      POSTGRES_USER: pymerp
+      POSTGRES_PASSWORD: pymerp
+      POSTGRES_DB: pymerp_minimarket
+    ports:
+      - "5432:5432"
+    volumes:
+      - minimarket_db:/var/lib/postgresql/data
+
+volumes:
+  minimarket_db:

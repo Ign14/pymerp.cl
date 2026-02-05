@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCompany, updateCompany } from '../../services/firestore';
+import { getCompany, updateCompany, getCompanyAppearance } from '../../services/firestore';
 import { getPublicPageEvents, getAppointmentRequests, getProductOrderRequests } from '../../services/firestore';
 import { getAppointmentsByCompany } from '../../services/appointments';
 import { listProfessionals } from '../../services/professionals';
-import { EventType } from '../../types';
+import { BusinessType, EventType } from '../../types';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import LogoutCorner from '../../components/LogoutCorner';
@@ -23,6 +23,7 @@ export default function DashboardOverview() {
   const { handleError } = useErrorHandler();
   const { t } = useTranslation();
   const [company, setCompany] = useState<any>(null);
+  const [appearance, setAppearance] = useState<any>(null);
   const [stats, setStats] = useState({
     totalViews: 0,
     last30DaysViews: 0,
@@ -59,6 +60,8 @@ export default function DashboardOverview() {
     try {
       const companyData = await getCompany(firestoreUser.company_id);
       setCompany(companyData);
+      const appearanceData = await getCompanyAppearance(firestoreUser.company_id, BusinessType.PRODUCTS);
+      setAppearance(appearanceData);
 
       if (!companyData?.setup_completed) {
         navigate('/setup/company-basic');
@@ -165,6 +168,36 @@ export default function DashboardOverview() {
 
   const publicUrl = `${env.publicBaseUrl}/${company.slug}`;
   const publicEnabled = Boolean(company?.publicEnabled);
+  const minimarketAppUrl = env.minimarketAppUrl;
+  const isMinimarket = categoryId === 'minimarket';
+
+  const toRgba = (hex?: string, opacity?: number) => {
+    if (!hex) return undefined;
+    const safeOpacity = typeof opacity === 'number' ? Math.min(Math.max(opacity, 0), 1) : 1;
+    const normalized = hex.replace('#', '');
+    const bigint = parseInt(normalized, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${safeOpacity})`;
+  };
+
+  const publicCardStyle = {
+    background: appearance?.background_color
+      ? toRgba(appearance.background_color, appearance.background_opacity ?? 0.12)
+      : undefined,
+    borderColor: appearance?.button_color ? toRgba(appearance.button_color, 0.4) : undefined,
+  };
+  const publicCardText = {
+    color: appearance?.title_color || undefined,
+  };
+  const publicCardSubText = {
+    color: appearance?.subtitle_color || undefined,
+  };
+  const publicCardButtonStyle = {
+    backgroundColor: appearance?.button_color || undefined,
+    color: appearance?.button_text_color || undefined,
+  };
 
   const handlePublicEnabledToggle = async () => {
     if (!firestoreUser?.company_id || !company) return;
@@ -238,19 +271,24 @@ export default function DashboardOverview() {
         </div>
 
         {/* Public URL Card - Destacada */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8 dark-url-card">
+        <div
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8 dark-url-card"
+          style={publicCardStyle}
+        >
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white text-2xl shadow-md">
               🔗
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Tu Página Pública</h2>
-              <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+              <h2 className="text-xl font-bold text-gray-900 mb-2" style={publicCardText}>
+                Tu Página Pública
+              </h2>
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed" style={publicCardSubText}>
                 Comparte esta URL con tus clientes para que vean tus {company.business_type === 'SERVICES' ? 'servicios' : 'productos'} y puedan contactarte fácilmente
               </p>
               
               {/* URL Display */}
-              <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200 shadow-sm">
+              <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200 shadow-sm" style={publicCardStyle}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <a 
                     href={publicUrl} 
@@ -264,6 +302,7 @@ export default function DashboardOverview() {
                     type="button"
                     onClick={copyPublicUrl}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm hover:shadow-md w-full sm:w-auto"
+                    style={publicCardButtonStyle}
                   >
                     📋 Copiar URL
                   </button>
@@ -271,7 +310,7 @@ export default function DashboardOverview() {
               </div>
 
               {/* Public toggle */}
-              <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-100 shadow-sm">
+              <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-100 shadow-sm" style={publicCardStyle}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">🌐 Publicar mi Negocio</h3>
@@ -339,6 +378,28 @@ export default function DashboardOverview() {
                   Seguir en Instagram
                 </button>
               </div>
+
+              {isMinimarket && (
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1" style={publicCardText}>
+                      Acceso rápido Minimarket
+                    </h3>
+                    <p className="text-sm text-gray-600" style={publicCardSubText}>
+                      Entra a la nueva app para gestionar POS, inventario y pedidos.
+                    </p>
+                  </div>
+                  <a
+                    href={minimarketAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all w-full sm:w-auto text-center"
+                    style={publicCardButtonStyle}
+                  >
+                    Abrir app Minimarket
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
