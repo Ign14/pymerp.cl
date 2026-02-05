@@ -1,0 +1,4 @@
+cl\pymerp\minimarket\service\LocalSaleServiceTest.class
+cl\pymerp\minimarket\service\WebOrderServiceTest.class
+cl\pymerp\minimarket\service\DashboardServiceTest.class
+cl\pymerp\minimarket\service\InventoryServiceTest.class
