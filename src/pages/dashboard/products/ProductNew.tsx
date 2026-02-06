@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import type { Product } from '../../../types';
 import { getProduct, createProduct, updateProduct } from '../../../services/firestore';
 import { uploadImage } from '../../../services/storage';
 import toast from 'react-hot-toast';
@@ -10,6 +11,36 @@ import {
   IMAGE_UPLOAD_RECOMMENDATION,
 } from '../../../utils/constants';
 
+const PRODUCT_CATEGORIES = [
+  '🥦 Frutas y Verduras',
+  '🥩 Carnes y Pescados',
+  '🍞 Panadería y Pastelería',
+  '🥛 Lácteos y Refrigerados',
+  '❄️ Congelados',
+  '🍝 Abarrotes / Despensa',
+  '🥤 Bebidas',
+  '🍬 Snacks y Golosinas',
+  '🧂 Condimentos, Salsas y Aceites',
+  '🧼 Aseo y Limpieza del Hogar',
+  '🧴 Higiene y Cuidado Personal',
+  '👶 Bebé y Maternidad',
+  '🐶 Mascotas',
+  '🏠 Hogar y Menaje',
+  '💊 Farmacia básica / Salud',
+  '🍷 Licores y Alcohol (donde esté permitido)',
+];
+
+const toNullIfEmpty = (value: string) => value.trim() || null;
+
+const normalizeOptionalText = (value: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => {
+      if (entry === undefined) return [key, null];
+      if (typeof entry === 'string') return [key, toNullIfEmpty(entry)];
+      return [key, entry];
+    })
+  );
+
 export default function ProductNew() {
   const { id } = useParams();
   const { firestoreUser } = useAuth();
@@ -17,12 +48,16 @@ export default function ProductNew() {
   const { handleError } = useErrorHandler();
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
+    model: '',
+    detail: '',
     description: '',
-    price: '',
+    barcode: '',
+    format: '',
+    category: '',
+    price_web: '',
+    price_local: '',
     image_url: '',
-    weight: '',
-    kcal: '',
-    tags: '',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
   });
   const [loading, setLoading] = useState(true);
@@ -55,12 +90,16 @@ export default function ProductNew() {
         if (product) {
           setFormData({
             name: product.name,
+            brand: product.brand || '',
+            model: product.model || '',
+            detail: product.detail || '',
             description: product.description,
-            price: product.price.toString(),
+            barcode: product.barcode || '',
+            format: product.format || '',
+            category: product.category || '',
+            price_web: String(product.price_web ?? product.price ?? ''),
+            price_local: String(product.price_local ?? product.price ?? ''),
             image_url: product.image_url,
-            weight: product.weight?.toString() || '',
-            kcal: product.kcal?.toString() || '',
-            tags: product.tags?.join(', ') || '',
             status: product.status,
           });
         }
@@ -103,24 +142,22 @@ export default function ProductNew() {
 
     setSaving(true);
     try {
-      const productData: any = {
+      const productData = normalizeOptionalText({
         company_id: firestoreUser.company_id,
         name: formData.name,
+        brand: formData.brand,
+        model: formData.model,
+        detail: formData.detail,
         description: formData.description,
-        price: parseFloat(formData.price),
+        barcode: formData.barcode,
+        format: formData.format,
+        category: formData.category,
+        price_web: formData.price_web ? parseFloat(formData.price_web) : 0,
+        price_local: formData.price_local ? parseFloat(formData.price_local) : 0,
+        price: formData.price_web ? parseFloat(formData.price_web) : 0,
         image_url: formData.image_url,
         status: formData.status,
-      };
-
-      if (formData.weight) {
-        productData.weight = parseFloat(formData.weight);
-      }
-      if (formData.kcal) {
-        productData.kcal = parseFloat(formData.kcal);
-      }
-      if (formData.tags) {
-        productData.tags = formData.tags.split(',').map(t => t.trim()).filter(t => t);
-      }
+      }) as Omit<Product, 'id'>;
 
       if (id) {
         await updateProduct(id, productData);
@@ -178,6 +215,43 @@ export default function ProductNew() {
             />
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Marca
+              </label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Modelo
+              </label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Detalle
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              value={formData.detail}
+              onChange={(e) => setFormData({ ...formData, detail: e.target.value })}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Descripción *
@@ -191,59 +265,77 @@ export default function ProductNew() {
             />
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Código de barras
+              </label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={formData.barcode}
+                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Formato
+              </label>
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ej: 1L, 500g, Pack 6"
+                value={formData.format}
+                onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Precio *
+              Categoría
             </label>
-            <input
-              type="number"
-              required
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            />
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Selecciona una categoría</option>
+              {PRODUCT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Peso (g)
+                Precio local *
               </label>
               <input
                 type="number"
+                required
                 min="0"
+                step="0.01"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                value={formData.weight}
-                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                value={formData.price_local}
+                onChange={(e) => setFormData({ ...formData, price_local: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kcal
+                Precio web *
               </label>
               <input
                 type="number"
+                required
                 min="0"
+                step="0.01"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                value={formData.kcal}
-                onChange={(e) => setFormData({ ...formData, kcal: e.target.value })}
+                value={formData.price_web}
+                onChange={(e) => setFormData({ ...formData, price_web: e.target.value })}
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Etiquetas (separadas por comas)
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="vegano, sin gluten, orgánico"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-            />
           </div>
 
           <div>

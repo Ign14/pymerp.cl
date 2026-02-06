@@ -48,6 +48,8 @@ import ProductsSettings from './pages/dashboard/products/ProductsSettings';
 import ProductsList from './pages/dashboard/products/ProductsList';
 import ProductNew from './pages/dashboard/products/ProductNew';
 import MenuCategories from './pages/dashboard/products/MenuCategories';
+import MinimarketAccess from './pages/dashboard/MinimarketAccess';
+import AccessAccountsPage from './pages/dashboard/AccessAccountsPage';
 import BrandingBackground from './pages/dashboard/BrandingBackground';
 import BrandingVideo from './pages/dashboard/BrandingVideo';
 
@@ -389,6 +391,26 @@ function AnimatedRoutes() {
               <PageTransition>
                 <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
                   <OrdersPage />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/minimarket-access"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <MinimarketAccess />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/access-accounts"
+            element={
+              <PageTransition>
+                <ProtectedRoute requiredRole={UserRole.ENTREPRENEUR}>
+                  <AccessAccountsPage />
                 </ProtectedRoute>
               </PageTransition>
             }

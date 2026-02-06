@@ -7,17 +7,16 @@ import {
   getUserCreationEmailTemplate,
 } from './emailTemplates';
 
-// Cargar variables de entorno desde .env (solo en desarrollo/emulador)
-// En producción, las variables se cargan automáticamente desde firebase.json o secrets
-// NO ejecutar durante discovery del CLI de Firebase
-if (process.env.NODE_ENV !== 'production' && 
-    !process.env.FUNCTIONS_EMULATOR && 
-    process.env.GCLOUD_PROJECT) {
+// Cargar variables de entorno desde .env SOLO en desarrollo/emulador
+// Evitar cargar en deploy/CLI discovery para prevenir timeouts
+const shouldLoadDotenv =
+  process.env.FUNCTIONS_EMULATOR === 'true' || process.env.NODE_ENV === 'development';
+if (shouldLoadDotenv && !process.env.FIREBASE_CONFIG) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('dotenv').config();
   } catch (err) {
-    // Silently ignore durante discovery
+    // Silently ignore
   }
 }
 

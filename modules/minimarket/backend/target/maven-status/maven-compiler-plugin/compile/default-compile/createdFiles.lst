@@ -14,11 +14,14 @@ cl\pymerp\minimarket\repository\StockReservationRepository.class
 cl\pymerp\minimarket\service\InventoryService.class
 cl\pymerp\minimarket\api\AuthController.class
 cl\pymerp\minimarket\api\WebOrderItemResponse$WebOrderItemResponseBuilder.class
+cl\pymerp\minimarket\api\UserRequest.class
 cl\pymerp\minimarket\service\ProductService.class
 cl\pymerp\minimarket\domain\PaymentMethod.class
 cl\pymerp\minimarket\api\InventoryController.class
+cl\pymerp\minimarket\api\UserResponse.class
 cl\pymerp\minimarket\api\WebOrderStatusRequest.class
 cl\pymerp\minimarket\api\WebOrderResponse.class
+cl\pymerp\minimarket\api\UserResponse$UserResponseBuilder.class
 cl\pymerp\minimarket\api\StockResponse.class
 cl\pymerp\minimarket\api\WebOrderRequest.class
 cl\pymerp\minimarket\api\ProductResponse$ProductResponseBuilder.class
@@ -33,6 +36,7 @@ cl\pymerp\minimarket\api\WebOrderResponse$WebOrderResponseBuilder.class
 cl\pymerp\minimarket\repository\InventoryProjectionRepository.class
 cl\pymerp\minimarket\domain\Product.class
 cl\pymerp\minimarket\api\PurchaseRequest.class
+cl\pymerp\minimarket\api\UserController.class
 cl\pymerp\minimarket\api\DashboardResponse$DashboardResponseBuilder.class
 cl\pymerp\minimarket\api\AdjustmentRequest.class
 cl\pymerp\minimarket\api\DashboardResponse.class
@@ -59,6 +63,7 @@ cl\pymerp\minimarket\repository\PaymentRepository.class
 cl\pymerp\minimarket\api\LocalSaleResponse$LocalSaleResponseBuilder.class
 cl\pymerp\minimarket\domain\InventoryMovement.class
 cl\pymerp\minimarket\repository\LocalSaleItemRepository.class
+cl\pymerp\minimarket\service\UserService.class
 cl\pymerp\minimarket\api\MovementResponse$MovementResponseBuilder.class
 cl\pymerp\minimarket\domain\WebOrderStatus.class
 cl\pymerp\minimarket\api\LocalSaleController.class

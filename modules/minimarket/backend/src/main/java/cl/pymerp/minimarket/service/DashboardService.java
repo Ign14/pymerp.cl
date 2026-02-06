@@ -48,7 +48,10 @@ public class DashboardService {
         .map(sale -> sale.getTotalAmount())
         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-    List<WebOrder> pending = webOrderRepository.findByStatusOrderByCreatedAtAsc(WebOrderStatus.PENDING);
+    List<WebOrder> pending = new java.util.ArrayList<>(
+        webOrderRepository.findByStatusOrderByCreatedAtAsc(WebOrderStatus.REQUESTED));
+    pending.addAll(webOrderRepository.findByStatusOrderByCreatedAtAsc(WebOrderStatus.PENDING));
+    pending.sort(java.util.Comparator.comparing(WebOrder::getCreatedAt));
     List<WebOrderSummary> pendingSummaries = pending.stream()
         .limit(10)
         .map(order -> WebOrderSummary.builder()

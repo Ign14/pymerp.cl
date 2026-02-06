@@ -2,6 +2,7 @@ package cl.pymerp.minimarket.api;
 
 import cl.pymerp.minimarket.domain.WebOrder;
 import cl.pymerp.minimarket.domain.WebOrderItem;
+import cl.pymerp.minimarket.domain.WebOrderStatus;
 import cl.pymerp.minimarket.security.UserPrincipal;
 import cl.pymerp.minimarket.service.WebOrderService;
 import jakarta.validation.Valid;
@@ -23,6 +24,11 @@ public class WebOrderController {
   @PostMapping
   public WebOrderResponse create(@Valid @RequestBody WebOrderRequest request) {
     return toResponse(webOrderService.createOrder(request));
+  }
+
+  @GetMapping
+  public List<WebOrderResponse> list(@RequestParam(required = false) WebOrderStatus status) {
+    return webOrderService.list(status).stream().map(this::toResponse).collect(Collectors.toList());
   }
 
   @PatchMapping("/{id}/status")

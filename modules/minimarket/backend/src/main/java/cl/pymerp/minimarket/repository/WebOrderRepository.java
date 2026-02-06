@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WebOrderRepository extends JpaRepository<WebOrder, UUID> {
   List<WebOrder> findByStatusOrderByCreatedAtAsc(WebOrderStatus status);
+  List<WebOrder> findAllByOrderByCreatedAtDesc();
 }

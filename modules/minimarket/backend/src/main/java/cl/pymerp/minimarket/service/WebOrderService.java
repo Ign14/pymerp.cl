@@ -48,13 +48,21 @@ public class WebOrderService {
     this.inventoryService = inventoryService;
   }
 
+  @Transactional(readOnly = true)
+  public List<WebOrder> list(WebOrderStatus status) {
+    if (status != null) {
+      return webOrderRepository.findByStatusOrderByCreatedAtAsc(status);
+    }
+    return webOrderRepository.findAllByOrderByCreatedAtDesc();
+  }
+
   @Transactional
   public WebOrder createOrder(WebOrderRequest request) {
     WebOrder order = new WebOrder();
     order.setCustomerName(request.getCustomerName());
     order.setCustomerPhone(request.getCustomerPhone());
     order.setCustomerEmail(request.getCustomerEmail());
-    order.setStatus(WebOrderStatus.PENDING);
+    order.setStatus(WebOrderStatus.REQUESTED);
 
     List<WebOrderItem> items = new ArrayList<>();
     BigDecimal total = BigDecimal.ZERO;
@@ -98,13 +106,15 @@ public class WebOrderService {
   public WebOrder updateStatus(UUID orderId, WebOrderStatus status, UUID userId) {
     WebOrder order = webOrderRepository.findById(orderId).orElseThrow();
 
-    if (order.getStatus() == WebOrderStatus.CANCELLED || order.getStatus() == WebOrderStatus.DELIVERED) {
+    if (order.getStatus() == WebOrderStatus.CANCELLED
+        || order.getStatus() == WebOrderStatus.PAID
+        || order.getStatus() == WebOrderStatus.DELIVERED) {
       throw new IllegalArgumentException("pedido ya finalizado");
     }
 
-    if (status == WebOrderStatus.DELIVERED) {
+    if (status == WebOrderStatus.PAID || status == WebOrderStatus.DELIVERED) {
       if (userId == null) {
-        throw new IllegalArgumentException("userId es obligatorio para entregar");
+        throw new IllegalArgumentException("userId es obligatorio para marcar pagado");
       }
       User user = userRepository.findById(userId).orElseThrow();
       consumeReservations(order, user);

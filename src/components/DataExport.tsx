@@ -78,8 +78,16 @@ export default function DataExport() {
           products: productsData.map(p => ({
             id: p.id,
             name: p.name,
+            brand: (p as any).brand || null,
+            model: (p as any).model || null,
+            detail: (p as any).detail || null,
             description: p.description || null,
             price: p.price,
+            price_web: (p as any).price_web ?? null,
+            price_local: (p as any).price_local ?? null,
+            barcode: (p as any).barcode || null,
+            format: (p as any).format || null,
+            category: (p as any).category || null,
             status: p.status,
             stock: (p as any).stock || 0,
             image_url: p.image_url || null,
@@ -151,4 +159,3 @@ export default function DataExport() {
     </div>
   );
 }
-

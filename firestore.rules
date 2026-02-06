@@ -104,6 +104,16 @@ service cloud.firestore {
       allow update, delete: if isEntrepreneur() && 
                               belongsToUserCompany(resource.data.company_id);
     }
+
+    // ==================== MINIMARKET ACCESS ACCOUNTS ====================
+    // Cuentas de acceso a la app Minimarket (operadores). Dashboard escribe; app minimarket lee para login.
+    match /minimarket_access_accounts/{accountId} {
+      allow read: if true; // App minimarket (sin Firebase Auth) necesita consultar por email para login; contraseña es hash
+      allow create: if isEntrepreneur() && request.resource.data.get('company_id', '') != '' &&
+                      belongsToUserCompany(request.resource.data.company_id);
+      allow update, delete: if isEntrepreneur() && resource.data.company_id != null &&
+                      belongsToUserCompany(resource.data.company_id);
+    }
     
     // ==================== PROFESSIONALS ====================
     match /professionals/{professionalId} {

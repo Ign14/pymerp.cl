@@ -28,7 +28,7 @@ public class WebOrder {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private WebOrderStatus status = WebOrderStatus.PENDING;
+  private WebOrderStatus status = WebOrderStatus.REQUESTED;
 
   @Column(name = "total_amount", nullable = false)
   private BigDecimal totalAmount = BigDecimal.ZERO;
