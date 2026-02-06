@@ -44,8 +44,17 @@ export default function AccessAccountsPage() {
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
   const [panelOpen, setPanelOpen] = useState(false);
+  const [firstPassword, setFirstPassword] = useState('');
+  const [firstPasswordConfirm, setFirstPasswordConfirm] = useState('');
 
   const companyId = firestoreUser?.company_id ?? '';
+  const currentEmail = (firestoreUser?.email ?? '').trim().toLowerCase();
+  const needsFirstAccount =
+    !loading &&
+    !!companyId &&
+    !!currentEmail &&
+    list.length >= 0 &&
+    !list.some((a) => a.email.toLowerCase() === currentEmail);
 
   useEffect(() => {
     if (!companyId) return;
@@ -111,6 +120,44 @@ export default function AccessAccountsPage() {
     setForm(emptyForm);
     setResetPasswordId(null);
     setResetPassword('');
+  };
+
+  const handleActivateFirstAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !currentEmail) return;
+    if (firstPassword.length < MIN_PASSWORD_LENGTH) {
+      toast.error(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`);
+      return;
+    }
+    if (firstPassword !== firstPasswordConfirm) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+    setSaving(true);
+    try {
+      const existing = await getMinimarketAccessAccountByEmail(companyId, currentEmail);
+      if (existing) {
+        toast.error('Ya existe una cuenta con ese correo.');
+        setSaving(false);
+        return;
+      }
+      const passwordHash = await hashForMinimarketAccess(firstPassword);
+      await createMinimarketAccessAccount(companyId, {
+        email: currentEmail,
+        passwordHash,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+      });
+      const data = await getMinimarketAccessAccounts(companyId);
+      setList(data);
+      setFirstPassword('');
+      setFirstPasswordConfirm('');
+      toast.success('Cuenta Admin activada. Ya puedes ingresar a la app Minimarket con tu correo y esta contraseña.');
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -248,6 +295,57 @@ export default function AccessAccountsPage() {
             Nueva cuenta
           </button>
         </div>
+
+        {needsFirstAccount && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+            <h2 className="text-lg font-semibold text-amber-900 mb-2">Activar primera cuenta Admin</h2>
+            <p className="text-sm text-amber-800 mb-4">
+              Crea la cuenta con la que ingresas al panel (tu correo actual). Será Admin en la app Minimarket.
+            </p>
+            <form onSubmit={handleActivateFirstAdmin} className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo (tu cuenta actual)</label>
+                <input
+                  type="email"
+                  readOnly
+                  value={currentEmail}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña (mín. 8 caracteres) *</label>
+                <input
+                  type="password"
+                  value={firstPassword}
+                  onChange={(e) => setFirstPassword(e.target.value)}
+                  placeholder="Ej: Pymerp.cl1234"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña *</label>
+                <input
+                  type="password"
+                  value={firstPasswordConfirm}
+                  onChange={(e) => setFirstPasswordConfirm(e.target.value)}
+                  placeholder="Repite la contraseña"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  autoComplete="new-password"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving || firstPassword.length < MIN_PASSWORD_LENGTH || firstPassword !== firstPasswordConfirm}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 font-medium"
+              >
+                {saving ? 'Creando...' : 'Crear cuenta Admin'}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="mb-4">
           <input

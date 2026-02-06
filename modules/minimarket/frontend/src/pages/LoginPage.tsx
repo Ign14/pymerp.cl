@@ -11,7 +11,11 @@ import WelcomeOverlay from './WelcomeOverlay';
 import LogoModal from './LogoModal';
 
 const API_BASE = import.meta.env.VITE_MINIMARKET_API || 'http://localhost:8088';
-const USE_FIRESTORE = Boolean(import.meta.env.VITE_MINIMARKET_USE_FIRESTORE);
+// Firestore por defecto cuando Firebase está configurado (cuentas del dashboard 4173)
+const USE_FIRESTORE =
+  import.meta.env.VITE_MINIMARKET_USE_FIRESTORE === 'false'
+    ? false
+    : Boolean(import.meta.env.VITE_FIREBASE_PROJECT_ID);
 
 type Stage = 'form' | 'welcome' | 'logo' | 'done';
 
@@ -51,7 +55,10 @@ export default function LoginPage() {
           body: JSON.stringify({ email: email.trim(), password }),
         });
         if (!response.ok) {
-          setError('Credenciales inválidas');
+          const msg = response.status === 403
+            ? 'Acceso denegado (403). Si usas datos del panel dashboard, configura VITE_MINIMARKET_USE_FIRESTORE=true.'
+            : 'Credenciales inválidas';
+          setError(msg);
           setLoading(false);
           return;
         }
