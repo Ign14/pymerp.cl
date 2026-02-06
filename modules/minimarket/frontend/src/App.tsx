@@ -13,14 +13,20 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { getSession, getStoredToken, clearSession } from './auth';
+import { getCompanyIdBySlug } from './firestore-helpers';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import SupplyHomePage from './pages/SupplyHomePage';
 
 const API_BASE = import.meta.env.VITE_MINIMARKET_API || 'http://localhost:8088';
 const POS_QUEUE_KEY = 'pymerp_minimarket_pos_queue';
 const TOKEN_KEY = 'pymerp_minimarket_token';
-const USE_FIRESTORE = Boolean(import.meta.env.VITE_MINIMARKET_USE_FIRESTORE);
+const USE_FIRESTORE =
+  typeof import.meta.env.VITE_MINIMARKET_USE_FIRESTORE === 'string'
+    ? import.meta.env.VITE_MINIMARKET_USE_FIRESTORE === 'true'
+    : Boolean(import.meta.env.VITE_FIREBASE_PROJECT_ID);
 const FIRESTORE_COMPANY_ID = import.meta.env.VITE_MINIMARKET_COMPANY_ID || null;
+const FIRESTORE_COMPANY_SLUG = import.meta.env.VITE_MINIMARKET_COMPANY_SLUG || 'demo23';
 
 type Product = {
   id: string;
@@ -40,6 +46,9 @@ type Product = {
   price_local?: number | null;
   status?: 'ACTIVE' | 'INACTIVE';
   stock?: number;
+  image_url?: string;
+  brand?: string | null;
+  category?: string | null;
 };
 
 type StockInfo = {
@@ -83,7 +92,7 @@ type MovementResponse = {
   createdAt: string;
 };
 
-type View = 'home' | 'web' | 'pos' | 'dashboard' | 'inventory';
+type View = 'home' | 'web' | 'pos' | 'dashboard' | 'inventory' | 'supply' | 'supply-products' | 'supply-ingreso' | 'supply-inventario' | 'supply-documentos';
 
 type StatusMessage = { type: 'ok' | 'warn' | 'error'; text: string } | null;
 
@@ -94,6 +103,7 @@ export function App() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [companyProducts, setCompanyProducts] = useState<Product[]>([]);
   const [stockById, setStockById] = useState<Record<string, StockInfo>>({});
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
@@ -110,7 +120,12 @@ export function App() {
 
   const view = useMemo((): View => {
     if (pathname === '/minimarketerp' || pathname === '/minimarketerp/') return 'home';
-    if (pathname.includes('supply')) return 'inventory';
+    if (pathname === '/minimarketerp/supply' || pathname === '/minimarketerp/supply/') return 'supply';
+    if (pathname.includes('supply/products')) return 'supply-products';
+    if (pathname.includes('supply/ingreso')) return 'supply-ingreso';
+    if (pathname.includes('supply/inventario')) return 'supply-inventario';
+    if (pathname.includes('supply/documentos')) return 'supply-documentos';
+    if (pathname.includes('supply')) return 'supply';
     if (pathname.includes('pos')) return 'pos';
     if (pathname.includes('web-orders')) return 'web';
     return 'home';
@@ -150,9 +165,17 @@ export function App() {
     const load = async () => {
       try {
         if (useFirestore) {
-          const snapshot = await getDocs(
-            query(collection(db, 'products'), orderBy('name', 'asc'))
-          );
+          const session = getSession();
+          let companyId = session?.companyId ?? FIRESTORE_COMPANY_ID ?? null;
+          if (!companyId && FIRESTORE_COMPANY_SLUG) {
+            const idFromSlug = await getCompanyIdBySlug(FIRESTORE_COMPANY_SLUG);
+            companyId = idFromSlug;
+          }
+          const productsRef = collection(db, 'products');
+          const q = companyId
+            ? query(productsRef, where('company_id', '==', companyId))
+            : query(productsRef, orderBy('name', 'asc'));
+          const snapshot = await getDocs(q);
           const data: Product[] = snapshot.docs.map((docSnap) => {
             const raw = docSnap.data() as any;
             return {
@@ -173,13 +196,18 @@ export function App() {
               price_local: raw.price_local ?? raw.price ?? null,
               status: raw.status ?? 'ACTIVE',
               stock: raw.stock ?? 0,
+              image_url: raw.image_url ?? '',
+              brand: raw.brand ?? null,
+              category: raw.category ?? null,
             };
           });
           if (!active) return;
-          const scopedProducts = FIRESTORE_COMPANY_ID
-            ? data.filter((item) => item.companyId === FIRESTORE_COMPANY_ID)
-            : data;
+          const sorted = [...data].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+          const scopedProducts = companyId
+            ? sorted
+            : (FIRESTORE_COMPANY_ID ? sorted.filter((item) => item.companyId === FIRESTORE_COMPANY_ID) : sorted);
           const activeProducts = scopedProducts.filter((item) => item.active);
+          setCompanyProducts(scopedProducts);
           setAllProducts(activeProducts);
           setProducts(activeProducts.filter((item) => item.visibleWeb));
           const next: Record<string, StockInfo> = {};
@@ -193,31 +221,30 @@ export function App() {
             };
           });
           setStockById(next);
-          const companyId =
-            FIRESTORE_COMPANY_ID ?? activeProducts.find((p) => p.companyId)?.companyId ?? null;
-          setFirestoreCompanyId(companyId);
+          setFirestoreCompanyId(companyId ?? activeProducts.find((p) => p.companyId)?.companyId ?? null);
         } else {
           const response = await fetch(`${API_BASE}/api/products`);
+          if (!response.ok) {
+            if (active) setLoading(false);
+            return;
+          }
           const data: Product[] = await response.json();
           if (!active) return;
           const activeProducts = data.filter((item) => item.active);
+          setCompanyProducts(data);
           setAllProducts(activeProducts);
           setProducts(activeProducts.filter((item) => item.visibleWeb));
 
-          const stockEntries = await Promise.all(
-            activeProducts.map(async (product) => {
-              const stockResponse = await fetch(
-                `${API_BASE}/api/inventory/${product.id}/stock`
-              );
-              const stockData: StockInfo = await stockResponse.json();
-              return [product.id, stockData] as const;
-            })
-          );
-          if (!active) return;
           const next: Record<string, StockInfo> = {};
-          for (const [id, info] of stockEntries) {
-            next[id] = info;
-          }
+          activeProducts.forEach((product) => {
+            const qty = Number(product.stock ?? 0);
+            next[product.id] = {
+              productId: product.id,
+              stockOnHand: qty,
+              reserved: 0,
+              available: qty,
+            };
+          });
           setStockById(next);
         }
       } catch (error) {
@@ -230,7 +257,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [useFirestore]);
+  }, [useFirestore, pathname]);
 
   useEffect(() => {
     const s = getSession();
@@ -700,7 +727,8 @@ export function App() {
     }
   };
 
-  const requiresAuth = view === 'pos' || view === 'dashboard' || view === 'inventory' || view === 'web';
+  const requiresAuth = view === 'pos' || view === 'dashboard' || view === 'inventory' || view === 'web' ||
+    view === 'supply' || view === 'supply-products' || view === 'supply-ingreso' || view === 'supply-inventario' || view === 'supply-documentos';
   const authBlocked = requiresAuth && !token;
 
   const webStatusOptions = [
@@ -711,19 +739,14 @@ export function App() {
     { value: 'CANCELLED', label: 'Cancelado' },
   ] as const;
 
-  if (pathname === '/minimarketerp_login') {
-    return <LoginPage />;
-  }
-  if (pathname === '/' || pathname === '') {
-    return (
-      <Navigate
-        to={getSession() || getStoredToken() ? '/minimarketerp' : '/minimarketerp_login'}
-        replace
-      />
-    );
+  if (pathname === '/' || pathname === '' || pathname === '/minimarketerp_login') {
+    if (!getSession() && !getStoredToken()) {
+      return <LoginPage />;
+    }
+    return <Navigate to="/minimarketerp" replace />;
   }
   if (!getSession() && !getStoredToken()) {
-    return <Navigate to="/minimarketerp_login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -754,7 +777,7 @@ export function App() {
                   clearSession();
                   setToken(null);
                   setAuthInfo(null);
-                  navigate('/minimarketerp_login');
+                  navigate('/');
                 }}
               >
                 Cerrar sesión
@@ -764,7 +787,7 @@ export function App() {
             <button
               type="button"
               className="ghost"
-              onClick={() => navigate('/minimarketerp_login')}
+              onClick={() => navigate('/')}
             >
               Ir a acceso
             </button>
@@ -1078,20 +1101,84 @@ export function App() {
           </section>
         )}
 
-        {view === 'inventory' && (
+        {view === 'supply' && (
+          <SupplyHomePage />
+        )}
+
+        {view === 'supply-products' && (
           <section className="inventory">
             <div className="section-header">
               <div>
-                <h2>Abastecimiento</h2>
-                <p>Ingresos, documentos y movimientos de inventario.</p>
+                <h2>Lista de productos</h2>
+                <p>Productos creados en el panel (dashboard). Mismos datos que en /dashboard/products.</p>
               </div>
               <div className="section-actions">
-                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp')}>
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp/supply')}>
                   Volver
                 </button>
               </div>
             </div>
+            <div className="card">
+              {loading ? (
+                <p>Cargando productos...</p>
+              ) : companyProducts.length === 0 ? (
+                <p>No hay productos. Crea productos en el panel en http://localhost:4173/dashboard/products (misma cuenta/empresa).</p>
+              ) : (
+                <ul className="product-list supply-product-list">
+                  {companyProducts.map((product) => {
+                    const stock = stockById[product.id];
+                    const available = stock?.available ?? product.stock ?? 0;
+                    const priceLocal = Number(product.price_local ?? product.cost ?? product.price ?? 0);
+                    const priceWeb = Number(product.price_web ?? product.price ?? 0);
+                    return (
+                      <li key={product.id} className="supply-product-item">
+                        {product.image_url && (
+                          <div className="supply-product-img-wrap">
+                            <img src={product.image_url} alt="" className="supply-product-img" />
+                          </div>
+                        )}
+                        <div className="supply-product-main">
+                          <span className="supply-product-name">{product.name}</span>
+                          {(product.brand || product.category) && (
+                            <span className="supply-product-meta">
+                              {[product.brand, product.category].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                          {product.description && (
+                            <p className="supply-product-desc">{product.description}</p>
+                          )}
+                          <span className="supply-product-meta">
+                            {product.unit || 'unidad'} · {product.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                            {product.barcode ? ` · Cód: ${product.barcode}` : ''}
+                          </span>
+                        </div>
+                        <div className="supply-product-right">
+                          <span className="supply-product-stock">Stock: {available}</span>
+                          <span className="supply-product-price">Local: ${priceLocal.toFixed(0)}</span>
+                          <span className="supply-product-price">Web: ${priceWeb.toFixed(0)}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
 
+        {view === 'supply-ingreso' && (
+          <section className="inventory">
+            <div className="section-header">
+              <div>
+                <h2>Registrar Ingreso</h2>
+                <p>Registrar ingresos de compra con documento.</p>
+              </div>
+              <div className="section-actions">
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp/supply')}>
+                  Volver
+                </button>
+              </div>
+            </div>
             <div className="card">
               <h3>Ingreso de compra</h3>
               <div className="field">
@@ -1146,7 +1233,22 @@ export function App() {
                 <p className={`status ${purchaseMessage.type}`}>{purchaseMessage.text}</p>
               )}
             </div>
+          </section>
+        )}
 
+        {view === 'supply-inventario' && (
+          <section className="inventory">
+            <div className="section-header">
+              <div>
+                <h2>Inventario (+/-)</h2>
+                <p>Ajustes de inventario: merma, vencimiento, descuento.</p>
+              </div>
+              <div className="section-actions">
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp/supply')}>
+                  Volver
+                </button>
+              </div>
+            </div>
             <div className="card">
               <h3>Descuento de inventario</h3>
               <div className="field">
@@ -1194,7 +1296,22 @@ export function App() {
                 <p className={`status ${adjustMessage.type}`}>{adjustMessage.text}</p>
               )}
             </div>
+          </section>
+        )}
 
+        {view === 'supply-documentos' && (
+          <section className="inventory">
+            <div className="section-header">
+              <div>
+                <h2>Documentos</h2>
+                <p>Historial de ingresos y documento exportable.</p>
+              </div>
+              <div className="section-actions">
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp/supply')}>
+                  Volver
+                </button>
+              </div>
+            </div>
             <div className="card">
               <h3>Historial de ingresos</h3>
               <div className="field">
@@ -1208,7 +1325,7 @@ export function App() {
                   ))}
                 </select>
               </div>
-              <button className="secondary" onClick={loadMovements} disabled={!token}>
+              <button type="button" className="secondary" onClick={loadMovements} disabled={!token}>
                 Cargar historial
               </button>
               {movementMessage && (
@@ -1221,7 +1338,7 @@ export function App() {
                   </li>
                 ))}
               </ul>
-              <button className="ghost">Documento exportable</button>
+              <button type="button" className="ghost">Documento exportable</button>
             </div>
           </section>
         )}

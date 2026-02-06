@@ -414,11 +414,12 @@ export const getMinimarketAccessAccounts = async (
 ): Promise<MinimarketAccessAccount[]> => {
   const q = query(
     collection(db, MINIMARKET_ACCESS_COLLECTION),
-    where('company_id', '==', companyId),
-    orderBy('created_at', 'desc')
+    where('company_id', '==', companyId)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(toAccessAccount);
+  const accounts = snapshot.docs.map(toAccessAccount);
+  accounts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return accounts;
 };
 
 export const getMinimarketAccessAccount = async (
@@ -436,13 +437,12 @@ export const getMinimarketAccessAccountByEmail = async (
 ): Promise<MinimarketAccessAccount | null> => {
   const q = query(
     collection(db, MINIMARKET_ACCESS_COLLECTION),
-    where('company_id', '==', companyId),
-    where('email', '==', email.trim().toLowerCase()),
-    limit(1)
+    where('company_id', '==', companyId)
   );
   const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return toAccessAccount(snapshot.docs[0]);
+  const normalized = email.trim().toLowerCase();
+  const doc = snapshot.docs.find((d) => (d.data().email as string)?.toLowerCase() === normalized);
+  return doc ? toAccessAccount(doc) : null;
 };
 
 export const createMinimarketAccessAccount = async (

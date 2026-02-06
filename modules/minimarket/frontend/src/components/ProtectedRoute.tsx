@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const isLoggedIn = Boolean(session || token);
 
   if (!isLoggedIn) {
-    return <Navigate to="/minimarketerp_login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

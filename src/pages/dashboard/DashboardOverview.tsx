@@ -444,12 +444,6 @@ export default function DashboardOverview() {
             >
               👥 Cuentas de acceso
             </Link>
-            <Link
-              to="/dashboard/minimarket-access"
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors inline-flex items-center gap-2"
-            >
-              🔐 Gestión de accesos
-            </Link>
           </div>
         </div>
 

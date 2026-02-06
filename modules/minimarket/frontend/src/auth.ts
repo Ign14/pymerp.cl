@@ -65,15 +65,15 @@ export async function loginWithFirestore(
   email: string,
   password: string
 ): Promise<MinimarketSession | null> {
+  const normalized = email.trim().toLowerCase();
   const q = query(
     collection(db, 'minimarket_access_accounts'),
-    where('email', '==', email.trim().toLowerCase()),
-    where('status', '==', 'ACTIVE'),
-    limit(1)
+    where('email', '==', normalized),
+    limit(5)
   );
   const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  const docSnap = snapshot.docs[0];
+  const docSnap = snapshot.docs.find((d) => (d.data().status as string) === 'ACTIVE');
+  if (!docSnap) return null;
   const d = docSnap.data();
   const storedHash = d.password_hash as string | undefined;
   if (!storedHash) return null;
