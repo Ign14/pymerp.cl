@@ -31,8 +31,11 @@ import type {
   PublicPageEvent,
   BusinessType,
   PublicCompany,
+  MinimarketAccessAccount,
 } from '../types';
 import { AccessRequestStatus, EventType, UserStatus, UserRole } from '../types';
+
+const MINIMARKET_ACCESS_COLLECTION = 'minimarket_access_accounts';
 
 // Users
 export const getUser = async (userId: string): Promise<User | null> => {
@@ -386,6 +389,105 @@ export const updateProduct = async (productId: string, updates: Partial<Product>
 
 export const deleteProduct = async (productId: string): Promise<void> => {
   await deleteDoc(doc(db, 'products', productId));
+};
+
+// Minimarket access accounts (por company_id)
+function toAccessAccount(
+  docSnap: { id: string; data: () => Record<string, unknown> }
+): MinimarketAccessAccount {
+  const d = docSnap.data();
+  const created = d.created_at as { toDate?: () => Date } | undefined;
+  const updated = d.updated_at as { toDate?: () => Date } | undefined;
+  return {
+    id: docSnap.id,
+    companyId: (d.company_id as string | undefined) ?? '',
+    email: (d.email as string | undefined) ?? '',
+    role: (d.role as MinimarketAccessAccount['role'] | undefined) ?? 'STAFF',
+    status: (d.status as MinimarketAccessAccount['status']) ?? 'ACTIVE',
+    createdAt: created?.toDate?.() ?? new Date(),
+    updatedAt: updated?.toDate?.() ?? new Date(),
+  };
+}
+
+export const getMinimarketAccessAccounts = async (
+  companyId: string
+): Promise<MinimarketAccessAccount[]> => {
+  const q = query(
+    collection(db, MINIMARKET_ACCESS_COLLECTION),
+    where('company_id', '==', companyId),
+    orderBy('created_at', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(toAccessAccount);
+};
+
+export const getMinimarketAccessAccount = async (
+  id: string
+): Promise<MinimarketAccessAccount | null> => {
+  const ref = doc(db, MINIMARKET_ACCESS_COLLECTION, id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return toAccessAccount(snap);
+};
+
+export const getMinimarketAccessAccountByEmail = async (
+  companyId: string,
+  email: string
+): Promise<MinimarketAccessAccount | null> => {
+  const q = query(
+    collection(db, MINIMARKET_ACCESS_COLLECTION),
+    where('company_id', '==', companyId),
+    where('email', '==', email.trim().toLowerCase()),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return toAccessAccount(snapshot.docs[0]);
+};
+
+export const createMinimarketAccessAccount = async (
+  companyId: string,
+  data: {
+    email: string;
+    passwordHash: string;
+    role: MinimarketAccessAccount['role'];
+    status: MinimarketAccessAccount['status'];
+  }
+): Promise<string> => {
+  const ref = await addDoc(collection(db, MINIMARKET_ACCESS_COLLECTION), {
+    company_id: companyId,
+    email: data.email.trim().toLowerCase(),
+    password_hash: data.passwordHash,
+    role: data.role,
+    status: data.status,
+    created_at: Timestamp.now(),
+    updated_at: Timestamp.now(),
+  });
+  return ref.id;
+};
+
+export const updateMinimarketAccessAccount = async (
+  id: string,
+  updates: {
+    email?: string;
+    passwordHash?: string;
+    role?: MinimarketAccessAccount['role'];
+    status?: MinimarketAccessAccount['status'];
+  }
+): Promise<void> => {
+  const ref = doc(db, MINIMARKET_ACCESS_COLLECTION, id);
+  const payload: Record<string, unknown> = {
+    updated_at: Timestamp.now(),
+  };
+  if (updates.email !== undefined) payload.email = updates.email.trim().toLowerCase();
+  if (updates.passwordHash !== undefined) payload.password_hash = updates.passwordHash;
+  if (updates.role !== undefined) payload.role = updates.role;
+  if (updates.status !== undefined) payload.status = updates.status;
+  await updateDoc(ref, payload);
+};
+
+export const deleteMinimarketAccessAccount = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, MINIMARKET_ACCESS_COLLECTION, id));
 };
 
 // Appointment Requests

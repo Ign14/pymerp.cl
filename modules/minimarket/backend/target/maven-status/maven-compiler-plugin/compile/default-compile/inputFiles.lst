@@ -17,6 +17,9 @@ C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\ba
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\ProductResponse.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\PurchaseRequest.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\StockResponse.java
+C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\UserController.java
+C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\UserRequest.java
+C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\UserResponse.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\WebOrderController.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\WebOrderItemRequest.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\api\WebOrderItemResponse.java
@@ -62,4 +65,5 @@ C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\ba
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\service\InventoryService.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\service\LocalSaleService.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\service\ProductService.java
+C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\service\UserService.java
 C:\Users\ignac\Documents\Centro de modelacion xd\AGENDAWEB\modules\minimarket\backend\src\main\java\cl\pymerp\minimarket\service\WebOrderService.java

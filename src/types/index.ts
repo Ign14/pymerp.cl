@@ -361,9 +361,17 @@ export interface Product {
   id: string;
   company_id: string;
   name: string;
+  brand?: string;
+  model?: string;
+  detail?: string;
   description: string;
+  barcode?: string;
+  format?: string;
+  category?: string;
   image_url: string;
   price: number;
+  price_web?: number;
+  price_local?: number;
   weight?: number;
   kcal?: number;
   tags?: string[];
@@ -642,6 +650,22 @@ export interface ClinicResource {
   status?: 'ACTIVE' | 'INACTIVE';
   created_at: Date;
   updated_at: Date;
+}
+
+/** Cuenta de acceso a la app Minimarket (operadores), por company_id */
+export type MinimarketAccessRole = 'ADMIN' | 'STAFF';
+export type MinimarketAccessStatus = 'ACTIVE' | 'INACTIVE';
+
+export interface MinimarketAccessAccount {
+  id: string;
+  companyId: string;
+  email: string;
+  /** Solo hash; nunca se expone ni se persiste en plano */
+  passwordHash?: string;
+  role: MinimarketAccessRole;
+  status: MinimarketAccessStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Lead {

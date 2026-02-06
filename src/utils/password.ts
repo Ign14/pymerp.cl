@@ -22,3 +22,14 @@ export const generateRandomPassword = (length: number = 12): string => {
   return password;
 };
 
+const MINIMARKET_HASH_SALT = 'pymerp_minimarket_access_v1';
+
+/** Hash para cuentas de acceso Minimarket; no persistir contraseña en plano. */
+export async function hashForMinimarketAccess(password: string): Promise<string> {
+  const data = new TextEncoder().encode(MINIMARKET_HASH_SALT + password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+

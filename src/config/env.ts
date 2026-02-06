@@ -19,7 +19,10 @@ type EnvKeys =
   | 'VITE_SENTRY_DSN'
   | 'VITE_E2E_USER'
   | 'VITE_PUBLIC_BASE_URL'
-  | 'VITE_MINIMARKET_APP_URL';
+  | 'VITE_MINIMARKET_APP_URL'
+  | 'VITE_MINIMARKET_API_URL'
+  | 'VITE_MINIMARKET_ADMIN_EMAIL'
+  | 'VITE_MINIMARKET_ADMIN_PASSWORD';
 
 const rawEnv = import.meta.env as unknown as Partial<Record<EnvKeys, string>>;
 
@@ -103,5 +106,17 @@ export const env = {
   minimarketAppUrl: getEnvVar('VITE_MINIMARKET_APP_URL', {
     required: false,
     fallback: 'http://localhost:5176',
+  }),
+  minimarketApiUrl: getEnvVar('VITE_MINIMARKET_API_URL', {
+    required: false,
+    fallback: 'http://localhost:8088',
+  }),
+  minimarketAdminEmail: getEnvVar('VITE_MINIMARKET_ADMIN_EMAIL', {
+    required: false,
+    fallback: 'admin@minimarket.cl',
+  }),
+  minimarketAdminPassword: getEnvVar('VITE_MINIMARKET_ADMIN_PASSWORD', {
+    required: false,
+    fallback: 'admin123',
   }),
 };

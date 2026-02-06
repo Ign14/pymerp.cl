@@ -86,7 +86,10 @@ export default function ProductsList() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product, idx) => (
+          {products.map((product, idx) => {
+            const webPrice = product.price_web ?? product.price;
+            const localPrice = product.price_local ?? product.price;
+            return (
             <AnimatedCard 
               key={product.id} 
               delay={idx * 0.1}
@@ -109,11 +112,20 @@ export default function ProductsList() {
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
                 <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
+                {product.category && (
+                  <p className="text-xs text-gray-500 mb-2">Categoría: {product.category}</p>
+                )}
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-xl font-bold text-blue-600">${product.price.toLocaleString()}</span>
-                  {product.weight && (
-                    <span className="text-sm text-gray-500">{product.weight}g</span>
-                  )}
+                  <span className="text-xl font-bold text-blue-600">
+                    ${Number(webPrice || 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-gray-500">Web</span>
+                </div>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-base font-semibold text-slate-700">
+                    ${Number(localPrice || 0).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-gray-500">Local</span>
                 </div>
                 <div className="mb-3 flex items-center gap-2">
                   <input
@@ -167,7 +179,7 @@ export default function ProductsList() {
                 </div>
               </div>
             </AnimatedCard>
-          ))}
+          )})}
           
           {products.length === 0 && (
             <div className="col-span-full text-center py-12 text-gray-500">

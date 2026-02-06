@@ -1,8 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import {
+  addDoc,
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  doc,
+  where,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { getSession, getStoredToken, clearSession } from './auth';
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
 
 const API_BASE = import.meta.env.VITE_MINIMARKET_API || 'http://localhost:8088';
 const POS_QUEUE_KEY = 'pymerp_minimarket_pos_queue';
 const TOKEN_KEY = 'pymerp_minimarket_token';
+const USE_FIRESTORE = Boolean(import.meta.env.VITE_MINIMARKET_USE_FIRESTORE);
+const FIRESTORE_COMPANY_ID = import.meta.env.VITE_MINIMARKET_COMPANY_ID || null;
 
 type Product = {
   id: string;
@@ -17,6 +35,11 @@ type Product = {
   visibleWeb: boolean;
   active: boolean;
   lowStockThreshold: number;
+  companyId?: string | null;
+  price_web?: number | null;
+  price_local?: number | null;
+  status?: 'ACTIVE' | 'INACTIVE';
+  stock?: number;
 };
 
 type StockInfo = {
@@ -60,17 +83,20 @@ type MovementResponse = {
   createdAt: string;
 };
 
-type View = 'vitrina' | 'pos' | 'dashboard' | 'inventory';
+type View = 'home' | 'web' | 'pos' | 'dashboard' | 'inventory';
 
 type StatusMessage = { type: 'ok' | 'warn' | 'error'; text: string } | null;
 
 export function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pathname = location.pathname;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [stockById, setStockById] = useState<Record<string, StockInfo>>({});
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
-  const [view, setView] = useState<View>('vitrina');
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
@@ -79,11 +105,16 @@ export function App() {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'DEBIT' | 'TRANSFER'>('CASH');
   const [posMessage, setPosMessage] = useState<StatusMessage>(null);
 
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
-  const [authEmail, setAuthEmail] = useState('admin@minimarket.cl');
-  const [authPassword, setAuthPassword] = useState('admin123');
-  const [authMessage, setAuthMessage] = useState<StatusMessage>(null);
+
+  const view = useMemo((): View => {
+    if (pathname === '/minimarketerp' || pathname === '/minimarketerp/') return 'home';
+    if (pathname.includes('supply')) return 'inventory';
+    if (pathname.includes('pos')) return 'pos';
+    if (pathname.includes('web-orders')) return 'web';
+    return 'home';
+  }, [pathname]);
 
   const [orderName, setOrderName] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
@@ -107,32 +138,88 @@ export function App() {
   const [movements, setMovements] = useState<MovementResponse[]>([]);
   const [movementMessage, setMovementMessage] = useState<StatusMessage>(null);
 
+  const [posDiscount, setPosDiscount] = useState(0);
+  const [webOrders, setWebOrders] = useState<any[]>([]);
+  const [webOrdersLoading, setWebOrdersLoading] = useState(false);
+
+  const useFirestore = USE_FIRESTORE;
+  const [firestoreCompanyId, setFirestoreCompanyId] = useState<string | null>(null);
+
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/products`);
-        const data: Product[] = await response.json();
-        if (!active) return;
-        const activeProducts = data.filter((item) => item.active);
-        setAllProducts(activeProducts);
-        setProducts(activeProducts.filter((item) => item.visibleWeb));
+        if (useFirestore) {
+          const snapshot = await getDocs(
+            query(collection(db, 'products'), orderBy('name', 'asc'))
+          );
+          const data: Product[] = snapshot.docs.map((docSnap) => {
+            const raw = docSnap.data() as any;
+            return {
+              id: docSnap.id,
+              categoryId: raw.menuCategoryId ?? null,
+              sku: raw.sku ?? null,
+              barcode: raw.barcode ?? null,
+              name: raw.name,
+              description: raw.description ?? null,
+              unit: raw.format || 'unidad',
+              price: Number(raw.price_web ?? raw.price ?? 0),
+              cost: Number(raw.price_local ?? raw.price ?? 0),
+              visibleWeb: raw.status !== 'INACTIVE',
+              active: raw.status !== 'INACTIVE',
+              lowStockThreshold: raw.low_stock_threshold ?? 5,
+              companyId: raw.company_id ?? null,
+              price_web: raw.price_web ?? raw.price ?? null,
+              price_local: raw.price_local ?? raw.price ?? null,
+              status: raw.status ?? 'ACTIVE',
+              stock: raw.stock ?? 0,
+            };
+          });
+          if (!active) return;
+          const scopedProducts = FIRESTORE_COMPANY_ID
+            ? data.filter((item) => item.companyId === FIRESTORE_COMPANY_ID)
+            : data;
+          const activeProducts = scopedProducts.filter((item) => item.active);
+          setAllProducts(activeProducts);
+          setProducts(activeProducts.filter((item) => item.visibleWeb));
+          const next: Record<string, StockInfo> = {};
+          activeProducts.forEach((product) => {
+            const stockValue = Number(product.stock ?? 0);
+            next[product.id] = {
+              productId: product.id,
+              stockOnHand: stockValue,
+              reserved: 0,
+              available: stockValue,
+            };
+          });
+          setStockById(next);
+          const companyId =
+            FIRESTORE_COMPANY_ID ?? activeProducts.find((p) => p.companyId)?.companyId ?? null;
+          setFirestoreCompanyId(companyId);
+        } else {
+          const response = await fetch(`${API_BASE}/api/products`);
+          const data: Product[] = await response.json();
+          if (!active) return;
+          const activeProducts = data.filter((item) => item.active);
+          setAllProducts(activeProducts);
+          setProducts(activeProducts.filter((item) => item.visibleWeb));
 
-        const stockEntries = await Promise.all(
-          activeProducts.map(async (product) => {
-            const stockResponse = await fetch(
-              `${API_BASE}/api/inventory/${product.id}/stock`
-            );
-            const stockData: StockInfo = await stockResponse.json();
-            return [product.id, stockData] as const;
-          })
-        );
-        if (!active) return;
-        const next: Record<string, StockInfo> = {};
-        for (const [id, info] of stockEntries) {
-          next[id] = info;
+          const stockEntries = await Promise.all(
+            activeProducts.map(async (product) => {
+              const stockResponse = await fetch(
+                `${API_BASE}/api/inventory/${product.id}/stock`
+              );
+              const stockData: StockInfo = await stockResponse.json();
+              return [product.id, stockData] as const;
+            })
+          );
+          if (!active) return;
+          const next: Record<string, StockInfo> = {};
+          for (const [id, info] of stockEntries) {
+            next[id] = info;
+          }
+          setStockById(next);
         }
-        setStockById(next);
       } catch (error) {
         console.error('Error loading catalog', error);
       } finally {
@@ -143,10 +230,17 @@ export function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [useFirestore]);
 
   useEffect(() => {
-    if (!token) {
+    const s = getSession();
+    if (s) {
+      setAuthInfo({ userId: s.userId, fullName: s.fullName, role: s.role });
+      return;
+    }
+    const t = getStoredToken();
+    setToken(t);
+    if (!t) {
       setAuthInfo(null);
       return;
     }
@@ -156,12 +250,12 @@ export function App() {
         if (!response.ok) throw new Error('auth');
         const data = await response.json();
         setAuthInfo(data);
-      } catch (error) {
+      } catch {
         setAuthInfo(null);
       }
     };
     loadMe();
-  }, [token]);
+  }, [pathname]);
 
   const loadDashboard = async (activeRef?: { current: boolean }) => {
     setDashboardLoading(true);
@@ -185,6 +279,53 @@ export function App() {
     };
   }, [view]);
 
+  const loadWebOrders = async (activeRef?: { current: boolean }) => {
+    if (useFirestore) {
+      setWebOrdersLoading(true);
+      try {
+        const constraints = [];
+        if (firestoreCompanyId) {
+          constraints.push(where('company_id', '==', firestoreCompanyId));
+        }
+        constraints.push(orderBy('created_at', 'desc'));
+        const snapshot = await getDocs(
+          query(collection(db, 'productOrderRequests'), ...constraints)
+        );
+        const data = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+        if (!activeRef || activeRef.current) setWebOrders(data);
+      } catch {
+        if (!activeRef || activeRef.current) setWebOrders([]);
+      } finally {
+        if (!activeRef || activeRef.current) setWebOrdersLoading(false);
+      }
+      return;
+    }
+    if (!token) return;
+    setWebOrdersLoading(true);
+    try {
+      const response = await apiFetch(`${API_BASE}/api/web-orders`);
+      if (!response.ok) throw new Error('orders');
+      const data = await response.json();
+      if (!activeRef || activeRef.current) setWebOrders(data);
+    } catch {
+      if (!activeRef || activeRef.current) setWebOrders([]);
+    } finally {
+      if (!activeRef || activeRef.current) setWebOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (view !== 'web') return;
+    const active = { current: true };
+    loadWebOrders(active);
+    return () => {
+      active.current = false;
+    };
+  }, [view, token]);
+
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const cartTotal = cartItems.reduce(
     (sum, item) => sum + item.quantity * item.product.price,
@@ -192,10 +333,13 @@ export function App() {
   );
 
   const posItems = useMemo(() => Object.values(posCart), [posCart]);
+  const getLocalPrice = (product: Product) =>
+    Number(product.price_local ?? product.cost ?? product.price ?? 0);
   const posTotal = posItems.reduce(
-    (sum, item) => sum + item.quantity * item.product.price,
+    (sum, item) => sum + item.quantity * getLocalPrice(item.product),
     0
   );
+  const posTotalWithDiscount = Math.max(0, posTotal - posDiscount);
 
   const updateQuantity = (product: Product, delta: number) => {
     const stock = stockById[product.id];
@@ -233,6 +377,36 @@ export function App() {
     });
   };
 
+  const applyStockDelta = async (productId: string, delta: number) => {
+    const target = allProducts.find((item) => item.id === productId);
+    if (!target) return;
+    const nextStock = Math.max(0, Number(target.stock ?? 0) + delta);
+    try {
+      await updateDoc(doc(db, 'products', productId), { stock: nextStock });
+      setAllProducts((current) =>
+        current.map((item) =>
+          item.id === productId ? { ...item, stock: nextStock } : item
+        )
+      );
+      setProducts((current) =>
+        current.map((item) =>
+          item.id === productId ? { ...item, stock: nextStock } : item
+        )
+      );
+      setStockById((current) => ({
+        ...current,
+        [productId]: {
+          productId,
+          stockOnHand: nextStock,
+          reserved: 0,
+          available: nextStock,
+        },
+      }));
+    } catch (error) {
+      console.error('Error updating stock', error);
+    }
+  };
+
   const canAdd = (product: Product, target: Record<string, CartItem>) => {
     const stock = stockById[product.id];
     if (!stock) return false;
@@ -261,6 +435,31 @@ export function App() {
 
   const submitPosSale = async () => {
     if (posItems.length === 0) return;
+    if (useFirestore) {
+      try {
+        const itemsPayload = posItems.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: getLocalPrice(item.product),
+        }));
+        await addDoc(collection(db, 'minimarketLocalSales'), {
+          company_id: firestoreCompanyId ?? null,
+          method: paymentMethod,
+          items: itemsPayload,
+          total: posTotalWithDiscount,
+          created_at: Timestamp.now(),
+        });
+        for (const item of posItems) {
+          await applyStockDelta(item.product.id, -item.quantity);
+        }
+        setPosMessage({ type: 'ok', text: 'Venta registrada en Firestore.' });
+        setPosCart({});
+        setPosDiscount(0);
+      } catch {
+        setPosMessage({ type: 'error', text: 'No se pudo registrar la venta.' });
+      }
+      return;
+    }
     const payload: PosSaleRequest = {
       method: paymentMethod,
       items: posItems.map((item) => ({
@@ -281,6 +480,7 @@ export function App() {
       const data = await response.json();
       setPosMessage({ type: 'ok', text: `Venta confirmada. Comprobante: ${data.receiptUrl}` });
       setPosCart({});
+      setPosDiscount(0);
     } catch (error) {
       const queue = loadQueue();
       queue.push(payload);
@@ -323,6 +523,34 @@ export function App() {
       setOrderMessage({ type: 'warn', text: 'Nombre y telefono son obligatorios.' });
       return;
     }
+    if (useFirestore) {
+      try {
+        const itemsPayload = cartItems.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+        }));
+        const total = cartItems.reduce(
+          (sum, item) => sum + item.quantity * item.product.price,
+          0
+        );
+        const docRef = await addDoc(collection(db, 'productOrderRequests'), {
+          company_id: firestoreCompanyId ?? null,
+          items: itemsPayload,
+          total_estimated: total,
+          client_name: orderName,
+          client_whatsapp: orderPhone,
+          client_email: orderEmail || undefined,
+          created_at: Timestamp.now(),
+          status: 'REQUESTED',
+        });
+        setOrderMessage({ type: 'ok', text: `Pedido creado: ${docRef.id}` });
+        setCart({});
+      } catch {
+        setOrderMessage({ type: 'error', text: 'No se pudo crear el pedido.' });
+      }
+      return;
+    }
     try {
       const response = await fetch(`${API_BASE}/api/web-orders`, {
         method: 'POST',
@@ -351,6 +579,25 @@ export function App() {
       setPurchaseMessage({ type: 'warn', text: 'Completa producto, cantidad y documento.' });
       return;
     }
+    if (useFirestore) {
+      try {
+        await applyStockDelta(purchaseProduct, purchaseQty);
+        await addDoc(collection(db, 'inventoryMovements'), {
+          product_id: purchaseProduct,
+          type: 'IN',
+          reason: 'compra',
+          quantity: purchaseQty,
+          document_type: purchaseDocType,
+          document_number: purchaseDocNumber,
+          notes: purchaseNotes || undefined,
+          created_at: Timestamp.now(),
+        });
+        setPurchaseMessage({ type: 'ok', text: 'Ingreso registrado.' });
+      } catch {
+        setPurchaseMessage({ type: 'error', text: 'No se pudo registrar el ingreso.' });
+      }
+      return;
+    }
     try {
       const response = await apiFetch(`${API_BASE}/api/inventory/purchase`, {
         method: 'POST',
@@ -373,6 +620,23 @@ export function App() {
   const submitAdjustment = async () => {
     if (!adjustProduct || adjustQty === 0) {
       setAdjustMessage({ type: 'warn', text: 'Completa producto y cantidad distinta de 0.' });
+      return;
+    }
+    if (useFirestore) {
+      try {
+        await applyStockDelta(adjustProduct, adjustQty);
+        await addDoc(collection(db, 'inventoryMovements'), {
+          product_id: adjustProduct,
+          type: 'ADJUST',
+          reason: adjustReason,
+          quantity: adjustQty,
+          notes: adjustNotes || undefined,
+          created_at: Timestamp.now(),
+        });
+        setAdjustMessage({ type: 'ok', text: 'Ajuste registrado.' });
+      } catch {
+        setAdjustMessage({ type: 'error', text: 'No se pudo registrar el ajuste.' });
+      }
       return;
     }
     try {
@@ -398,6 +662,31 @@ export function App() {
       setMovementMessage({ type: 'warn', text: 'Selecciona un producto.' });
       return;
     }
+    if (useFirestore) {
+      try {
+        const snapshot = await getDocs(
+          query(
+            collection(db, 'inventoryMovements'),
+            orderBy('created_at', 'desc')
+          )
+        );
+        const data = snapshot.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((item: any) => item.product_id === movementProduct)
+          .map((item: any) => ({
+            id: item.id,
+            type: item.type,
+            reason: item.reason,
+            quantity: item.quantity,
+            createdAt: item.created_at?.toDate?.().toISOString?.() ?? String(item.created_at),
+          }));
+        setMovements(data);
+        setMovementMessage(null);
+      } catch {
+        setMovementMessage({ type: 'error', text: 'No se pudo cargar el historial.' });
+      }
+      return;
+    }
     try {
       const response = await apiFetch(
         `${API_BASE}/api/inventory/${movementProduct}/movements`
@@ -411,245 +700,293 @@ export function App() {
     }
   };
 
-  const requiresAuth = view === 'pos' || view === 'dashboard' || view === 'inventory';
+  const requiresAuth = view === 'pos' || view === 'dashboard' || view === 'inventory' || view === 'web';
   const authBlocked = requiresAuth && !token;
+
+  const webStatusOptions = [
+    { value: 'REQUESTED', label: 'Solicitado' },
+    { value: 'RECEIVED', label: 'Recibido' },
+    { value: 'RESERVED', label: 'Reservado' },
+    { value: 'PAID', label: 'Pagado' },
+    { value: 'CANCELLED', label: 'Cancelado' },
+  ] as const;
+
+  if (pathname === '/minimarketerp_login') {
+    return <LoginPage />;
+  }
+  if (pathname === '/' || pathname === '') {
+    return (
+      <Navigate
+        to={getSession() || getStoredToken() ? '/minimarketerp' : '/minimarketerp_login'}
+        replace
+      />
+    );
+  }
+  if (!getSession() && !getStoredToken()) {
+    return <Navigate to="/minimarketerp_login" replace />;
+  }
 
   return (
     <div className="page">
-      <header className="hero">
-        <div className="hero-left">
-          <div className="title-block">
-            <p className="kicker">Minimarket</p>
-            <h1>PyM-ERP Minimarket</h1>
-            <p className="subtitle">
-              Stock real y disponibilidad inmediata. Un solo stock para web y tienda.
-            </p>
-          </div>
-          <div className="auth">
-            {authInfo ? (
-              <div className="auth-info">
-                <span>{authInfo.fullName}</span>
-                <span className="badge ok">{authInfo.role}</span>
-                <button
-                  className="ghost"
-                  onClick={() => {
-                    localStorage.removeItem(TOKEN_KEY);
-                    setToken(null);
-                    setAuthInfo(null);
-                  }}
-                >
-                  Salir
-                </button>
-              </div>
-            ) : (
-              <form
-                className="auth-form"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  try {
-                    const response = await fetch(`${API_BASE}/api/auth/login`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ email: authEmail, password: authPassword })
-                    });
-                    if (!response.ok) throw new Error('login');
-                    const data = await response.json();
-                    localStorage.setItem(TOKEN_KEY, data.token);
-                    setToken(data.token);
-                    setAuthMessage(null);
-                  } catch {
-                    setAuthMessage({ type: 'error', text: 'Credenciales invalidas' });
-                  }
+      <header className="topbar">
+        <div className="brand">
+          <Link
+            to="/minimarketerp"
+            className="brand-link"
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            <div>
+              <p className="kicker">Minimarket ERP</p>
+              <h1>Operación diaria</h1>
+            </div>
+          </Link>
+          <p className="subtitle">Inventario, ventas y pedidos web en un solo panel.</p>
+        </div>
+        <div className="top-actions">
+          {authInfo ? (
+            <div className="auth-info">
+              <span>{authInfo.fullName}</span>
+              <span className="badge ok">{authInfo.role}</span>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  clearSession();
+                  setToken(null);
+                  setAuthInfo(null);
+                  navigate('/minimarketerp_login');
                 }}
               >
-                <input
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="Email"
-                />
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(event) => setAuthPassword(event.target.value)}
-                  placeholder="Password"
-                />
-                <button className="ghost" type="submit">
-                  Entrar
-                </button>
-                {authMessage && (
-                  <span className={`status ${authMessage.type}`}>{authMessage.text}</span>
-                )}
-              </form>
-            )}
-          </div>
-          <div className="tabs">
+                Cerrar sesión
+              </button>
+            </div>
+          ) : (
             <button
-              className={view === 'vitrina' ? 'tab active' : 'tab'}
-              onClick={() => setView('vitrina')}
+              type="button"
+              className="ghost"
+              onClick={() => navigate('/minimarketerp_login')}
             >
-              Vitrina
+              Ir a acceso
             </button>
-            <button
-              className={view === 'pos' ? 'tab active' : 'tab'}
-              onClick={() => setView('pos')}
-            >
-              POS
-            </button>
-            <button
-              className={view === 'inventory' ? 'tab active' : 'tab'}
-              onClick={() => setView('inventory')}
-            >
-              Inventario
-            </button>
-            <button
-              className={view === 'dashboard' ? 'tab active' : 'tab'}
-              onClick={() => setView('dashboard')}
-            >
-              Dashboard
-            </button>
-          </div>
-          {authBlocked && (
-            <p className="status warn">Inicia sesion para acceder a esta seccion.</p>
           )}
         </div>
-        {view === 'vitrina' ? (
-          <div className="summary">
-            <p className="summary-title">Carrito</p>
-            <p className="summary-count">{cartItems.length} items</p>
-            <p className="summary-total">${cartTotal.toFixed(0)}</p>
-            <button className="primary" disabled={cartItems.length === 0}>
-              Confirmar pedido
-            </button>
-            <p className="hint">No se permite sobreventa.</p>
-          </div>
-        ) : view === 'pos' ? (
-          <div className="summary">
-            <p className="summary-title">POS activo</p>
-            <p className="summary-count">{posItems.length} productos</p>
-            <p className="summary-total">${posTotal.toFixed(0)}</p>
-            <button
-              className="primary"
-              onClick={submitPosSale}
-              disabled={posItems.length === 0 || !token}
-            >
-              Confirmar venta
-            </button>
-            <button className="secondary" onClick={retryQueue}>
-              Reintentar cola
-            </button>
-            <p className="hint">Modo offline basico con cola local.</p>
-          </div>
-        ) : view === 'inventory' ? (
-          <div className="summary">
-            <p className="summary-title">Inventario</p>
-            <p className="summary-count">Ingreso y ajustes</p>
-            <p className="summary-total">{allProducts.length} productos</p>
-            <button className="secondary" onClick={() => loadMovements()}>
-              Ver movimientos
-            </button>
-            <p className="hint">Requiere autenticacion.</p>
-          </div>
-        ) : (
-          <div className="summary">
-            <p className="summary-title">Operacion diaria</p>
-            <p className="summary-count">Indicadores clave</p>
-            <p className="summary-total">
-              {dashboard?.salesTodayTotal?.toFixed(0) ?? '--'} CLP
-            </p>
-            <button className="secondary" onClick={() => loadDashboard()}>
-              Refrescar
-            </button>
-            <p className="hint">Vista rapida para el dueno.</p>
-          </div>
-        )}
       </header>
 
+      {authBlocked && (
+        <div className="status warn">Inicia sesión para acceder a esta sección.</div>
+      )}
+
       <main className="content">
-        {loading ? (
-          <div className="card">Cargando productos...</div>
-        ) : products.length === 0 ? (
-          <div className="card">No hay productos disponibles.</div>
-        ) : view === 'vitrina' ? (
-          <div className="grid">
-            {products.map((product) => {
-              const stock = stockById[product.id];
-              const available = stock?.available ?? 0;
-              const lowStock = stock && available > 0 && available <= product.lowStockThreshold;
-              const outOfStock = !stock || available <= 0;
-              return (
-                <article key={product.id} className="card product">
-                  <div className="product-header">
-                    <h3>{product.name}</h3>
-                    <span className="price">${product.price.toFixed(0)}</span>
-                  </div>
-                  <p className="description">{product.description || 'Sin descripcion'}</p>
+        {view === 'home' && (
+          <section className="home-section">
+            <HomePage />
+          </section>
+        )}
 
-                  <div className="badges">
-                    {outOfStock ? (
-                      <span className="badge danger">No disponible</span>
-                    ) : lowStock ? (
-                      <span className="badge warning">Stock bajo ({available})</span>
-                    ) : (
-                      <span className="badge ok">Disponible ({available})</span>
+        {view === 'web' && (
+          <section className="web-orders">
+            <div className="section-header">
+              <div>
+                <h2>Pedidos web</h2>
+                <p>Productos activos web: {products.length}</p>
+              </div>
+              <div className="section-actions">
+                <button className="secondary" onClick={() => loadWebOrders()}>
+                  Refrescar
+                </button>
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp')}>
+                  Volver
+                </button>
+              </div>
+            </div>
+
+            <div className="web-grid">
+              <div className="card">
+                <h3>Pedidos entrantes</h3>
+                {webOrdersLoading ? (
+                  <p>Cargando pedidos...</p>
+                ) : webOrders.length === 0 ? (
+                  <p>No hay pedidos aún.</p>
+                ) : (
+                  <ul className="order-list">
+                    {webOrders.map((order: any) => (
+                      <li key={order.id} className="order-item">
+                        <div>
+                          <strong>{order.customerName || order.client_name}</strong>
+                          <p>{order.customerPhone || order.client_whatsapp}</p>
+                          <p>Total: ${order.totalAmount?.toFixed(0) ?? order.total_estimated?.toFixed?.(0) ?? '--'}</p>
+                        </div>
+                        <div className="order-actions">
+                          <select
+                            value={order.status || 'REQUESTED'}
+                            onChange={async (event) => {
+                              const nextStatus = event.target.value;
+                              if (useFirestore) {
+                                await updateDoc(doc(db, 'productOrderRequests', order.id), {
+                                  status: nextStatus,
+                                });
+                                if (nextStatus === 'PAID') {
+                                  const items = order.items || [];
+                                  for (const item of items) {
+                                    await applyStockDelta(item.product_id, -item.quantity);
+                                  }
+                                }
+                                setWebOrders((current) =>
+                                  current.map((item) =>
+                                    item.id === order.id ? { ...item, status: nextStatus } : item
+                                  )
+                                );
+                                return;
+                              }
+                              const response = await apiFetch(`${API_BASE}/api/web-orders/${order.id}/status`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: nextStatus }),
+                              });
+                              if (response.ok) {
+                                const updated = await response.json();
+                                setWebOrders((current) =>
+                                  current.map((item) => (item.id === updated.id ? updated : item))
+                                );
+                              }
+                            }}
+                          >
+                            {webStatusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {order.items && order.items.length > 0 && (
+                          <ul className="mini-list">
+                            {order.items.map((item: any, idx: number) => (
+                              <li key={`${order.id}-${idx}`}>
+                                {item.quantity} x {item.productId || item.product_id} (${item.unitPrice?.toFixed(0) ?? item.unit_price?.toFixed(0) ?? '--'})
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="card">
+                <h3>Catálogo activo</h3>
+                {loading ? (
+                  <p>Cargando productos...</p>
+                ) : products.length === 0 ? (
+                  <p>No hay productos activos para web.</p>
+                ) : (
+                  <ul className="mini-list">
+                    {products.map((product) => (
+                      <li key={product.id}>
+                        {product.name} · ${product.price.toFixed(0)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="card">
+                <h3>Simular pedido web</h3>
+                <div className="grid">
+                  {products.map((product) => {
+                    const stock = stockById[product.id];
+                    const available = stock?.available ?? 0;
+                    const lowStock = stock && available > 0 && available <= product.lowStockThreshold;
+                    const outOfStock = !stock || available <= 0;
+                    return (
+                      <article key={product.id} className="card product">
+                        <div className="product-header">
+                          <h3>{product.name}</h3>
+                          <span className="price">${product.price.toFixed(0)}</span>
+                        </div>
+                        <p className="description">{product.description || 'Sin descripcion'}</p>
+                        <div className="badges">
+                          {outOfStock ? (
+                            <span className="badge danger">No disponible</span>
+                          ) : lowStock ? (
+                            <span className="badge warning">Stock bajo ({available})</span>
+                          ) : (
+                            <span className="badge ok">Disponible ({available})</span>
+                          )}
+                        </div>
+                        <div className="actions">
+                          <button
+                            className="ghost"
+                            onClick={() => updateQuantity(product, -1)}
+                            disabled={!cart[product.id]}
+                          >
+                            -
+                          </button>
+                          <span className="qty">{cart[product.id]?.quantity || 0}</span>
+                          <button
+                            className="ghost"
+                            onClick={() => updateQuantity(product, 1)}
+                            disabled={!canAdd(product, cart)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                  <section className="card order">
+                    <h3>Confirmar pedido web</h3>
+                    <div className="field">
+                      <label>Nombre</label>
+                      <input
+                        value={orderName}
+                        onChange={(event) => setOrderName(event.target.value)}
+                        placeholder="Nombre"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Telefono</label>
+                      <input
+                        value={orderPhone}
+                        onChange={(event) => setOrderPhone(event.target.value)}
+                        placeholder="Telefono"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Email (opcional)</label>
+                      <input
+                        value={orderEmail}
+                        onChange={(event) => setOrderEmail(event.target.value)}
+                        placeholder="Email"
+                      />
+                    </div>
+                    <button className="primary" onClick={submitWebOrder} disabled={cartItems.length === 0}>
+                      Enviar pedido
+                    </button>
+                    {orderMessage && (
+                      <p className={`status ${orderMessage.type}`}>{orderMessage.text}</p>
                     )}
-                  </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
-                  <div className="actions">
-                    <button
-                      className="ghost"
-                      onClick={() => updateQuantity(product, -1)}
-                      disabled={!cart[product.id]}
-                    >
-                      -
-                    </button>
-                    <span className="qty">{cart[product.id]?.quantity || 0}</span>
-                    <button
-                      className="ghost"
-                      onClick={() => updateQuantity(product, 1)}
-                      disabled={!canAdd(product, cart)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-            <section className="card order">
-              <h3>Confirmar pedido web</h3>
-              <div className="field">
-                <label>Nombre</label>
-                <input
-                  value={orderName}
-                  onChange={(event) => setOrderName(event.target.value)}
-                  placeholder="Nombre"
-                />
-              </div>
-              <div className="field">
-                <label>Telefono</label>
-                <input
-                  value={orderPhone}
-                  onChange={(event) => setOrderPhone(event.target.value)}
-                  placeholder="Telefono"
-                />
-              </div>
-              <div className="field">
-                <label>Email (opcional)</label>
-                <input
-                  value={orderEmail}
-                  onChange={(event) => setOrderEmail(event.target.value)}
-                  placeholder="Email"
-                />
-              </div>
-              <button className="primary" onClick={submitWebOrder} disabled={cartItems.length === 0}>
-                Enviar pedido
-              </button>
-              {orderMessage && (
-                <p className={`status ${orderMessage.type}`}>{orderMessage.text}</p>
-              )}
-            </section>
-          </div>
-        ) : view === 'pos' ? (
+        {view === 'pos' && (
           <section className="pos">
+            <div className="section-header">
+              <div>
+                <h2>Venta sucursal</h2>
+                <p>POS con descuentos y control de stock.</p>
+              </div>
+              <div className="section-actions">
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp')}>
+                  Volver
+                </button>
+              </div>
+            </div>
+
             <div className="pos-input">
               <label>Escanear codigo</label>
               <div className="pos-row">
@@ -681,7 +1018,7 @@ export function App() {
                       <li key={item.product.id}>
                         <span>{item.product.name}</span>
                         <span>x{item.quantity}</span>
-                        <span>${(item.quantity * item.product.price).toFixed(0)}</span>
+                        <span>${(item.quantity * getLocalPrice(item.product)).toFixed(0)}</span>
                         <div className="actions">
                           <button className="ghost" onClick={() => updatePosQuantity(item.product, -1)}>
                             -
@@ -713,7 +1050,17 @@ export function App() {
                     </button>
                   ))}
                 </div>
-                <p className="pos-total">Total: ${posTotal.toFixed(0)}</p>
+                <div className="discount-row">
+                  <label>Descuento</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={posDiscount}
+                    onChange={(event) => setPosDiscount(Number(event.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+                <p className="pos-total">Total: ${posTotalWithDiscount.toFixed(0)}</p>
                 <button
                   className="primary"
                   onClick={submitPosSale}
@@ -721,11 +1068,30 @@ export function App() {
                 >
                   Confirmar venta
                 </button>
+                {!useFirestore && (
+                  <button className="secondary" onClick={retryQueue}>
+                    Reintentar cola
+                  </button>
+                )}
               </div>
             </div>
           </section>
-        ) : view === 'inventory' ? (
+        )}
+
+        {view === 'inventory' && (
           <section className="inventory">
+            <div className="section-header">
+              <div>
+                <h2>Abastecimiento</h2>
+                <p>Ingresos, documentos y movimientos de inventario.</p>
+              </div>
+              <div className="section-actions">
+                <button type="button" className="ghost" onClick={() => navigate('/minimarketerp')}>
+                  Volver
+                </button>
+              </div>
+            </div>
+
             <div className="card">
               <h3>Ingreso de compra</h3>
               <div className="field">
@@ -782,7 +1148,7 @@ export function App() {
             </div>
 
             <div className="card">
-              <h3>Ajuste manual</h3>
+              <h3>Descuento de inventario</h3>
               <div className="field">
                 <label>Producto</label>
                 <select value={adjustProduct} onChange={(e) => setAdjustProduct(e.target.value)}>
@@ -806,7 +1172,7 @@ export function App() {
               <div className="field">
                 <label>Motivo</label>
                 <select value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)}>
-                  {['merma', 'vencimiento', 'robo', 'ajuste'].map((reason) => (
+                  {['merma', 'vencimiento', 'robo', 'ajuste', 'descuento'].map((reason) => (
                     <option key={reason} value={reason}>
                       {reason}
                     </option>
@@ -830,7 +1196,7 @@ export function App() {
             </div>
 
             <div className="card">
-              <h3>Historial de movimientos</h3>
+              <h3>Historial de ingresos</h3>
               <div className="field">
                 <label>Producto</label>
                 <select value={movementProduct} onChange={(e) => setMovementProduct(e.target.value)}>
@@ -855,9 +1221,12 @@ export function App() {
                   </li>
                 ))}
               </ul>
+              <button className="ghost">Documento exportable</button>
             </div>
           </section>
-        ) : (
+        )}
+
+        {view === 'dashboard' && (
           <section className="dashboard">
             {dashboardLoading ? (
               <div className="card">Cargando dashboard...</div>
