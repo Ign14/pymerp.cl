@@ -40,6 +40,12 @@ service cloud.firestore {
       allow write: if isOwner(userId) || isSuperAdmin();
     }
     
+    // ==================== PLATFORM CONFIG (SUPERADMIN) ====================
+    match /platform_config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
     // ==================== ACCESS REQUESTS ====================
     match /accessRequests/{requestId} {
       allow read: if isSuperAdmin();

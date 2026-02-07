@@ -677,3 +677,28 @@ export const getPublicPageEvents = async (companyId: string): Promise<PublicPage
     created_at: doc.data().created_at?.toDate() || new Date(),
   })) as PublicPageEvent[]).sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
 };
+
+// ==================== PLATFORM CONFIG (SUPERADMIN) ====================
+const PLATFORM_CONFIG_DOC = 'main';
+
+export interface PlatformConfig {
+  minimarket_app_url?: string;
+  updated_at?: Date;
+}
+
+export const getPlatformConfig = async (): Promise<PlatformConfig | null> => {
+  const ref = doc(db, 'platform_config', PLATFORM_CONFIG_DOC);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    minimarket_app_url: (d.minimarket_app_url as string) ?? undefined,
+    updated_at: (d.updated_at as { toDate?: () => Date })?.toDate?.() ?? undefined,
+  };
+};
+
+export const setMinimarketAppUrl = async (url: string): Promise<void> => {
+  const ref = doc(db, 'platform_config', PLATFORM_CONFIG_DOC);
+  const trimmed = url.trim().replace(/\/+$/, '') || undefined;
+  await setDoc(ref, { minimarket_app_url: trimmed ?? null, updated_at: Timestamp.now() }, { merge: true });
+};

@@ -9,7 +9,7 @@
     "preview:core": "vite preview",
     "build:minimarket": "node scripts/minimarket/build.cjs",
     "preview:minimarket": "node scripts/minimarket/preview.cjs",
-    "build": "npm run build:core && npm run build:minimarket",
+    "build": "npm run build:core",
     "preview": "node scripts/preview.cjs",
     "preview:prod": "vite preview --port 5173 --strictPort",
     "serve:prod": "npm run build && vite preview --port 5173 --strictPort",

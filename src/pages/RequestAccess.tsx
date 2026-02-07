@@ -31,8 +31,9 @@ import {
 import {
   GoogleAuthProvider,
   getRedirectResult,
-  signInWithPopup,
   signInWithRedirect,
+  setPersistence,
+  browserLocalPersistence,
   type User as FirebaseUser,
 } from 'firebase/auth';
 
@@ -50,6 +51,7 @@ export default function RequestAccess() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authMethod, setAuthMethod] = useState<'google' | 'email'>('google');
   const [googleSession, setGoogleSession] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [checkingRedirect, setCheckingRedirect] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -101,22 +103,15 @@ export default function RequestAccess() {
     setGoogleLoading(true);
     setEmailError(null);
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      await syncGoogleUser(result.user);
+      setRedirecting(true);
+      await signInWithRedirect(auth, provider);
+      return;
     } catch (error: any) {
-      if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/popup-closed-by-user') {
-        toast.error('No pudimos abrir la ventana. Intentaremos redirigir...');
-        try {
-          const provider = new GoogleAuthProvider();
-          provider.setCustomParameters({ prompt: 'select_account' });
-          await signInWithRedirect(auth, provider);
-          return;
-        } catch (redirectError) {
-          logger.error('Error iniciando Google con redirect:', redirectError);
-        }
-      } else if (error?.code === 'auth/account-exists-with-different-credential') {
+      setRedirecting(false);
+      if (error?.code === 'auth/account-exists-with-different-credential') {
         toast.error('Este email ya tiene una cuenta con otro método. Usa el acceso por email.');
         setAuthMethod('email');
       } else {
@@ -417,8 +412,13 @@ export default function RequestAccess() {
               disabled={googleLoading || checkingRedirect}
               className="mt-3 w-full rounded-lg border border-blue-200 bg-white px-4 py-2.5 font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {googleLoading || checkingRedirect ? 'Continuar con Google...' : 'Continuar con Google'}
+              {googleLoading || checkingRedirect ? 'Preparando acceso...' : 'Continuar con Google'}
             </button>
+            {redirecting && (
+              <div className="mt-3 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-blue-800">
+                Redirigiendo a Google. Si no abre, revisa cookies o ventanas emergentes.
+              </div>
+            )}
             {googleSession && auth.currentUser?.email && (
               <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-blue-900">
                 Sesión activa: <span className="font-semibold">{auth.currentUser.email}</span>

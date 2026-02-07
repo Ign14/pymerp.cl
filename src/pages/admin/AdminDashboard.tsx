@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCompany, getAllUsers, getServices, getProducts, updateUser } from '../../services/firestore';
+import { getCompany, getAllUsers, getServices, getProducts, updateUser, getPlatformConfig, setMinimarketAppUrl } from '../../services/firestore';
 import { BusinessType, UserStatus } from '../../types';
 import toast from 'react-hot-toast';
 import MetricsDashboard from '../../components/MetricsDashboard';
@@ -24,10 +24,37 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'ALL'>('ALL');
   const [planFilter, setPlanFilter] = useState<'ALL' | 'BASIC' | 'STARTER' | 'PRO' | 'BUSINESS' | 'ENTERPRISE'>('ALL');
   const [withCompanyOnly, setWithCompanyOnly] = useState(false);
+  const [minimarketAppUrl, setMinimarketAppUrlState] = useState('');
+  const [minimarketUrlSaving, setMinimarketUrlSaving] = useState(false);
+  const [minimarketUrlLoaded, setMinimarketUrlLoaded] = useState(false);
 
   useEffect(() => {
     loadProfiles();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    getPlatformConfig()
+      .then((config) => {
+        if (active && config?.minimarket_app_url) setMinimarketAppUrlState(config.minimarket_app_url);
+      })
+      .catch(() => { if (active) setMinimarketAppUrlState(''); })
+      .finally(() => { if (active) setMinimarketUrlLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  const handleActivarMinimarketUrl = async () => {
+    setMinimarketUrlSaving(true);
+    try {
+      await setMinimarketAppUrl(minimarketAppUrl.trim());
+      toast.success('URL de la app Minimarket activada para la cuenta.');
+    } catch (e) {
+      handleError(e, { customMessage: 'No se pudo guardar la URL' });
+      toast.error('No se pudo guardar la URL');
+    } finally {
+      setMinimarketUrlSaving(false);
+    }
+  };
 
   const loadProfiles = async () => {
     try {
@@ -141,6 +168,31 @@ export default function AdminDashboard() {
           >
             Cerrar sesión
           </button>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <h2 className="text-sm font-semibold text-amber-900 mb-2">URL app Minimarket (VITE_MINIMARKET_APP_URL)</h2>
+          <p className="text-xs text-amber-800 mb-3">
+            URL que verán las cuentas en el botón &quot;Abrir app Minimarket&quot;. Actívala para que usen la app en la ruta configurada.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="url"
+              value={minimarketAppUrl}
+              onChange={(e) => setMinimarketAppUrlState(e.target.value)}
+              placeholder="https://minimarket.pymerp.cl o http://localhost:5176"
+              className="flex-1 min-w-[200px] px-3 py-2 border border-amber-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              disabled={!minimarketUrlLoaded}
+            />
+            <button
+              type="button"
+              onClick={handleActivarMinimarketUrl}
+              disabled={minimarketUrlSaving || !minimarketUrlLoaded}
+              className="px-4 py-2 bg-amber-600 text-white rounded-md text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+            >
+              {minimarketUrlSaving ? 'Guardando...' : 'Activar'}
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-2 mb-4">
