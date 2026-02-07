@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCompany, updateCompany, getCompanyAppearance } from '../../services/firestore';
+import { getCompany, updateCompany, getCompanyAppearance, getPlatformConfig } from '../../services/firestore';
 import { getPublicPageEvents, getAppointmentRequests, getProductOrderRequests } from '../../services/firestore';
 import { getAppointmentsByCompany } from '../../services/appointments';
 import { listProfessionals } from '../../services/professionals';
@@ -44,6 +44,15 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [showMenuQr, setShowMenuQr] = useState(false);
   const [updatingPublicEnabled, setUpdatingPublicEnabled] = useState(false);
+  const [minimarketUrlFromConfig, setMinimarketUrlFromConfig] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPlatformConfig()
+      .then((config) => { if (active && config?.minimarket_app_url) setMinimarketUrlFromConfig(config.minimarket_app_url); })
+      .catch(() => { if (active) setMinimarketUrlFromConfig(null); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (firestoreUser?.company_id) {
@@ -168,7 +177,7 @@ export default function DashboardOverview() {
 
   const publicUrl = `${env.publicBaseUrl}/${company.slug}`;
   const publicEnabled = Boolean(company?.publicEnabled);
-  const minimarketAppUrl = env.minimarketAppUrl;
+  const minimarketAppUrl = minimarketUrlFromConfig ?? env.minimarketAppUrl;
   const isMinimarket = categoryId === 'minimarket';
 
   const toRgba = (hex?: string, opacity?: number) => {
@@ -390,7 +399,7 @@ export default function DashboardOverview() {
                     </p>
                   </div>
                   <a
-                    href={minimarketAppUrl}
+                    href={`${minimarketAppUrl.replace(/\/$/, '')}/minimarketerp_login`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all w-full sm:w-auto text-center"

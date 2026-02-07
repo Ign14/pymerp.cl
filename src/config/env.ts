@@ -102,14 +102,16 @@ export const env = {
     return configured;
   },
 
-  // URL de la app de minimarket (frontend dedicado)
-  minimarketAppUrl: getEnvVar('VITE_MINIMARKET_APP_URL', {
-    required: false,
-    fallback: 'http://localhost:5176',
-  }),
+  // URL de la app de minimarket (frontend dedicado). En producción usar ruta real (VITE_MINIMARKET_APP_URL o mismo origen).
+  get minimarketAppUrl(): string {
+    const configured = getEnvVar('VITE_MINIMARKET_APP_URL', { required: false, fallback: '' });
+    if (configured) return configured.replace(/\/$/, '');
+    if (import.meta.env.DEV) return 'http://localhost:5176';
+    return 'https://minimarket-9368d.web.app';
+  },
   minimarketApiUrl: getEnvVar('VITE_MINIMARKET_API_URL', {
     required: false,
-    fallback: 'http://localhost:8088',
+    fallback: import.meta.env.DEV ? 'http://localhost:8088' : '',
   }),
   minimarketAdminEmail: getEnvVar('VITE_MINIMARKET_ADMIN_EMAIL', {
     required: false,
