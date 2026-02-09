@@ -107,6 +107,12 @@ export const env = {
     const configured = getEnvVar('VITE_MINIMARKET_APP_URL', { required: false, fallback: '' });
     if (configured) return configured.replace(/\/$/, '');
     if (import.meta.env.DEV) return 'http://localhost:5176';
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin;
+      if (origin === 'http://localhost:4173' || origin === 'http://127.0.0.1:4173') {
+        return 'http://localhost:5176';
+      }
+    }
     return 'https://minimarket-9368d.web.app';
   },
   minimarketApiUrl: getEnvVar('VITE_MINIMARKET_API_URL', {

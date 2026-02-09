@@ -12,8 +12,8 @@ const runSync = (cmd, args, cwd) => {
   }
 };
 
-const runAsync = (cmd, args, cwd) => {
-  return spawn(cmd, args, { cwd, stdio: 'inherit', shell: true });
+const runAsync = (cmd, args, cwd, env) => {
+  return spawn(cmd, args, { cwd, stdio: 'inherit', shell: true, env });
 };
 
 console.log('== Minimarket: starting database (docker) ==');
@@ -23,7 +23,8 @@ console.log('== Minimarket: build frontend ==');
 runSync('npm', ['run', 'build'], frontendDir);
 
 console.log('== Minimarket: start backend ==');
-const backend = runAsync('mvn', ['-q', '-DskipTests', 'spring-boot:run'], backendDir);
+const backendEnv = { ...process.env, PORT: '8088' };
+const backend = runAsync('mvn', ['-q', '-DskipTests', 'spring-boot:run'], backendDir, backendEnv);
 
 console.log('== Minimarket: start frontend preview ==');
 const frontend = runAsync('npm', ['run', 'preview', '--', '--port', '5176'], frontendDir);
