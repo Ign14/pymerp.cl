@@ -83,6 +83,20 @@ body[data-theme='dark']:not(.public-page-mode) .badge-light {
   color: #1e3a8a !important;
 }
 
+/* Barberías: bloque Horarios (formato unificado con Elementor) */
+.barber-schedule-section {
+  border-radius: 1rem;
+  border-left-width: 4px;
+  border-left-style: solid;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+.barber-schedule-row {
+  border-radius: 0.75rem;
+  border-left-width: 4px;
+  border-left-style: solid;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
 /* Horarios: mantener texto azul oscuro al hacer hover en modo oscuro */
 body[data-theme='dark']:not(.public-page-mode) .schedule-slot:hover {
   color: #1e3a8a !important;

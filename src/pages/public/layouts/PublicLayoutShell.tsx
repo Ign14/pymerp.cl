@@ -45,11 +45,11 @@ const BEAUTY_ORDER: SectionKey[] = [
   'media',
 ];
 
-/** Equipo + Horarios en 2 columnas en desktop */
+/** Servicios bajo hero; equipo + highlight en grid; ubicación centrada en flujo */
 const BARBERIAS_ORDER: SectionKey[] = [
   'hero',
-  'highlight',
   'services',
+  'highlight',
   'teamSchedule',
   'products',
   'missionVision',
@@ -199,8 +199,9 @@ export function PublicLayoutShell({
     };
   })();
 
-  // Detectar si debemos usar layout de 2 columnas
-  const use2ColumnLayout = Boolean(heroBlock && highlightBlock && locationBlock);
+  // Layout 2 columnas: no usar en barberías (servicios bajo hero, ubicación centrada en flujo)
+  const use2ColumnLayout =
+    layoutKey !== 'barberiasShowcase' && Boolean(heroBlock && highlightBlock && locationBlock);
 
   return (
     <div className="space-y-8 sm:space-y-10">

@@ -926,12 +926,13 @@ export default function PublicPage() {
 
   const isIndustrialConstructionLayout = layoutInfo.key === 'construccionIndustrialShowcase';
 
+  /* Orden del menú hamburguesa: Servicios → … → Horario → Ubicación → Acerca de (casi al final) → Contacto */
   const mobileSections = [
-    descriptionSection
+    servicesSection
       ? {
-          id: 'highlight',
-          label: resolveLabel('publicPage.mobileMenu.about', 'Acerca de'),
-          icon: '📋',
+          id: 'services',
+          label: resolveLabel('publicPage.mobileMenu.services', 'Servicios'),
+          icon: '🛎️',
         }
       : null,
     isIndustrialConstructionLayout
@@ -940,13 +941,6 @@ export default function PublicPage() {
           label: resolveLabel('publicPage.mobileMenu.projects', 'Proyectos'),
           icon: '🏗️',
           scrollToId: 'section-projects',
-        }
-      : null,
-    servicesSection
-      ? {
-          id: 'services',
-          label: resolveLabel('publicPage.mobileMenu.services', 'Servicios'),
-          icon: '🛎️',
         }
       : null,
     productsSection
@@ -976,6 +970,13 @@ export default function PublicPage() {
           id: 'media',
           label: resolveLabel('publicPage.mobileMenu.media', 'Video'),
           icon: '🎥',
+        }
+      : null,
+    descriptionSection
+      ? {
+          id: 'highlight',
+          label: resolveLabel('publicPage.mobileMenu.about', 'Acerca de'),
+          icon: '📋',
         }
       : null,
     {

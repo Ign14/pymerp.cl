@@ -835,7 +835,9 @@
         "friday": "Viernes",
         "saturday": "Sábado",
         "sunday": "Domingo"
-      }
+      },
+      "daysWeekdays": "Lunes a Viernes",
+      "closed": "Cerrado"
     },
     "restaurantsLayout": {
       "heroKicker": "Sabores al instante",
