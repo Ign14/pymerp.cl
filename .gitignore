@@ -45,3 +45,5 @@ firebase.json
 
 
 functions/.env
+# Remove hosted mirror from repo
+recovery/firebase/hosting/site-mirror/
