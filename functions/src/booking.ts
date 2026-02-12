@@ -1,14 +1,14 @@
 import * as functions from 'firebase-functions/v1';
 import { defineString } from 'firebase-functions/params';
-import type * as AdminNamespace from 'firebase-admin';
+type AdminModule = typeof import('firebase-admin');
 import { getAppointmentRequestEmailTemplate } from './emailTemplates';
 
 // Lazy initialization para evitar problemas de carga y timeouts en deployment
 let _adminInitialized = false;
-let _admin: AdminNamespace | null = null;
+let _admin: AdminModule | null = null;
 let _sgMail: any;
 
-const getAdmin = (): AdminNamespace => {
+const getAdmin = (): AdminModule => {
   if (!_admin) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     _admin = require('firebase-admin');
@@ -82,11 +82,7 @@ const toTimestamp = (value: unknown, field: string) => {
   throw new functions.https.HttpsError('invalid-argument', `Fecha inválida para ${field}`);
 };
 
-const formatSlotId = (
-  companyId: string,
-  professionalId: string,
-  start: AdminNamespace.firestore.Timestamp
-) => {
+const formatSlotId = (companyId: string, professionalId: string, start: any) => {
   const date = start.toDate();
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -128,7 +124,7 @@ const resolveCompanyId = (data: any, context: functions.https.CallableContext): 
   return companyId;
 };
 
-const getLocalInfo = (ts: AdminNamespace.firestore.Timestamp, timeZone: string) => {
+const getLocalInfo = (ts: any, timeZone: string) => {
   const date = ts.toDate();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -170,8 +166,8 @@ const isSlotAvailable = async ({
 }: {
   companyId: string;
   professionalId: string;
-  startAt: AdminNamespace.firestore.Timestamp;
-  endAt: AdminNamespace.firestore.Timestamp;
+  startAt: any;
+  endAt: any;
 }) => {
   const companySnap = await getFirestore().doc(`companies/${companyId}`).get();
   const tz = (companySnap.get('timezone') as string) || 'America/Santiago';
@@ -426,7 +422,7 @@ export const cancelAppointment = functions
       const appt = snap.data();
       if (appt.company_id !== companyId) throw new functions.https.HttpsError('permission-denied', 'No autorizado');
 
-      const start = appt.startAt as AdminNamespace.firestore.Timestamp | undefined;
+      const start = appt.startAt as any | undefined;
       const professionalId = appt.professional_id as string | undefined;
       const oldLockId = start && professionalId ? formatSlotId(companyId, professionalId, start) : null;
 
@@ -470,7 +466,7 @@ export const rescheduleAppointment = functions
 
       const currentProfessional = appt.professional_id as string;
       const professionalId = newProfessionalId || currentProfessional;
-      const oldStart = appt.startAt as AdminNamespace.firestore.Timestamp | undefined;
+      const oldStart = appt.startAt as any | undefined;
       const oldLockId = oldStart ? formatSlotId(companyId, currentProfessional, oldStart) : null;
 
       const availability = await isSlotAvailable({

@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions/v1';
 import { defineString } from 'firebase-functions/params';
-import type * as AdminNamespace from 'firebase-admin';
+type AdminModule = typeof import('firebase-admin');
 import cors from 'cors';
 import {
   getAccessRequestEmailTemplate,
@@ -11,8 +11,8 @@ const SENDGRID_API_KEY_PARAM = defineString('SENDGRID_API_KEY');
 const getSendGridApiKey = () =>
   SENDGRID_API_KEY_PARAM.value() || process.env.SENDGRID_API_KEY || '';
 
-let _admin: AdminNamespace | null = null;
-const getAdmin = (): AdminNamespace => {
+let _admin: AdminModule | null = null;
+const getAdmin = (): AdminModule => {
   if (!_admin) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     _admin = require('firebase-admin');
