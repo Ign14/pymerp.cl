@@ -855,16 +855,48 @@ export const generateSitemap = functions
   }
 );
 
-// Booking system exports - Import lazy para evitar timeouts en discovery
-// Los exports se hacen de forma explícita para evitar cargar todo el módulo durante discovery
-export {
-  createProfessional,
-  createAppointmentRequest,
-  cancelAppointment,
-  rescheduleAppointment,
-  onAppointmentCreated,
-  cleanExpiredLocks,
-} from './booking';
+// Booking system exports - Lazy load to avoid discovery timeouts
+export const createProfessional = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onCall(async (data, context) => {
+    const booking = require('./booking');
+    return booking.createProfessional(data, context);
+  });
+
+export const createAppointmentRequest = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(async (data, context) => {
+    const booking = require('./booking');
+    return booking.createAppointmentRequest(data, context);
+  });
+
+export const cancelAppointment = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 30 })
+  .https.onCall(async (data, context) => {
+    const booking = require('./booking');
+    return booking.cancelAppointment(data, context);
+  });
+
+export const rescheduleAppointment = functions
+  .runWith({ memory: '256MB', timeoutSeconds: 60 })
+  .https.onCall(async (data, context) => {
+    const booking = require('./booking');
+    return booking.rescheduleAppointment(data, context);
+  });
+
+export const onAppointmentCreated = functions.firestore
+  .document('appointments/{appointmentId}')
+  .onCreate(async (snap, context) => {
+    const booking = require('./booking');
+    return booking.onAppointmentCreated(snap, context);
+  });
+
+export const cleanExpiredLocks = functions.pubsub
+  .schedule('every 60 minutes')
+  .onRun(async (context) => {
+    const booking = require('./booking');
+    return booking.cleanExpiredLocks(context);
+  });
 
 /**
  * Callable: obtiene/actualiza la configuración de notificaciones de un usuario de la empresa.
@@ -960,13 +992,7 @@ export const setNotificationSettingsSafe = functions
 // ==================== BACKFILL & SYNC FUNCTIONS ====================
 // Funciones de backfill y sincronización para administración de datos
 
-import {
-  backfillCompaniesHandler,
-  syncPublicCompaniesHandler,
-  syncPublicCompanyBySlugHandler,
-  enablePublicForCompaniesWithLocationHandler,
-  migrateMyCompanyToFoodtruckHandler,
-} from './backfill';
+// Backfill handlers (lazy)
 
 /**
  * Callable: Backfill de empresas existentes
@@ -974,7 +1000,10 @@ import {
  */
 export const backfillCompanies = functions
   .runWith({ memory: '512MB', timeoutSeconds: 540 })
-  .https.onCall(backfillCompaniesHandler);
+  .https.onCall(async (data, context) => {
+    const backfill = require('./backfill');
+    return backfill.backfillCompaniesHandler(data, context);
+  });
 
 /**
  * Callable: Sincronizar todas las empresas públicas
@@ -982,14 +1011,20 @@ export const backfillCompanies = functions
  */
 export const syncPublicCompanies = functions
   .runWith({ memory: '512MB', timeoutSeconds: 540 })
-  .https.onCall(syncPublicCompaniesHandler);
+  .https.onCall(async (data, context) => {
+    const backfill = require('./backfill');
+    return backfill.syncPublicCompaniesHandler(data, context);
+  });
 
 /**
  * Callable: Sincronizar una empresa pública específica por slug
  */
 export const syncPublicCompanyBySlug = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onCall(syncPublicCompanyBySlugHandler);
+  .https.onCall(async (data, context) => {
+    const backfill = require('./backfill');
+    return backfill.syncPublicCompanyBySlugHandler(data, context);
+  });
 
 /**
  * Callable: Habilitar público para empresas con ubicación
@@ -997,20 +1032,26 @@ export const syncPublicCompanyBySlug = functions
  */
 export const enablePublicForCompaniesWithLocation = functions
   .runWith({ memory: '512MB', timeoutSeconds: 540 })
-  .https.onCall(enablePublicForCompaniesWithLocationHandler);
+  .https.onCall(async (data, context) => {
+    const backfill = require('./backfill');
+    return backfill.enablePublicForCompaniesWithLocationHandler(data, context);
+  });
 
 /**
  * Callable: Migrar empresa a categoría foodtruck
  */
 export const migrateMyCompanyToFoodtruck = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onCall(migrateMyCompanyToFoodtruckHandler);
+  .https.onCall(async (data, context) => {
+    const backfill = require('./backfill');
+    return backfill.migrateMyCompanyToFoodtruckHandler(data, context);
+  });
 
 // ==================== PUBLIC WEB SEO ====================
 // Función para renderizar páginas públicas con SEO dinámico
 // Utilizada en rewrites de firebase.json para rutas de barberías
 
-import { handlePublicSeoRequest } from './publicweb-seo/handler';
+// Public web SEO handler (lazy)
 
 /**
  * HTTPS: Renderizado SEO dinámico para páginas públicas
@@ -1026,7 +1067,8 @@ export const publicWebSeo = functions
   .https.onRequest(async (req, res) => {
     try {
       ensureAdminInitialized();
-      await handlePublicSeoRequest(req, res);
+      const seo = require('./publicweb-seo/handler');
+      await seo.handlePublicSeoRequest(req, res);
     } catch (error: any) {
       console.error('Error en publicWebSeo:', error);
       res.status(500).send('Error interno del servidor');
@@ -1036,11 +1078,7 @@ export const publicWebSeo = functions
 // ==================== SYNC FUNCTIONS ====================
 // Funciones de sincronización automática entre collections
 
-import {
-  syncCompanyPublicOnWriteHandler,
-  syncCompanyPublicScheduleHandler,
-  syncServiceSlugHandler,
-} from './sync';
+// Sync handlers (lazy)
 
 /**
  * Trigger: Sincronizar automáticamente companies → public_companies
@@ -1049,14 +1087,20 @@ import {
 export const syncCompanyPublicOnWrite = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
   .firestore.document('companies/{companyId}')
-  .onWrite(syncCompanyPublicOnWriteHandler);
+  .onWrite(async (change, context) => {
+    const sync = require('./sync');
+    return sync.syncCompanyPublicOnWriteHandler(change, context);
+  });
 
 /**
  * Callable: Forzar sincronización de horarios de empresa a public_companies
  */
 export const syncCompanyPublicSchedule = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onCall(syncCompanyPublicScheduleHandler);
+  .https.onCall(async (data, context) => {
+    const sync = require('./sync');
+    return sync.syncCompanyPublicScheduleHandler(data, context);
+  });
 
 /**
  * Trigger: Generar/actualizar slug automáticamente cuando se crea/actualiza un servicio
@@ -1064,37 +1108,40 @@ export const syncCompanyPublicSchedule = functions
 export const syncServiceSlug = functions
   .runWith({ memory: '256MB', timeoutSeconds: 30 })
   .firestore.document('services/{serviceId}')
-  .onWrite(syncServiceSlugHandler);
+  .onWrite(async (change, context) => {
+    const sync = require('./sync');
+    return sync.syncServiceSlugHandler(change, context);
+  });
 
 // ==================== SCHEDULE MANAGEMENT ====================
 // Funciones para gestión de horarios de servicios y profesionales
 
-import {
-  setServiceSchedulesHandler,
-  setServiceSchedulesHttpHandler,
-} from './schedules';
+// Schedule handlers (lazy)
 
 /**
  * Callable: Configurar horarios de servicios o profesionales
  */
 export const setServiceSchedules = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onCall(setServiceSchedulesHandler);
+  .https.onCall(async (data, context) => {
+    const schedules = require('./schedules');
+    return schedules.setServiceSchedulesHandler(data, context);
+  });
 
 /**
  * HTTPS: Configurar horarios (versión HTTP para integraciones externas)
  */
 export const setServiceSchedulesHttp = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onRequest(setServiceSchedulesHttpHandler);
+  .https.onRequest(async (req, res) => {
+    const schedules = require('./schedules');
+    return schedules.setServiceSchedulesHttpHandler(req, res);
+  });
 
 // ==================== GDPR COMPLIANCE ====================
 // Funciones para cumplimiento de RGPD (Reglamento General de Protección de Datos)
 
-import {
-  requestDataDeletionHandler,
-  processDataDeletionRequestsHandler,
-} from './gdpr';
+// GDPR handlers (lazy)
 
 /**
  * Callable: Solicitar eliminación de datos personales (Derecho GDPR)
@@ -1102,7 +1149,10 @@ import {
  */
 export const requestDataDeletion = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
-  .https.onCall(requestDataDeletionHandler);
+  .https.onCall(async (data, context) => {
+    const gdpr = require('./gdpr');
+    return gdpr.requestDataDeletionHandler(data, context);
+  });
 
 /**
  * Scheduled: Procesar solicitudes de eliminación pendientes
@@ -1112,7 +1162,10 @@ export const processDataDeletionRequests = functions
   .runWith({ memory: '1GB', timeoutSeconds: 540 })
   .pubsub.schedule('0 2 * * *')
   .timeZone('UTC')
-  .onRun(processDataDeletionRequestsHandler);
+  .onRun(async (context) => {
+    const gdpr = require('./gdpr');
+    return gdpr.processDataDeletionRequestsHandler(context);
+  });
 
 // ==================== HTTP ENDPOINTS ====================
 // Funciones HTTP adicionales para integraciones externas y formularios públicos
