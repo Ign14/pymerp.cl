@@ -132,6 +132,36 @@ const sanitizePhoneNumber = (phone: string): string | null => {
   return cleaned;
 };
 
+const getUserRoleByUid = async (uid: string): Promise<string | null> => {
+  const userDoc = await getFirestore().doc(`users/${uid}`).get();
+  const userData = userDoc.data();
+  return (userData?.role as string | undefined) ?? null;
+};
+
+const requireAdminAuth = async (
+  req: any,
+  res: any,
+  allowedRoles: string[] = ['SUPERADMIN', 'ADMIN']
+) => {
+  const authHeader = req.get('Authorization') || req.headers.authorization || '';
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ success: false, error: 'No autorizado' });
+    return null;
+  }
+
+  const token = authHeader.split('Bearer ')[1];
+  ensureAdminInitialized();
+  const decodedToken = await getAuth().verifyIdToken(token);
+  const role = await getUserRoleByUid(decodedToken.uid);
+
+  if (!role || !allowedRoles.includes(role)) {
+    res.status(403).json({ success: false, error: 'Permiso denegado' });
+    return null;
+  }
+
+  return decodedToken;
+};
+
 // Lazy initialization de Firebase Admin para evitar timeouts en deployment
 let _adminInitialized = false;
 const ensureAdminInitialized = () => {
@@ -391,67 +421,68 @@ ${t.footer}
 export const setUserPassword = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
-    // Configurar CORS
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    const corsHandler = getCorsHandler();
+    corsHandler(req, res, async () => {
+      if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+      }
 
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
+      if (req.method !== 'POST') {
+        res.status(405).json({ success: false, error: 'Method not allowed' });
+        return;
+      }
 
-    if (req.method !== 'POST') {
-      res.status(405).json({ success: false, error: 'Method not allowed' });
-      return;
-    }
+      const decoded = await requireAdminAuth(req, res, ['SUPERADMIN', 'ADMIN']);
+      if (!decoded) return;
 
-    const { email, password } = req.body;
+      const { email, password } = req.body;
 
-    if (!email || !password) {
-      res.status(400).json({ success: false, error: 'Email and password are required' });
-      return;
-    }
+      if (!email || !password) {
+        res.status(400).json({ success: false, error: 'Email and password are required' });
+        return;
+      }
 
-    try {
-      ensureAdminInitialized();
-      // Buscar usuario por email
-      const userRecord = await getAuth().getUserByEmail(email);
-      
-      // Actualizar contraseña
-      await getAuth().updateUser(userRecord.uid, {
-        password: password,
-      });
+      try {
+        ensureAdminInitialized();
+        // Buscar usuario por email
+        const userRecord = await getAuth().getUserByEmail(email);
+        
+        // Actualizar contraseña
+        await getAuth().updateUser(userRecord.uid, {
+          password: password,
+        });
 
-      console.log('Contraseña actualizada para usuario:', email);
-      res.status(200).json({ success: true });
-    } catch (error: any) {
-      console.error('Error estableciendo contraseña:', error);
-      
-      // Si el usuario no existe, intentar crearlo
-      if (error.code === 'auth/user-not-found') {
-        try {
-          await getAuth().createUser({
-            email: email,
-            password: password,
-            emailVerified: false,
-          });
-          console.log('Usuario creado con contraseña:', email);
-          res.status(200).json({ success: true, created: true });
-        } catch (createError: any) {
-          console.error('Error creando usuario:', createError);
+        console.log('Contraseña actualizada para usuario:', email);
+        res.status(200).json({ success: true });
+      } catch (error: any) {
+        console.error('Error estableciendo contraseña:', error);
+        
+        // Si el usuario no existe, intentar crearlo
+        if (error.code === 'auth/user-not-found') {
+          try {
+            await getAuth().createUser({
+              email: email,
+              password: password,
+              emailVerified: false,
+            });
+            console.log('Usuario creado con contraseña:', email);
+            res.status(200).json({ success: true, created: true });
+          } catch (createError: any) {
+            console.error('Error creando usuario:', createError);
+            res.status(500).json({ 
+              success: false, 
+              error: createError.message || 'Error desconocido' 
+            });
+          }
+        } else {
           res.status(500).json({ 
             success: false, 
-            error: createError.message || 'Error desconocido' 
+            error: error.message || 'Error desconocido' 
           });
         }
-      } else {
-        res.status(500).json({ 
-          success: false, 
-          error: error.message || 'Error desconocido' 
-        });
       }
-    }
+    });
   }
 );
 
@@ -462,37 +493,37 @@ export const setUserPassword = functions
 export const sendUserCreationEmailHttp = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
-    // Configurar CORS para permitir llamadas desde el frontend
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    const corsHandler = getCorsHandler();
+    corsHandler(req, res, async () => {
+      // Manejar preflight OPTIONS
+      if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+      }
 
-    // Manejar preflight OPTIONS
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
+      // Solo permitir POST
+      if (req.method !== 'POST') {
+        res.status(405).json({ success: false, error: 'Method not allowed' });
+        return;
+      }
 
-    // Solo permitir POST
-    if (req.method !== 'POST') {
-      res.status(405).json({ success: false, error: 'Method not allowed' });
-      return;
-    }
+      const decoded = await requireAdminAuth(req, res, ['SUPERADMIN', 'ADMIN']);
+      if (!decoded) return;
 
-    // Configurar SendGrid (lazy)
-    configureSendGrid();
+      // Configurar SendGrid (lazy)
+      configureSendGrid();
 
-    const data: UserCreationData = req.body;
+      const data: UserCreationData = req.body;
 
-    const sendgridKey = getSendGridApiKey();
-    if (!sendgridKey) {
-      console.warn('SendGrid API Key no configurada. Email no enviado.');
-      res.status(500).json({ success: false, message: 'SendGrid no configurado' });
-      return;
-    }
+      const sendgridKey = getSendGridApiKey();
+      if (!sendgridKey) {
+        console.warn('SendGrid API Key no configurada. Email no enviado.');
+        res.status(500).json({ success: false, message: 'SendGrid no configurado' });
+        return;
+      }
 
-    try {
-      const lang = data.language || 'es';
+      try {
+        const lang = data.language || 'es';
       
       const translations = {
         es: {
@@ -564,20 +595,21 @@ ${t.team}
         text: textVersion,
       };
 
-      await sgMail.send(msg);
-      console.log('Email de creación de usuario enviado a:', data.email);
-      res.status(200).json({ success: true });
-    } catch (error: any) {
-      console.error('Error enviando email de creación de usuario:', error);
-      console.error('Detalles del error:', JSON.stringify(error, null, 2));
-      
-      const errorMessage = error.response?.body?.errors?.[0]?.message || error.message || 'Error desconocido';
-      res.status(500).json({ 
-        success: false, 
-        error: errorMessage,
-        details: error.response?.body || error.message
-      });
-    }
+        await sgMail.send(msg);
+        console.log('Email de creación de usuario enviado a:', data.email);
+        res.status(200).json({ success: true });
+      } catch (error: any) {
+        console.error('Error enviando email de creación de usuario:', error);
+        console.error('Detalles del error:', JSON.stringify(error, null, 2));
+        
+        const errorMessage = error.response?.body?.errors?.[0]?.message || error.message || 'Error desconocido';
+        res.status(500).json({ 
+          success: false, 
+          error: errorMessage,
+          details: error.response?.body || error.message
+        });
+      }
+    });
   }
 );
 
@@ -588,71 +620,72 @@ ${t.team}
 export const deleteUserAccountHttp = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
-  // Configurar CORS para permitir llamadas desde el frontend
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    res.status(405).json({ success: false, error: 'Method not allowed' });
-    return;
-  }
-
-  const data: DeleteUserRequest = req.body || {};
-
-  if (!data.email) {
-    res.status(400).json({ success: false, error: 'Email is required' });
-    return;
-  }
-
-  ensureAdminInitialized();
-  const firestore = getFirestore();
-  const deletedPaths: string[] = [];
-  let authDeleted = false;
-  let authUid: string | null = null;
-
-  try {
-    const userRecord = await getAuth().getUserByEmail(data.email);
-    authUid = userRecord.uid;
-    await getAuth().deleteUser(userRecord.uid);
-    authDeleted = true;
-    console.log('Usuario de Auth eliminado:', data.email);
-  } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
-      console.warn('Usuario de Auth no encontrado, continuando con Firestore:', data.email);
-    } else {
-      console.error('Error eliminando usuario de Auth:', error);
-      res.status(500).json({ success: false, error: error.message || 'Error deleting auth user' });
+  const corsHandler = getCorsHandler();
+  corsHandler(req, res, async () => {
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
       return;
     }
-  }
 
-  try {
-    const userDocIds = new Set<string>();
-    if (authUid) userDocIds.add(authUid);
-    if (data.userId) userDocIds.add(data.userId);
-    userDocIds.add(data.email);
-
-    for (const id of userDocIds) {
-      await firestore.doc(`users/${id}`).delete();
-      deletedPaths.push(`users/${id}`);
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Method not allowed' });
+      return;
     }
 
-    if (data.companyId) {
-      await firestore.doc(`companies/${data.companyId}`).delete();
-      deletedPaths.push(`companies/${data.companyId}`);
+    const decoded = await requireAdminAuth(req, res, ['SUPERADMIN']);
+    if (!decoded) return;
+
+    const data: DeleteUserRequest = req.body || {};
+
+    if (!data.email) {
+      res.status(400).json({ success: false, error: 'Email is required' });
+      return;
     }
 
-    res.status(200).json({ success: true, authDeleted, deletedPaths });
-  } catch (error: any) {
-    console.error('Error eliminando documentos de Firestore:', error);
-    res.status(500).json({ success: false, error: error.message || 'Error deleting Firestore docs' });
-  }
+    ensureAdminInitialized();
+    const firestore = getFirestore();
+    const deletedPaths: string[] = [];
+    let authDeleted = false;
+    let authUid: string | null = null;
+
+    try {
+      const userRecord = await getAuth().getUserByEmail(data.email);
+      authUid = userRecord.uid;
+      await getAuth().deleteUser(userRecord.uid);
+      authDeleted = true;
+      console.log('Usuario de Auth eliminado:', data.email);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        console.warn('Usuario de Auth no encontrado, continuando con Firestore:', data.email);
+      } else {
+        console.error('Error eliminando usuario de Auth:', error);
+        res.status(500).json({ success: false, error: error.message || 'Error deleting auth user' });
+        return;
+      }
+    }
+
+    try {
+      const userDocIds = new Set<string>();
+      if (authUid) userDocIds.add(authUid);
+      if (data.userId) userDocIds.add(data.userId);
+      userDocIds.add(data.email);
+
+      for (const id of userDocIds) {
+        await firestore.doc(`users/${id}`).delete();
+        deletedPaths.push(`users/${id}`);
+      }
+
+      if (data.companyId) {
+        await firestore.doc(`companies/${data.companyId}`).delete();
+        deletedPaths.push(`companies/${data.companyId}`);
+      }
+
+      res.status(200).json({ success: true, authDeleted, deletedPaths });
+    } catch (error: any) {
+      console.error('Error eliminando documentos de Firestore:', error);
+      res.status(500).json({ success: false, error: error.message || 'Error deleting Firestore docs' });
+    }
+  });
 });
 
 /**
@@ -662,64 +695,56 @@ export const deleteUserAccountHttp = functions
 export const setCompanyClaimHttp = functions
   .runWith({ memory: '256MB', timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
-  // Configurar CORS
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    res.status(405).json({ success: false, error: 'Method not allowed' });
-    return;
-  }
-
-  const data: SetCompanyClaimRequest = req.body?.data || req.body;
-
-  try {
-    const authHeader = req.headers.authorization || '';
-    const idToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    if (!idToken) {
-      res.status(401).json({ success: false, error: 'Token requerido' });
+  const corsHandler = getCorsHandler();
+  corsHandler(req, res, async () => {
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
       return;
     }
 
-    ensureAdminInitialized();
-    const decoded = await getAuth().verifyIdToken(idToken);
-    const uid = data?.uid || decoded.uid;
-    const companyId = data?.companyId;
-
-    if (!uid || !companyId) {
-      res.status(400).json({ success: false, error: 'uid y companyId son requeridos' });
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Method not allowed' });
       return;
     }
 
-    // Validar que el usuario realmente pertenezca a la compañía (según Firestore)
-    const firestore = getFirestore();
-    const userDocUid = await firestore.doc(`users/${uid}`).get();
-    const userDocEmail = decoded.email
-      ? await firestore.doc(`users/${decoded.email}`).get()
-      : null;
-    const userData = userDocUid.exists
-      ? userDocUid.data()
-      : userDocEmail?.exists
-      ? userDocEmail.data()
-      : null;
+    const decoded = await requireAdminAuth(req, res, ['SUPERADMIN', 'ADMIN']);
+    if (!decoded) return;
 
-    if (!userData || userData.company_id !== companyId) {
-      res.status(403).json({ success: false, error: 'No autorizado para este company_id' });
-      return;
+    const data: SetCompanyClaimRequest = req.body?.data || req.body;
+
+    try {
+      const uid = data?.uid || decoded.uid;
+      const companyId = data?.companyId;
+
+      if (!uid || !companyId) {
+        res.status(400).json({ success: false, error: 'uid y companyId son requeridos' });
+        return;
+      }
+
+      // Validar que el usuario realmente pertenezca a la compañía (según Firestore)
+      const firestore = getFirestore();
+      const userDocUid = await firestore.doc(`users/${uid}`).get();
+      const userDocEmail = decoded.email
+        ? await firestore.doc(`users/${decoded.email}`).get()
+        : null;
+      const userData = userDocUid.exists
+        ? userDocUid.data()
+        : userDocEmail?.exists
+        ? userDocEmail.data()
+        : null;
+
+      if (!userData || userData.company_id !== companyId) {
+        res.status(403).json({ success: false, error: 'No autorizado para este company_id' });
+        return;
+      }
+
+      await getAuth().setCustomUserClaims(uid, { company_id: companyId });
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      console.error('Error estableciendo claim:', error);
+      res.status(500).json({ success: false, error: error.message || 'Error desconocido' });
     }
-
-    await getAuth().setCustomUserClaims(uid, { company_id: companyId });
-    res.status(200).json({ success: true });
-  } catch (error: any) {
-    console.error('Error estableciendo claim:', error);
-    res.status(500).json({ success: false, error: error.message || 'Error desconocido' });
-  }
+  });
 });
 
 /**

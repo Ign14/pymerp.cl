@@ -116,7 +116,8 @@ service cloud.firestore {
     // ==================== MINIMARKET ACCESS ACCOUNTS ====================
     // Cuentas de acceso a la app Minimarket (operadores). Dashboard escribe; app minimarket lee para login.
     match /minimarket_access_accounts/{accountId} {
-      allow read: if true; // App minimarket (sin Firebase Auth) necesita consultar por email para login; contraseña es hash
+      // En producción, bloquear lectura pública. El módulo minimarket está en desarrollo.
+      allow read: if isEntrepreneur() && belongsToUserCompany(resource.data.company_id);
       allow create: if isEntrepreneur() && request.resource.data.get('company_id', '') != '' &&
                       belongsToUserCompany(request.resource.data.company_id);
       allow update, delete: if isEntrepreneur() && resource.data.company_id != null &&
