@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions/v1';
 import { defineString } from 'firebase-functions/params';
-import * as admin from 'firebase-admin';
-import sgMail from '@sendgrid/mail';
+import type * as AdminNamespace from 'firebase-admin';
 import cors from 'cors';
 import {
   getAccessRequestEmailTemplate,
@@ -11,6 +10,24 @@ import {
 const SENDGRID_API_KEY_PARAM = defineString('SENDGRID_API_KEY');
 const getSendGridApiKey = () =>
   SENDGRID_API_KEY_PARAM.value() || process.env.SENDGRID_API_KEY || '';
+
+let _admin: AdminNamespace | null = null;
+const getAdmin = (): AdminNamespace => {
+  if (!_admin) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _admin = require('firebase-admin');
+  }
+  return _admin;
+};
+
+let _sgMail: any;
+const getSendGrid = () => {
+  if (!_sgMail) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _sgMail = require('@sendgrid/mail');
+  }
+  return _sgMail;
+};
 
 // Cargar variables de entorno desde .env SOLO en desarrollo/emulador
 // Evitar cargar en deploy/CLI discovery para prevenir timeouts
@@ -168,7 +185,7 @@ const ensureAdminInitialized = () => {
   if (!_adminInitialized) {
     ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
     try {
-      admin.initializeApp();
+      getAdmin().initializeApp();
       _adminInitialized = true;
     } catch (error: any) {
       // Si ya está inicializado, ignorar el error
@@ -184,14 +201,14 @@ const ensureAdminInitialized = () => {
 const getFirestore = () => {
   ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
   ensureAdminInitialized();
-  return admin.firestore();
+  return getAdmin().firestore();
 };
 
 // Helper para obtener Auth con lazy initialization
 const getAuth = () => {
   ensureProjectEnv(); // Asegurar variables de entorno antes de inicializar
   ensureAdminInitialized();
-  return admin.auth();
+  return getAdmin().auth();
 };
 
 // CORS configurado de forma segura - lazy initialization
@@ -220,7 +237,7 @@ const configureSendGrid = () => {
   if (!_sendGridConfigured) {
     const sendgridKey = getSendGridApiKey();
     if (sendgridKey) {
-      sgMail.setApiKey(sendgridKey);
+      getSendGrid().setApiKey(sendgridKey);
     } else {
       console.error('SENDGRID_API_KEY not found in environment variables');
     }
@@ -395,7 +412,7 @@ ${t.footer}
                 text: textVersion,
               };
 
-              await sgMail.send(msg);
+              await getSendGrid().send(msg);
               console.log('Email de solicitud de acceso enviado a:', adminEmail);
               res.status(200).json({ success: true });
             } catch (error: any) {
@@ -595,7 +612,7 @@ ${t.team}
         text: textVersion,
       };
 
-        await sgMail.send(msg);
+        await getSendGrid().send(msg);
         console.log('Email de creación de usuario enviado a:', data.email);
         res.status(200).json({ success: true });
       } catch (error: any) {
@@ -925,13 +942,13 @@ export const setNotificationSettingsSafe = functions
       company_id: companyId,
       email_notifications_enabled: enabled,
       notification_email: notificationEmail || context.auth.token.email || null,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: getAdmin().firestore.FieldValue.serverTimestamp(),
     };
 
     if (existing.empty) {
       await col.add({
         ...payload,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
     } else {
       await existing.docs[0].ref.set(payload, { merge: true });
@@ -1157,13 +1174,13 @@ export const createAppointmentRequestHttp = functions
         clientPhone,
         clientEmail: clientEmail || null,
         notes: notes || null,
-        startAt: admin.firestore.Timestamp.fromDate(new Date(startAt)),
+        startAt: getAdmin().firestore.Timestamp.fromDate(new Date(startAt)),
         endAt: endAt 
-          ? admin.firestore.Timestamp.fromDate(new Date(endAt))
-          : admin.firestore.Timestamp.fromDate(new Date(new Date(startAt).getTime() + slotMinutes * 60000)),
+          ? getAdmin().firestore.Timestamp.fromDate(new Date(endAt))
+          : getAdmin().firestore.Timestamp.fromDate(new Date(new Date(startAt).getTime() + slotMinutes * 60000)),
         status: 'REQUESTED',
         source: 'PUBLIC_API',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
 
       res.status(200).json({
@@ -1223,15 +1240,15 @@ export const sendContactEmailHttp = functions
         message,
         company_id: companyId || null,
         status: 'pending',
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: getAdmin().firestore.FieldValue.serverTimestamp(),
         source: 'contact_form',
       });
 
       // Aquí podrías enviar email con SendGrid si está configurado
       const sendgridKey = getSendGridApiKey();
-      if (sendgridKey && sgMail) {
+      if (sendgridKey && getSendGrid()) {
         try {
-          await sgMail.send({
+          await getSendGrid().send({
             to: process.env.CONTACT_EMAIL || 'contacto@pymerp.cl',
             from: process.env.SENDGRID_FROM_EMAIL || 'noreply@pymerp.cl',
             subject: `Nuevo mensaje de contacto de ${name}`,
@@ -1301,7 +1318,7 @@ export const sendFirstPasswordEmailHttp = functions
       }
 
       const token = authHeader.split('Bearer ')[1];
-      const decodedToken = await admin.auth().verifyIdToken(token);
+      const decodedToken = await getAdmin().auth().verifyIdToken(token);
 
       // Verificar que es admin
       const userDoc = await getFirestore().doc(`users/${decodedToken.uid}`).get();
@@ -1321,12 +1338,12 @@ export const sendFirstPasswordEmailHttp = functions
 
       // Enviar email con SendGrid
       const sendgridKey = getSendGridApiKey();
-      if (!sendgridKey || !sgMail) {
+      if (!sendgridKey || !getSendGrid()) {
         res.status(503).json({ success: false, error: 'Servicio de email no configurado' });
         return;
       }
 
-      await sgMail.send({
+      await getSendGrid().send({
         to: email,
         from: process.env.SENDGRID_FROM_EMAIL || 'noreply@pymerp.cl',
         subject: `Bienvenido a ${companyName || 'AgendaWeb'}`,

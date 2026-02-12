@@ -1,15 +1,33 @@
 import * as functions from 'firebase-functions/v1';
 import { defineString } from 'firebase-functions/params';
-import * as admin from 'firebase-admin';
-import sgMail from '@sendgrid/mail';
+import type * as AdminNamespace from 'firebase-admin';
 import { getAppointmentRequestEmailTemplate } from './emailTemplates';
 
 // Lazy initialization para evitar problemas de carga y timeouts en deployment
 let _adminInitialized = false;
+let _admin: AdminNamespace | null = null;
+let _sgMail: any;
+
+const getAdmin = (): AdminNamespace => {
+  if (!_admin) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _admin = require('firebase-admin');
+  }
+  return _admin;
+};
+
+const getSendGrid = () => {
+  if (!_sgMail) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _sgMail = require('@sendgrid/mail');
+  }
+  return _sgMail;
+};
+
 const ensureAdminInitialized = () => {
   if (!_adminInitialized) {
     try {
-      admin.initializeApp();
+      getAdmin().initializeApp();
       _adminInitialized = true;
     } catch (error: any) {
       // Si ya está inicializado, ignorar el error
@@ -23,7 +41,7 @@ const ensureAdminInitialized = () => {
 
 const getFirestore = () => {
   ensureAdminInitialized();
-  return admin.firestore();
+  return getAdmin().firestore();
 };
 
 const SENDGRID_API_KEY_PARAM = defineString('SENDGRID_API_KEY');
@@ -58,13 +76,17 @@ const toTimestamp = (value: unknown, field: string) => {
     if (Number.isNaN(date.getTime())) {
       throw new functions.https.HttpsError('invalid-argument', `Fecha inválida para ${field}`);
     }
-    return admin.firestore.Timestamp.fromDate(date);
+    return getAdmin().firestore.Timestamp.fromDate(date);
   }
-  if (value instanceof admin.firestore.Timestamp) return value;
+  if (value instanceof getAdmin().firestore.Timestamp) return value;
   throw new functions.https.HttpsError('invalid-argument', `Fecha inválida para ${field}`);
 };
 
-const formatSlotId = (companyId: string, professionalId: string, start: admin.firestore.Timestamp) => {
+const formatSlotId = (
+  companyId: string,
+  professionalId: string,
+  start: AdminNamespace.firestore.Timestamp
+) => {
   const date = start.toDate();
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -79,7 +101,7 @@ const ensureSendGrid = () => {
   if (!key) {
     throw new functions.https.HttpsError('failed-precondition', 'SendGrid API key no configurada');
   }
-  sgMail.setApiKey(key);
+  getSendGrid().setApiKey(key);
 };
 
 // Simple rate limiter en memoria (por uid o ip)
@@ -106,7 +128,7 @@ const resolveCompanyId = (data: any, context: functions.https.CallableContext): 
   return companyId;
 };
 
-const getLocalInfo = (ts: admin.firestore.Timestamp, timeZone: string) => {
+const getLocalInfo = (ts: AdminNamespace.firestore.Timestamp, timeZone: string) => {
   const date = ts.toDate();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -148,8 +170,8 @@ const isSlotAvailable = async ({
 }: {
   companyId: string;
   professionalId: string;
-  startAt: admin.firestore.Timestamp;
-  endAt: admin.firestore.Timestamp;
+  startAt: AdminNamespace.firestore.Timestamp;
+  endAt: AdminNamespace.firestore.Timestamp;
 }) => {
   const companySnap = await getFirestore().doc(`companies/${companyId}`).get();
   const tz = (companySnap.get('timezone') as string) || 'America/Santiago';
@@ -270,8 +292,8 @@ export const createProfessional = functions
         company_id: companyId,
         name,
         status,
-        created_at: admin.firestore.FieldValue.serverTimestamp(),
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        created_at: getAdmin().firestore.FieldValue.serverTimestamp(),
+        updated_at: getAdmin().firestore.FieldValue.serverTimestamp(),
       };
       
       // Agregar campos opcionales solo si están presentes
@@ -284,7 +306,7 @@ export const createProfessional = functions
       
       tx.set(
         companyRef,
-        { stats: { professionalsCount: admin.firestore.FieldValue.increment(1) } },
+        { stats: { professionalsCount: getAdmin().firestore.FieldValue.increment(1) } },
         { merge: true }
       );
 
@@ -317,11 +339,11 @@ export const createAppointmentRequest = functions
     }
 
     const startAt = toTimestamp(data.startAt, 'startAt');
-    const endAt = data.endAt ? toTimestamp(data.endAt, 'endAt') : admin.firestore.Timestamp.fromMillis(
+    const endAt = data.endAt ? toTimestamp(data.endAt, 'endAt') : getAdmin().firestore.Timestamp.fromMillis(
       startAt.toMillis() + slotMinutes * 60_000
     );
 
-    const nowMinus5 = admin.firestore.Timestamp.fromMillis(Date.now() - 5 * 60_000);
+    const nowMinus5 = getAdmin().firestore.Timestamp.fromMillis(Date.now() - 5 * 60_000);
     if (startAt < nowMinus5) {
       throw new functions.https.HttpsError('failed-precondition', 'Slot en pasado');
     }
@@ -352,8 +374,8 @@ export const createAppointmentRequest = functions
           company_id: companyId,
           professional_id: professionalId,
           startAt,
-          expiresAt: admin.firestore.Timestamp.fromMillis(startAt.toMillis() + slotMinutes * 60_000),
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: getAdmin().firestore.Timestamp.fromMillis(startAt.toMillis() + slotMinutes * 60_000),
+          createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
           status: 'HELD',
         });
 
@@ -370,7 +392,7 @@ export const createAppointmentRequest = functions
           endAt,
           status,
           source: context.auth ? 'DASHBOARD' : 'PUBLIC',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
         });
 
         return { appointmentId: appointmentRef.id, lockId: lockRef.id };
@@ -404,14 +426,14 @@ export const cancelAppointment = functions
       const appt = snap.data();
       if (appt.company_id !== companyId) throw new functions.https.HttpsError('permission-denied', 'No autorizado');
 
-      const start = appt.startAt as admin.firestore.Timestamp | undefined;
+      const start = appt.startAt as AdminNamespace.firestore.Timestamp | undefined;
       const professionalId = appt.professional_id as string | undefined;
       const oldLockId = start && professionalId ? formatSlotId(companyId, professionalId, start) : null;
 
       tx.update(apptRef, {
         status: 'CANCELLED',
-        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        cancelledAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+        updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
 
       if (oldLockId) {
@@ -437,7 +459,7 @@ export const rescheduleAppointment = functions
     const slotMinutes = safeNumber(data.slotMinutes ?? 15, 5, 240) ?? 15;
     const newEndAt = data.endAt
       ? toTimestamp(data.endAt, 'endAt')
-      : admin.firestore.Timestamp.fromMillis(newStartAt.toMillis() + slotMinutes * 60_000);
+      : getAdmin().firestore.Timestamp.fromMillis(newStartAt.toMillis() + slotMinutes * 60_000);
 
     const apptRef = getFirestore().doc(`appointments/${appointmentId}`);
     const result = await getFirestore().runTransaction(async (tx) => {
@@ -448,7 +470,7 @@ export const rescheduleAppointment = functions
 
       const currentProfessional = appt.professional_id as string;
       const professionalId = newProfessionalId || currentProfessional;
-      const oldStart = appt.startAt as admin.firestore.Timestamp | undefined;
+      const oldStart = appt.startAt as AdminNamespace.firestore.Timestamp | undefined;
       const oldLockId = oldStart ? formatSlotId(companyId, currentProfessional, oldStart) : null;
 
       const availability = await isSlotAvailable({
@@ -476,8 +498,8 @@ export const rescheduleAppointment = functions
         company_id: companyId,
         professional_id: professionalId,
         startAt: newStartAt,
-        expiresAt: admin.firestore.Timestamp.fromMillis(newStartAt.toMillis() + slotMinutes * 60_000),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: getAdmin().firestore.Timestamp.fromMillis(newStartAt.toMillis() + slotMinutes * 60_000),
+        createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
         status: 'HELD',
       });
 
@@ -486,8 +508,8 @@ export const rescheduleAppointment = functions
         startAt: newStartAt,
         endAt: newEndAt,
         status: appt.status === 'CANCELLED' ? 'CONFIRMED' : appt.status,
-        rescheduledAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        rescheduledAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+        updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
 
       return { appointmentId, lockId: newLockId };
@@ -547,7 +569,7 @@ export const onAppointmentCreated = functions.firestore
       await dedupeRef.set({
         skipped: true,
         reason: 'notifications_disabled',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
       console.warn(
         'Appointment request without email recipients. Enable notifications at dashboard/settings/notifications',
@@ -559,7 +581,7 @@ export const onAppointmentCreated = functions.firestore
     // Obtener datos de la cita usando la estructura correcta
     const appointmentDate = data.appointment_date?.toDate 
       ? data.appointment_date.toDate() 
-      : data.appointment_date instanceof admin.firestore.Timestamp
+      : data.appointment_date instanceof getAdmin().firestore.Timestamp
       ? data.appointment_date.toDate()
       : new Date(data.appointment_date || Date.now());
     
@@ -625,8 +647,8 @@ ${dashboardUrl}
       html: emailHtml,
     };
 
-    await sgMail.send(msg);
-    await dedupeRef.set({ appointmentId, sent: true, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    await getSendGrid().send(msg);
+    await dedupeRef.set({ appointmentId, sent: true, createdAt: getAdmin().firestore.FieldValue.serverTimestamp() });
   });
 
 /**
@@ -635,7 +657,7 @@ ${dashboardUrl}
 export const cleanExpiredLocks = functions.pubsub
   .schedule('every 60 minutes')
   .onRun(async () => {
-    const now = admin.firestore.Timestamp.now();
+    const now = getAdmin().firestore.Timestamp.now();
     const snap = await getFirestore()
       .collection('locks')
       .where('expiresAt', '<', now)
