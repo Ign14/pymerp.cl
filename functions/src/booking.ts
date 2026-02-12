@@ -1,4 +1,5 @@
 import * as functions from 'firebase-functions/v1';
+import { defineString } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import sgMail from '@sendgrid/mail';
 import { getAppointmentRequestEmailTemplate } from './emailTemplates';
@@ -24,6 +25,10 @@ const getFirestore = () => {
   ensureAdminInitialized();
   return admin.firestore();
 };
+
+const SENDGRID_API_KEY_PARAM = defineString('SENDGRID_API_KEY');
+const getSendGridApiKey = () =>
+  SENDGRID_API_KEY_PARAM.value() || process.env.SENDGRID_API_KEY || '';
 
 type AppointmentStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED';
 
@@ -70,7 +75,7 @@ const formatSlotId = (companyId: string, professionalId: string, start: admin.fi
 };
 
 const ensureSendGrid = () => {
-  const key = process.env.SENDGRID_API_KEY;
+  const key = getSendGridApiKey();
   if (!key) {
     throw new functions.https.HttpsError('failed-precondition', 'SendGrid API key no configurada');
   }

@@ -1,4 +1,5 @@
 import * as functions from 'firebase-functions/v1';
+import { defineString } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import sgMail from '@sendgrid/mail';
 import cors from 'cors';
@@ -6,6 +7,10 @@ import {
   getAccessRequestEmailTemplate,
   getUserCreationEmailTemplate,
 } from './emailTemplates';
+
+const SENDGRID_API_KEY_PARAM = defineString('SENDGRID_API_KEY');
+const getSendGridApiKey = () =>
+  SENDGRID_API_KEY_PARAM.value() || process.env.SENDGRID_API_KEY || '';
 
 // Cargar variables de entorno desde .env SOLO en desarrollo/emulador
 // Evitar cargar en deploy/CLI discovery para prevenir timeouts
@@ -183,9 +188,9 @@ const getCorsHandler = () => {
 let _sendGridConfigured = false;
 const configureSendGrid = () => {
   if (!_sendGridConfigured) {
-    const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-    if (SENDGRID_API_KEY) {
-      sgMail.setApiKey(SENDGRID_API_KEY);
+    const sendgridKey = getSendGridApiKey();
+    if (sendgridKey) {
+      sgMail.setApiKey(sendgridKey);
     } else {
       console.error('SENDGRID_API_KEY not found in environment variables');
     }
@@ -283,8 +288,8 @@ export const sendAccessRequestEmailHttp = functions
               return;
             }
 
-            const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-            if (!SENDGRID_API_KEY) {
+            const sendgridKey = getSendGridApiKey();
+            if (!sendgridKey) {
               console.warn('SendGrid API Key no configurada. Email no enviado.');
               res.status(500).json({ success: false, message: 'SendGrid no configurado' });
               return;
@@ -479,8 +484,8 @@ export const sendUserCreationEmailHttp = functions
 
     const data: UserCreationData = req.body;
 
-    const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-    if (!SENDGRID_API_KEY) {
+    const sendgridKey = getSendGridApiKey();
+    if (!sendgridKey) {
       console.warn('SendGrid API Key no configurada. Email no enviado.');
       res.status(500).json({ success: false, message: 'SendGrid no configurado' });
       return;
@@ -1198,7 +1203,7 @@ export const sendContactEmailHttp = functions
       });
 
       // Aquí podrías enviar email con SendGrid si está configurado
-      const sendgridKey = process.env.SENDGRID_API_KEY;
+      const sendgridKey = getSendGridApiKey();
       if (sendgridKey && sgMail) {
         try {
           await sgMail.send({
@@ -1290,7 +1295,7 @@ export const sendFirstPasswordEmailHttp = functions
       }
 
       // Enviar email con SendGrid
-      const sendgridKey = process.env.SENDGRID_API_KEY;
+      const sendgridKey = getSendGridApiKey();
       if (!sendgridKey || !sgMail) {
         res.status(503).json({ success: false, error: 'Servicio de email no configurado' });
         return;
