@@ -26,14 +26,14 @@ export default function PWAUpdatePrompt() {
     <AnimatePresence>
       {(offlineReadyValue || needRefreshValue) && (
         <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -50 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', damping: 20 }}
-          className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-[9999] w-[calc(100%-1rem)] sm:w-full max-w-md px-2 sm:px-4"
+          className="fixed left-1/2 top-3 sm:top-5 z-[9999] w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 translate-y-0 px-0 sm:px-4"
         >
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-start gap-2 sm:gap-3">
+            <div className="flex flex-col items-center text-center gap-2 sm:gap-3 sm:flex-row sm:items-start sm:text-left">
               {/* Icon */}
               <div className="flex-shrink-0 pt-0.5">
                 {needRefreshValue ? (
@@ -68,7 +68,7 @@ export default function PWAUpdatePrompt() {
               </div>
 
               {/* Content */}
-              <div className="flex-1 min-w-0 pr-1 sm:pr-0">
+              <div className="flex-1 min-w-0 pr-0 sm:pr-1">
                 <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-0.5 sm:mb-1 leading-tight">
                   {needRefreshValue ? '✨ Nueva versión disponible' : '✅ Listo para usar sin conexión'}
                 </h4>
@@ -80,7 +80,7 @@ export default function PWAUpdatePrompt() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-start gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="flex items-center justify-center sm:items-start sm:justify-start gap-1.5 sm:gap-2 flex-shrink-0 w-full sm:w-auto">
                 {needRefreshValue && (
                   <AnimatedButton
                     onClick={handleUpdate}
@@ -106,4 +106,3 @@ export default function PWAUpdatePrompt() {
     </AnimatePresence>
   );
 }
-

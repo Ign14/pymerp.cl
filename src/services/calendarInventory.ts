@@ -1,5 +1,6 @@
 import { addDoc, collection, getDocs, query, Timestamp, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { formatLocalDate } from '../utils/date';
 
 export type CalendarInventoryStatus = 'BOOKED' | 'REQUESTED';
 
@@ -33,7 +34,7 @@ export const isInventorySlotAvailable = async (
   startTime: string,
   endTime: string
 ): Promise<boolean> => {
-  const day = date.toISOString().split('T')[0];
+  const day = formatLocalDate(date);
   const q = query(
     collection(db, 'calendarInventory'),
     where('company_id', '==', companyId),
@@ -65,7 +66,7 @@ export const getOccupiedSlotsForDate = async (
   companyId: string,
   date: Date
 ): Promise<CalendarInventoryEntry[]> => {
-  const day = date.toISOString().split('T')[0];
+  const day = formatLocalDate(date);
   const q = query(
     collection(db, 'calendarInventory'),
     where('company_id', '==', companyId),
@@ -89,8 +90,8 @@ export const getOccupiedSlotsForDateRange = async (
   startDate: Date,
   endDate: Date
 ): Promise<CalendarInventoryEntry[]> => {
-  const startDay = startDate.toISOString().split('T')[0];
-  const endDay = endDate.toISOString().split('T')[0];
+  const startDay = formatLocalDate(startDate);
+  const endDay = formatLocalDate(endDate);
   
   const q = query(
     collection(db, 'calendarInventory'),

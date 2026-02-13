@@ -127,9 +127,9 @@ export function ScheduleList({
             return { start: today, end: today };
           }
           
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-          return { start: startDate, end: endDate };
+          const startNorm = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+          const endNorm = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+          return { start: startNorm, end: endNorm };
         default:
           return { start: today, end: today };
       }
@@ -307,17 +307,18 @@ export function ScheduleList({
       return;
     }
 
-    setCustomStartDate(format(tempStartDate, 'yyyy-MM-dd'));
-    setCustomEndDate(format(tempEndDate, 'yyyy-MM-dd'));
+    const startNorm = new Date(tempStartDate.getFullYear(), tempStartDate.getMonth(), tempStartDate.getDate(), 0, 0, 0, 0);
+    const endNorm = new Date(tempEndDate.getFullYear(), tempEndDate.getMonth(), tempEndDate.getDate(), 23, 59, 59, 999);
+
+    setCustomStartDate(format(startNorm, 'yyyy-MM-dd'));
+    setCustomEndDate(format(endNorm, 'yyyy-MM-dd'));
     setDateError(null);
     setShowCustomDateModal(false);
-    // Asegurar que el rango esté en 'custom' después de aplicar fechas personalizadas
+    dateRangePersistRef.current = 'custom';
     setDateRange('custom');
-    // Notificar cambio inmediatamente
+    lastNotifiedRange.current = { start: startNorm, end: endNorm };
     if (onDateRangeChangeRef.current) {
-      tempStartDate.setHours(0, 0, 0, 0);
-      tempEndDate.setHours(23, 59, 59, 999);
-      onDateRangeChangeRef.current(tempStartDate, tempEndDate);
+      onDateRangeChangeRef.current(startNorm, endNorm);
     }
   }, [tempStartDate, tempEndDate]);
 
@@ -353,6 +354,8 @@ export function ScheduleList({
           }}
           customStartDate={customStartDate}
           customEndDate={customEndDate}
+          activeRangeStart={dateRangeDates.start}
+          activeRangeEnd={dateRangeDates.end}
           selectedStatuses={selectedStatuses}
           onToggleStatus={toggleStatus}
           onClearStatuses={() => setSelectedStatuses([])}
@@ -643,6 +646,8 @@ function FiltersSection({
   onDateRangeChange,
   customStartDate,
   customEndDate,
+  activeRangeStart,
+  activeRangeEnd,
   selectedStatuses,
   onToggleStatus,
   onClearStatuses,
@@ -653,24 +658,17 @@ function FiltersSection({
   onDateRangeChange: (range: 'week' | 'month' | 'custom') => void;
   customStartDate: string;
   customEndDate: string;
+  activeRangeStart: Date;
+  activeRangeEnd: Date;
   selectedStatuses: AppointmentStatus[];
   onToggleStatus: (status: AppointmentStatus) => void;
   onClearStatuses: () => void;
   statusOptions: { value: AppointmentStatus; label: string; color: string }[];
   dateError?: string | null;
 }) {
-  // Formatear fechas para mostrar en el botón personalizado
-  const formatDateForDisplay = (dateString: string): string => {
-    try {
-      const date = parseISO(dateString);
-      if (isValid(date)) {
-        return format(date, 'dd/MM/yyyy', { locale: es });
-      }
-    } catch {
-      // Ignorar errores
-    }
-    return dateString;
-  };
+  // Mostrar en la tarjeta el rango real usado para filtrar (misma fuente que la lista)
+  const displayStart = format(activeRangeStart, 'dd/MM/yyyy', { locale: es });
+  const displayEnd = format(activeRangeEnd, 'dd/MM/yyyy', { locale: es });
   
   console.log('FiltersSection render - dateRange:', dateRange);
   
@@ -750,7 +748,7 @@ function FiltersSection({
               <div className="flex-1 space-y-1">
                 <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide">Rango personalizado activo</p>
                 <p className="text-sm font-semibold text-indigo-700">
-                  {formatDateForDisplay(customStartDate)} → {formatDateForDisplay(customEndDate)}
+                  {displayStart} → {displayEnd}
                 </p>
                 <button
                   type="button"

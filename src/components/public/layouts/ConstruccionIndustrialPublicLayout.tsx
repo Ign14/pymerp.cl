@@ -453,14 +453,14 @@ export function ConstruccionIndustrialPublicLayout(props: PublicLayoutProps) {
   ];
 
   return (
-    <div className="space-y-10 pb-10">
-      <header className="sticky top-0 z-30 h-[72px] border-b border-white/10 bg-[#0e1624]">
+    <div className="-mt-[2cm] space-y-10 pb-10 sm:mt-0">
+      <header className="hidden sm:block sticky top-0 z-30 h-[72px] border-b border-white/10 bg-[#0e1624]">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 sm:px-8 lg:px-10">
           <div className="flex items-center gap-3">
             {appearance?.logo_url ? (
-              <img src={appearance.logo_url} alt={company.name} className="h-10 w-10 rounded-md object-contain" />
+              <img src={appearance.logo_url} alt={company.name} className="h-[calc(2.5rem+0.5cm)] w-[calc(2.5rem+0.5cm)] rounded-md object-contain" />
             ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white">
+              <div className="flex h-[calc(2.5rem+0.5cm)] w-[calc(2.5rem+0.5cm)] items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white">
                 {company.name?.slice(0, 2)?.toUpperCase() || 'OB'}
               </div>
             )}

@@ -965,101 +965,103 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   ) : null;
 
   const scheduleSection = hideScheduleSection ? null : (
-    <section
-      className="barber-schedule-section flex flex-col space-y-2.5 border-0 p-3 sm:p-4"
-      style={{
-        backgroundColor: sectionBg,
-        boxShadow: `0 4px 24px ${accentColor}0f`,
-        borderLeftColor: accentColor,
-      }}
-    >
-      <h2
-        className="text-lg font-bold leading-tight sm:text-xl"
-        style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+    <div className="flex justify-center w-full">
+      <section
+        className="barber-schedule-section flex w-full max-w-sm flex-col items-center space-y-2 border-0 p-3 text-center sm:p-3"
+        style={{
+          backgroundColor: sectionBg,
+          boxShadow: `0 4px 24px ${accentColor}0f`,
+          borderLeftColor: accentColor,
+        }}
       >
-        {t('publicPage.barberLayout.scheduleTitle')}
-      </h2>
-
-      {scheduleStrips.length > 0 ? (
-        <div className="space-y-2">
-          {scheduleStrips.map((strip, index) => {
-            const rowAccent = theme.buttonColor || (strip.accent === 'emerald' ? '#059669' : '#0284c7');
-            return (
-              <div
-                key={`${strip.label}-${index}`}
-                className="barber-schedule-row flex flex-col gap-0 border-0 px-3 py-2 transition-all duration-200 hover:shadow-md"
-                style={{
-                  backgroundColor: theme.cardColor || '#ffffff',
-                  borderLeftColor: rowAccent,
-                  boxShadow: `0 2px 10px ${rowAccent}12`,
-                }}
-              >
-                <h3
-                  className="text-sm font-bold leading-snug"
-                  style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
-                >
-                  {strip.label}
-                </h3>
-                <p
-                  className="text-xs font-medium leading-snug"
-                  style={{ color: theme.textColor || '#374151', opacity: 0.95 }}
-                >
-                  {strip.hours}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div
-          className="rounded-xl border border-dashed px-3 py-4 text-center"
-          style={{
-            borderColor: sectionBorder,
-            backgroundColor: theme.bgColor ? `${theme.bgColor}80` : '#f8fafc',
-          }}
+        <h2
+          className="text-base font-bold leading-tight sm:text-lg"
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
         >
-          <div className="space-y-2">
-            <div className="text-2xl mb-1">🕐</div>
-            <p
-              className="text-sm font-medium"
-              style={{ color: theme.textColor || '#374151' }}
-            >
-              {t('publicPage.barberLayout.noSchedule')}
-            </p>
-            {onWhatsAppClick && (
-              <button
-                type="button"
-                onClick={onWhatsAppClick}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition"
-                style={{
-                  backgroundColor: badgeBg,
-                  color: badgeText,
-                  borderColor: badgeText,
-                }}
-              >
-                💬 {t('publicPage.barberLayout.contactCta')}
-              </button>
-            )}
+          {t('publicPage.barberLayout.scheduleTitle')}
+        </h2>
+
+        {scheduleStrips.length > 0 ? (
+          <div className="w-full space-y-1.5">
+            {scheduleStrips.map((strip, index) => {
+              const rowAccent = theme.buttonColor || (strip.accent === 'emerald' ? '#059669' : '#0284c7');
+              return (
+                <div
+                  key={`${strip.label}-${index}`}
+                  className="barber-schedule-row flex flex-col items-center gap-0 border-0 px-3 py-1.5 text-center transition-all duration-200 hover:shadow-md"
+                  style={{
+                    backgroundColor: theme.cardColor || '#ffffff',
+                    borderLeftColor: rowAccent,
+                    boxShadow: `0 2px 10px ${rowAccent}12`,
+                  }}
+                >
+                  <h3
+                    className="text-sm font-bold leading-snug"
+                    style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+                  >
+                    {strip.label}
+                  </h3>
+                  <p
+                    className="text-xs font-medium leading-snug"
+                    style={{ color: theme.textColor || '#374151', opacity: 0.95 }}
+                  >
+                    {strip.hours}
+                  </p>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            className="w-full rounded-xl border border-dashed px-3 py-3 text-center"
+            style={{
+              borderColor: sectionBorder,
+              backgroundColor: theme.bgColor ? `${theme.bgColor}80` : '#f8fafc',
+            }}
+          >
+            <div className="space-y-2">
+              <div className="text-2xl mb-1">🕐</div>
+              <p
+                className="text-sm font-medium"
+                style={{ color: theme.textColor || '#374151' }}
+              >
+                {t('publicPage.barberLayout.noSchedule')}
+              </p>
+              {onWhatsAppClick && (
+                <button
+                  type="button"
+                  onClick={onWhatsAppClick}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition"
+                  style={{
+                    backgroundColor: badgeBg,
+                    color: badgeText,
+                    borderColor: badgeText,
+                  }}
+                >
+                  💬 {t('publicPage.barberLayout.contactCta')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-      <div className="pt-0.5">
-        <AnimatedButton
-          onClick={handlePrimaryCta}
-          className="w-full rounded-lg px-3 py-2.5 text-sm font-semibold shadow-md transition hover:shadow-lg sm:w-auto"
-          style={{
-            backgroundColor: theme.buttonColor,
-            color: theme.buttonTextColor,
-            fontFamily: theme.fontButton,
-            boxShadow: theme.buttonColor ? `0 4px 14px ${theme.buttonColor}40` : undefined,
-          }}
-          ariaLabel={t('publicPage.barberLayout.primaryCta')}
-        >
-          {t('publicPage.barberLayout.primaryCta')}
-        </AnimatedButton>
-      </div>
-    </section>
+        <div className="pt-0.5 flex w-full justify-center">
+          <AnimatedButton
+            onClick={handlePrimaryCta}
+            className="w-full rounded-lg px-3 py-2 text-sm font-semibold shadow-md transition hover:shadow-lg sm:w-auto"
+            style={{
+              backgroundColor: theme.buttonColor,
+              color: theme.buttonTextColor,
+              fontFamily: theme.fontButton,
+              boxShadow: theme.buttonColor ? `0 4px 14px ${theme.buttonColor}40` : undefined,
+            }}
+            ariaLabel={t('publicPage.barberLayout.primaryCta')}
+          >
+            {t('publicPage.barberLayout.primaryCta')}
+          </AnimatedButton>
+        </div>
+      </section>
+    </div>
   );
 
   /* Equipo arriba; Acerca de (o Horarios si no hay descripción) debajo y centrado */

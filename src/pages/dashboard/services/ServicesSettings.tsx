@@ -40,6 +40,13 @@ export default function ServicesSettings() {
     font_button: FONT_OPTIONS[0].value,
     card_layout: 1 as 1 | 2 | 3,
     show_whatsapp_fab: false,
+    social_icons_mode: 'dark' as 'light' | 'dark',
+    show_facebook_icon: false,
+    facebook_username: '',
+    show_instagram_icon: false,
+    instagram_username: '',
+    show_tiktok_icon: false,
+    tiktok_username: '',
     // Personalización del calendario
     calendar_card_color: '#ffffff',
     calendar_card_opacity: 100,
@@ -194,6 +201,13 @@ export default function ServicesSettings() {
           font_button: appearanceData.font_button || FONT_OPTIONS[0].value,
           card_layout: (appearanceData.card_layout || 1) as 1 | 2 | 3,
           show_whatsapp_fab: appearanceData.show_whatsapp_fab || false,
+          social_icons_mode: appearanceData.social_icons_mode === 'light' ? 'light' : 'dark',
+          show_facebook_icon: Boolean(appearanceData.show_facebook_icon),
+          facebook_username: appearanceData.facebook_username || '',
+          show_instagram_icon: Boolean(appearanceData.show_instagram_icon),
+          instagram_username: appearanceData.instagram_username || '',
+          show_tiktok_icon: Boolean(appearanceData.show_tiktok_icon),
+          tiktok_username: appearanceData.tiktok_username || '',
           // Personalización del calendario
           calendar_card_color: appearanceData.calendar_card_color || '#ffffff',
           calendar_card_opacity: appearanceData.calendar_card_opacity ?? 100,
@@ -1829,6 +1843,112 @@ export default function ServicesSettings() {
               <p className="text-xs text-gray-600">
                 Agrega un acceso rápido en la esquina inferior para que los clientes escriban por WhatsApp desde la página pública.
               </p>
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Iconos de redes sociales (Barberias)</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Se muestran bajo el boton "Contactar por WhatsApp" en la URL publica de barberias.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Modo visual de iconos</label>
+              <select
+                value={appearance.social_icons_mode}
+                onChange={(e) =>
+                  setAppearance({
+                    ...appearance,
+                    social_icons_mode: e.target.value as 'light' | 'dark',
+                  })
+                }
+                className="w-full sm:w-64 px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="light">Claro (blanco)</option>
+                <option value="dark">Oscuro (negro)</option>
+              </select>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="border border-gray-200 rounded-md p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    id="showFacebookIcon"
+                    type="checkbox"
+                    checked={appearance.show_facebook_icon}
+                    onChange={(e) => setAppearance({ ...appearance, show_facebook_icon: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <label htmlFor="showFacebookIcon" className="text-sm font-medium text-gray-900">
+                    Mostrar Facebook
+                  </label>
+                </div>
+                <label htmlFor="facebookSlug" className="block text-xs font-medium text-gray-700 mb-1">
+                  Usuario/slug de Facebook
+                </label>
+                <input
+                  id="facebookSlug"
+                  type="text"
+                  value={appearance.facebook_username}
+                  onChange={(e) => setAppearance({ ...appearance, facebook_username: e.target.value })}
+                  placeholder="ejemplo: mibarberia"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+
+              <div className="border border-gray-200 rounded-md p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    id="showInstagramIcon"
+                    type="checkbox"
+                    checked={appearance.show_instagram_icon}
+                    onChange={(e) => setAppearance({ ...appearance, show_instagram_icon: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <label htmlFor="showInstagramIcon" className="text-sm font-medium text-gray-900">
+                    Mostrar Instagram
+                  </label>
+                </div>
+                <label htmlFor="instagramSlug" className="block text-xs font-medium text-gray-700 mb-1">
+                  Usuario/slug de Instagram
+                </label>
+                <input
+                  id="instagramSlug"
+                  type="text"
+                  value={appearance.instagram_username}
+                  onChange={(e) => setAppearance({ ...appearance, instagram_username: e.target.value })}
+                  placeholder="ejemplo: mibarberia"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+
+              <div className="border border-gray-200 rounded-md p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    id="showTiktokIcon"
+                    type="checkbox"
+                    checked={appearance.show_tiktok_icon}
+                    onChange={(e) => setAppearance({ ...appearance, show_tiktok_icon: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <label htmlFor="showTiktokIcon" className="text-sm font-medium text-gray-900">
+                    Mostrar TikTok
+                  </label>
+                </div>
+                <label htmlFor="tiktokSlug" className="block text-xs font-medium text-gray-700 mb-1">
+                  Usuario/slug de TikTok
+                </label>
+                <input
+                  id="tiktokSlug"
+                  type="text"
+                  value={appearance.tiktok_username}
+                  onChange={(e) => setAppearance({ ...appearance, tiktok_username: e.target.value })}
+                  placeholder="ejemplo: mibarberia"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
             </div>
           </div>
             </>

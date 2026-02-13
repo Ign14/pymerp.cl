@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale/es';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,6 +7,7 @@ import AnimatedButton from '../../../components/animations/AnimatedButton';
 import AnimatedModal from '../../../components/animations/AnimatedModal';
 import { ScheduleSlot, Professional } from '../../../types';
 import { DAY_OF_WEEK_KEYS } from '../constants';
+import { formatLocalDate } from '../../../utils/date';
 import { AppearanceTheme, BookingForm } from '../types';
 import { 
   getOccupiedSlotsForDate, 
@@ -15,6 +17,7 @@ import {
   CalendarInventoryEntry 
 } from '../../../services/calendarInventory';
 import 'react-datepicker/dist/react-datepicker.css';
+import '../../../styles/booking-datepicker.css';
 
 // Registrar locale español
 registerLocale('es', es);
@@ -119,11 +122,8 @@ export function BookingModalV2({
       try {
         const occupied = await getOccupiedSlotsForDate(companyId, selectedDate);
         setOccupiedSlots(prev => {
-          const selectedDateStr = selectedDate.toISOString().split('T')[0];
-          const filtered = prev.filter(slot => {
-            const slotDate = new Date(slot.date);
-            return slotDate.toISOString().split('T')[0] !== selectedDateStr;
-          });
+          const selectedDateStr = formatLocalDate(selectedDate);
+          const filtered = prev.filter(slot => slot.date !== selectedDateStr);
           return [...filtered, ...occupied];
         });
       } catch (error) {
@@ -151,27 +151,28 @@ export function BookingModalV2({
     return availableSchedules.some((s: ScheduleSlot) => s.days_of_week?.includes(dayKey));
   };
 
-  // Filtrar horarios pasados (más de 15 min de atraso)
+  // Filtrar horarios pasados: ocultar si ya pasaron 16 min desde el inicio del slot (ej. 12:00-13:00 a las 12:17 ya no se muestra)
+  const PAST_SLOT_MINUTES = 16;
+
   const filterPastSchedules = (schedules: ScheduleSlot[]): ScheduleSlot[] => {
     if (!selectedDate) return schedules;
 
     const now = new Date();
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    const todayStr = now.toISOString().split('T')[0];
+    const selectedDateStr = formatLocalDate(selectedDate);
+    const todayStr = formatLocalDate(now);
 
     // Si la fecha seleccionada no es hoy, retornar todos los horarios
     if (selectedDateStr !== todayStr) {
       return schedules;
     }
 
-    // Si es hoy, filtrar horarios que ya pasaron + 15 minutos
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
     return schedules.filter(schedule => {
       const [hours, minutes] = schedule.start_time.split(':').map(Number);
       const scheduleTime = hours * 60 + minutes;
-      // Filtrar horarios con más de 15 min de atraso
-      return scheduleTime >= currentTime - 15;
+      // Mostrar solo si aún no han pasado 16 min desde el inicio del slot
+      return scheduleTime > currentTime - PAST_SLOT_MINUTES;
     });
   };
 
@@ -219,9 +220,9 @@ export function BookingModalV2({
 
     if (schedulesForDay.length === 0) return 0;
 
-    // Filtrar horarios pasados si es hoy
-    const dateStr = date.toISOString().split('T')[0];
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Filtrar horarios pasados si es hoy (fecha local para evitar bug día 13 en UTC)
+    const dateStr = formatLocalDate(date);
+    const todayStr = formatLocalDate(new Date());
     
     if (dateStr === todayStr) {
       const now = new Date();
@@ -229,16 +230,13 @@ export function BookingModalV2({
       schedulesForDay = schedulesForDay.filter(schedule => {
         const [hours, minutes] = schedule.start_time.split(':').map(Number);
         const scheduleTime = hours * 60 + minutes;
-        return scheduleTime >= currentTime - 15;
+        return scheduleTime > currentTime - PAST_SLOT_MINUTES;
       });
     }
 
-    // Filtrar ocupados
+    // Filtrar ocupados (slot.date es YYYY-MM-DD; comparar con fecha local)
     if (occupiedSlots.length > 0) {
-      const slotsForThisDate = occupiedSlots.filter(slot => {
-        const slotDate = new Date(slot.date);
-        return slotDate.toISOString().split('T')[0] === dateStr;
-      });
+      const slotsForThisDate = occupiedSlots.filter(slot => slot.date === dateStr);
 
       if (slotsForThisDate.length > 0) {
         return schedulesForDay.filter((schedule) => {
@@ -388,7 +386,7 @@ export function BookingModalV2({
     <AnimatedModal
       isOpen={isOpen}
       onClose={onClose}
-      className="p-0 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col booking-modal-container relative"
+      className="p-0 w-full max-w-2xl max-h-[95vh] overflow-hidden flex flex-col booking-modal-container relative booking-modal-compact"
       ariaLabel={`Agendar servicio: ${serviceName}`}
     >
       {/* Overlay de carga para evitar parpadeo al abrir */}
@@ -482,191 +480,27 @@ export function BookingModalV2({
             transform: translateY(0);
           }
         }
-
-        /* Calendario: colores sólidos, usa primary del tema */
-        .react-datepicker {
-          font-family: inherit !important;
-          border: 2px solid var(--border) !important;
-          background: #ffffff !important;
-          border-radius: 1rem !important;
-          color: #171717 !important;
-          padding: 0.5rem !important;
-        }
-
-        .react-datepicker__header {
-          background: transparent !important;
-          border: none !important;
-          padding: 0.25rem 0.25rem 0.5rem !important;
-          border-bottom: 2px solid var(--border) !important;
-        }
-
-        .react-datepicker__current-month {
-          color: #171717 !important;
-          font-weight: 700 !important;
-          font-size: 0.9rem !important;
-          margin-bottom: 0.5rem !important;
-        }
-
-        .react-datepicker__month-container {
-          background: #ffffff !important;
-        }
-
-        .react-datepicker__month {
-          background: #ffffff !important;
-          color: #171717 !important;
-        }
-
-        .react-datepicker__day-names {
-          display: grid !important;
-          grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-          gap: 0.25rem !important;
-          margin-top: 0.25rem !important;
-        }
-
-        .react-datepicker__day-name {
-          color: #64748b !important;
-          font-weight: 700 !important;
-          font-size: 0.65rem !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          background: transparent !important;
-          border-radius: 0.375rem !important;
-          padding: 0.25rem 0 !important;
-          text-align: center !important;
-        }
-
-        .react-datepicker__week {
-          display: grid !important;
-          grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-          gap: 0.25rem !important;
-          margin-bottom: 0.25rem !important;
-        }
-
-        .react-datepicker__day {
-          width: 100% !important;
-          aspect-ratio: 1 !important;
-          height: auto !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          border-radius: 0.5rem !important;
-          font-weight: 600 !important;
-          font-size: 0.8rem !important;
-          transition: all 0.2s ease !important;
-          border: 2px solid var(--border-light) !important;
-          color: #171717 !important;
-          background: #ffffff !important;
-          cursor: pointer !important;
-          position: relative !important;
-        }
-
-        .react-datepicker__day:hover:not(.react-datepicker__day--disabled) {
-          background: var(--surface-dark) !important;
-          border-color: var(--primary) !important;
-        }
-
-        .react-datepicker__day--selected {
-          background: var(--primary) !important;
-          color: #ffffff !important;
-          border-color: var(--primary) !important;
-          font-weight: 700 !important;
-        }
-
-        .react-datepicker__day--today:not(.react-datepicker__day--selected) {
-          border-color: var(--primary) !important;
-          border-width: 2px !important;
-          font-weight: 700 !important;
-          background: #ffffff !important;
-          color: #171717 !important;
-        }
-
-        .react-datepicker__day--disabled {
-          color: #9ca3af !important;
-          opacity: 0.5 !important;
-          cursor: not-allowed !important;
-          background: #f9fafb !important;
-          border-style: dashed !important;
-          border-color: #e5e7eb !important;
-        }
-
-        .react-datepicker__day--disabled:hover {
-          background: #f9fafb !important;
-          border-color: #e5e7eb !important;
-        }
-
-        .react-datepicker__day.booking-day-available {
-          border-color: #10b981 !important;
-          border-width: 2px !important;
-          background: #ffffff !important;
-          color: #171717 !important;
-        }
-
-        .react-datepicker__day.booking-day-available::after {
-          content: '';
-          position: absolute;
-          top: 4px;
-          right: 4px;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #10b981;
-        }
-
-        .react-datepicker__day.booking-day-low-slots {
-          border-color: #f59e0b !important;
-          border-width: 2px !important;
-          background: #ffffff !important;
-          color: #171717 !important;
-        }
-
-        .react-datepicker__day.booking-day-low-slots::after {
-          content: '';
-          position: absolute;
-          top: 4px;
-          right: 4px;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #f59e0b;
-        }
-
-        .react-datepicker__day.booking-day-no-slots {
-          border-color: #e5e7eb !important;
-          border-width: 2px !important;
-          background: #f9fafb !important;
-          color: #9ca3af !important;
-          opacity: 0.8 !important;
-        }
-
-        .react-datepicker__day.booking-day-blocked {
-          color: #9ca3af !important;
-          opacity: 0.4 !important;
-          border-style: dashed !important;
-          border-color: #e5e7eb !important;
-          cursor: not-allowed !important;
-          background: #f9fafb !important;
-        }
       `}</style>
 
       {/* Header */}
       <div 
-        className="px-4 sm:px-5 py-3 border-b-2"
+        className="px-3 sm:px-4 py-2 border-b-2"
         style={{ 
           borderColor: colorPalette.border,
           backgroundColor: colorPalette.surface
         }}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p 
-              className="text-xs uppercase tracking-wider font-semibold mb-1" 
+              className="booking-modal-title-caption text-[10px] uppercase tracking-wider font-semibold mb-0.5" 
               style={{ color: '#000000' }}
             >
               Agendar servicio
             </p>
             <h3 
               id="booking-modal-title"
-              className="text-lg sm:text-xl font-bold truncate leading-tight"
+              className="text-base sm:text-lg font-bold truncate leading-tight"
               style={{ color: colorPalette.text }}
             >
               {serviceName}
@@ -741,8 +575,8 @@ export function BookingModalV2({
         </div>
 
         {/* Progress indicator con 4 pasos */}
-        <div className="mt-3 px-1">
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4}>
+        <div className="mt-2 px-1">
+          <div className="flex items-center justify-center gap-0.5" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4}>
             {[
               { num: 1, label: 'Fecha' },
               { num: 2, label: 'Hora' },
@@ -750,9 +584,9 @@ export function BookingModalV2({
               { num: 4, label: 'Confirmar' },
             ].map((stepData, index) => (
               <div key={stepData.num} className="flex items-center">
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-0.5">
                   <div 
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 border-2 ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all duration-300 border-2 ${
                       step >= stepData.num ? 'scale-110' : 'scale-100'
                     }`}
                     style={{
@@ -765,7 +599,7 @@ export function BookingModalV2({
                     {step > stepData.num ? '✓' : stepData.num}
                   </div>
                   <span 
-                    className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide"
+                    className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide"
                     style={{ 
                       color: step >= stepData.num ? colorPalette.text : colorPalette.textMuted
                     }}
@@ -788,12 +622,12 @@ export function BookingModalV2({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content: todos los textos de las tarjetas (pasos 1-4) en negro */}
       <div 
-        className="px-4 sm:px-5 py-3 sm:py-4 flex-1 min-h-0 overflow-y-auto booking-modal-content"
+        className="px-3 sm:px-4 py-2 flex-1 min-h-0 overflow-y-auto booking-modal-content"
         style={{ 
           backgroundColor: colorPalette.surfaceLight,
-          color: colorPalette.text
+          color: '#000000'
         }}
       >
         <AnimatePresence mode="wait">
@@ -803,25 +637,25 @@ export function BookingModalV2({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="booking-step-panel space-y-3"
+              className="booking-step-panel booking-step-date space-y-2"
             >
               {/* Paso 1: Selección de fecha */}
-              <div className="space-y-3 max-w-xl mx-auto">
+              <div className="space-y-2 max-w-[280px] mx-auto">
                 <label 
                   id="booking-date-picker-label"
-                  className="block text-sm sm:text-base font-bold"
+                  className="block text-xs font-bold"
                   style={{ color: '#000000' }}
                 >
-                  <span className="mr-1.5 text-lg" aria-hidden="true">📆</span>
+                  <span className="mr-1 text-sm" aria-hidden="true">📆</span>
                   Selecciona una fecha
                 </label>
 
                 {/* Botones de navegación rápida */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold" style={{ color: '#000000' }}>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold" style={{ color: '#000000' }}>
                     Ir a:
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1">
                     {[
                       { label: 'Hoy', action: () => selectNearestAvailable(new Date()) },
                       { label: 'Mañana', action: () => { const d = new Date(); d.setDate(d.getDate() + 1); selectNearestAvailable(d); } },
@@ -831,11 +665,11 @@ export function BookingModalV2({
                         key={action.label}
                         type="button"
                         onClick={action.action}
-                        className="px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                        className="px-2 py-1 rounded border-2 text-[10px] font-bold transition-all hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
                         style={{ 
                           borderColor: colorPalette.border,
                           backgroundColor: colorPalette.surface,
-                          color: colorPalette.text
+                          color: '#000000'
                         }}
                         aria-label={`Ir a ${action.label}`}
                       >
@@ -845,52 +679,51 @@ export function BookingModalV2({
                   </div>
                 </div>
 
-                {/* Calendario */}
-                <div className="w-full flex justify-center">
-                  <div 
-                    className="border-2 rounded-xl p-2 sm:p-3 transition-all w-full max-w-full sm:max-w-sm mx-auto flex flex-col items-center"
-                    style={{ 
-                      backgroundColor: '#ffffff',
-                      borderColor: colorPalette.border
-                    }}
-                  >
-                    <DatePicker
-                      selected={selectedDate}
-                      onChange={handleDateChange}
-                      minDate={minDate}
-                      maxDate={maxDate}
-                      filterDate={isDateAvailable}
-                      inline
-                      locale="es"
-                      dateFormat="dd/MM/yyyy"
-                      dayClassName={getDayAvailabilityClass}
-                      monthsShown={1}
-                      fixedHeight
-                    />
+                {/* Calendario + leyenda encapsulados en .booking-datepicker (Agenda > Barberías) */}
+                <div className="booking-datepicker w-full flex flex-col items-center">
+                  <div className="w-full flex justify-center">
+                    <div 
+                      className="booking-datepicker-inner rounded-lg p-1.5 w-full max-w-[280px] mx-auto flex flex-col items-center"
+                      style={{ 
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
+                      }}
+                    >
+                      <DatePicker
+                        selected={selectedDate}
+                        onChange={handleDateChange}
+                        minDate={minDate}
+                        maxDate={maxDate}
+                        filterDate={() => true}
+                        inline
+                        locale="es"
+                        dateFormat="dd/MM/yyyy"
+                        dayClassName={getDayAvailabilityClass}
+                        monthsShown={1}
+                        fixedHeight
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Leyenda de disponibilidad */}
-                <div 
-                  className="flex flex-wrap items-center justify-center gap-2 mt-3 p-2 rounded-lg border"
-                  style={{
-                    backgroundColor: colorPalette.surfaceDark,
-                    borderColor: colorPalette.borderLight
-                  }}
-                  role="list" 
-                  aria-label="Leyenda de disponibilidad"
-                >
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.success, borderColor: colorPalette.success }}></span>
-                    <span>Disponible</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.warning, borderColor: colorPalette.warning }}></span>
-                    <span>Pocos cupos</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold" role="listitem" style={{ color: '#000000' }}>
-                    <span className="w-2.5 h-2.5 rounded-full border" aria-hidden="true" style={{ backgroundColor: colorPalette.error, borderColor: colorPalette.error }}></span>
-                    <span>Sin horas</span>
+                  {/* Leyenda de disponibilidad (misma paleta tokenizada) */}
+                  <div 
+                    className="booking-legend flex flex-wrap items-center justify-center gap-1.5 mt-2 py-1.5 px-2 rounded border"
+                    role="list" 
+                    aria-label="Leyenda de disponibilidad"
+                  >
+                    <div className="inline-flex items-center gap-1 text-[10px] font-semibold" role="listitem" style={{ color: '#000000' }}>
+                      <span className="booking-legend-dot-available w-2 h-2 rounded-full border" aria-hidden="true"></span>
+                      <span>Disponible</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1 text-[10px] font-semibold" role="listitem" style={{ color: '#000000' }}>
+                      <span className="booking-legend-dot-low w-2 h-2 rounded-full border" aria-hidden="true"></span>
+                      <span>Pocos cupos</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1 text-[10px] font-semibold" role="listitem" style={{ color: '#000000' }}>
+                      <span className="booking-legend-dot-no-slots w-2 h-2 rounded-full border" aria-hidden="true"></span>
+                      <span>Sin horas</span>
+                    </div>
                   </div>
                 </div>
 
@@ -899,14 +732,14 @@ export function BookingModalV2({
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 p-3 rounded-lg border-2"
+                    className="mt-1.5 py-2 px-2.5 rounded border-2"
                     style={{ 
                       backgroundColor: colorPalette.primaryLight,
                       borderColor: colorPalette.primary
                     }}
                   >
-                    <p className="text-xs font-bold flex items-center gap-1.5" 
-                      style={{ color: colorPalette.text }}
+                    <p className="text-[10px] font-bold flex items-center gap-1" 
+                      style={{ color: '#000000' }}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -942,7 +775,7 @@ export function BookingModalV2({
                   }}
                 >
                   <p className="text-xs font-bold flex items-center gap-1.5" 
-                    style={{ color: colorPalette.text }}
+                    style={{ color: '#000000' }}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -985,7 +818,7 @@ export function BookingModalV2({
                     >
                       <div className="space-y-0.5">
                         <p className="font-bold text-base"
-                          style={{ color: selectedSchedule === schedule.id ? '#ffffff' : colorPalette.text }}
+                          style={{ color: selectedSchedule === schedule.id ? '#ffffff' : '#000000' }}
                         >
                           {schedule.start_time}
                         </p>
@@ -1005,7 +838,7 @@ export function BookingModalV2({
                     style={{ 
                       borderColor: colorPalette.borderLight,
                       backgroundColor: colorPalette.surfaceDark,
-                      color: colorPalette.textMuted
+                      color: '#000000'
                     }}
                   >
                     <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ opacity: 0.4, color: '#6b7280' }}>
@@ -1037,11 +870,11 @@ export function BookingModalV2({
                   borderColor: colorPalette.primary
                 }}
               >
-                <h4 className="font-bold mb-2 flex items-center gap-1.5 text-sm" style={{ color: colorPalette.text }}>
+                <h4 className="font-bold mb-2 flex items-center gap-1.5 text-sm" style={{ color: '#000000' }}>
                   <span className="text-base">📋</span>
                   Resumen de tu reserva
                 </h4>
-                <div className="space-y-1.5 text-xs font-medium" style={{ color: colorPalette.text }}>
+                <div className="space-y-1.5 text-xs font-medium" style={{ color: '#000000' }}>
                   <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString('es-CL', { 
                     weekday: 'long', 
                     day: 'numeric', 
@@ -1075,7 +908,7 @@ export function BookingModalV2({
                             : colorPalette.surface
                         }}
                       >
-                        <div className="font-bold" style={{ color: colorPalette.text }}>{pro.name}</div>
+                        <div className="font-bold" style={{ color: '#000000' }}>{pro.name}</div>
                         {(pro.email || pro.phone) && (
                           <div className="text-xs mt-1 font-medium" style={{ color: '#000000' }}>
                             {[pro.email, pro.phone].filter(Boolean).join(' · ')}
@@ -1089,7 +922,7 @@ export function BookingModalV2({
 
               {/* Formulario de datos personales */}
               <div className="space-y-3">
-                <h4 className="font-bold text-sm flex items-center gap-1.5" style={{ color: colorPalette.text }}>
+                <h4 className="font-bold text-sm flex items-center gap-1.5" style={{ color: '#000000' }}>
                   <span className="text-base">📝</span>
                   Tus datos de contacto
                 </h4>
@@ -1108,7 +941,7 @@ export function BookingModalV2({
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
-                      color: colorPalette.text,
+                      color: '#000000',
                       '--tw-ring-color': colorPalette.primary
                     } as React.CSSProperties}
                     value={bookingForm.client_name}
@@ -1130,7 +963,7 @@ export function BookingModalV2({
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
-                      color: colorPalette.text,
+                      color: '#000000',
                       '--tw-ring-color': colorPalette.primary
                     } as React.CSSProperties}
                     value={bookingForm.client_rut || ''}
@@ -1155,7 +988,7 @@ export function BookingModalV2({
                       style={{ 
                         borderColor: colorPalette.border,
                         backgroundColor: colorPalette.surface,
-                        color: colorPalette.text,
+                        color: '#000000',
                         '--tw-ring-color': colorPalette.primary
                       } as React.CSSProperties}
                       value={bookingForm.client_whatsapp}
@@ -1180,7 +1013,7 @@ export function BookingModalV2({
                     style={{ 
                       borderColor: colorPalette.border,
                       backgroundColor: colorPalette.surface,
-                      color: colorPalette.text,
+                      color: '#000000',
                       '--tw-ring-color': colorPalette.primary
                     } as React.CSSProperties}
                     value={bookingForm.client_comment}
@@ -1239,11 +1072,11 @@ export function BookingModalV2({
                   </h4>
                   <div className="space-y-2 text-xs font-medium" style={{ color: '#000000' }}>
                     <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
-                      <span style={{ color: '#374151' }}>Servicio:</span>
+                      <span style={{ color: '#000000' }}>Servicio:</span>
                       <span className="font-bold">{serviceName}</span>
                     </div>
                     <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
-                      <span style={{ color: '#374151' }}>Fecha:</span>
+                      <span style={{ color: '#000000' }}>Fecha:</span>
                       <span className="font-bold">
                         {selectedDate?.toLocaleDateString('es-CL', { 
                           day: 'numeric', 
@@ -1254,13 +1087,13 @@ export function BookingModalV2({
                     </div>
                     {selectedScheduleData && (
                       <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
-                        <span style={{ color: '#374151' }}>Horario:</span>
+                        <span style={{ color: '#000000' }}>Horario:</span>
                         <span className="font-bold">{selectedScheduleData.start_time} - {selectedScheduleData.end_time}</span>
                       </div>
                     )}
                     {selectedProfessionalData && (
                       <div className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: colorPalette.borderLight }}>
-                        <span style={{ color: '#374151' }}>Profesional:</span>
+                        <span style={{ color: '#000000' }}>Profesional:</span>
                         <span className="font-bold">{selectedProfessionalData.name}</span>
                       </div>
                     )}
@@ -1271,7 +1104,7 @@ export function BookingModalV2({
                           borderTop: `2px solid ${colorPalette.border}`,
                         }}
                       >
-                        <span className="font-bold" style={{ color: '#374151' }}>Precio:</span>
+                        <span className="font-bold" style={{ color: '#000000' }}>Precio:</span>
                         <span className="font-bold text-lg" style={{ color: colorPalette.primary }}>
                           ${servicePrice.toLocaleString()}
                         </span>
@@ -1307,12 +1140,13 @@ export function BookingModalV2({
       {/* Footer */}
       {step < 4 && (
         <div 
-          className="px-4 sm:px-5 py-3 border-t-2 flex flex-col sm:flex-row justify-between gap-2 sm:gap-3"
+          className="px-3 sm:px-4 py-2 border-t-2 flex flex-col gap-1.5"
           style={{ 
             borderColor: colorPalette.border,
             backgroundColor: colorPalette.surface
           }}
         >
+          <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-3">
           {step === 1 ? (
             <>
               <AnimatedButton
@@ -1339,7 +1173,7 @@ export function BookingModalV2({
                   Ver horarios →
                 </AnimatedButton>
                 {!selectedDate && (
-                  <p className="text-xs font-medium text-right max-w-[200px]" style={{ color: '#000000' }}>
+                  <p className="booking-step1-hint text-xs font-medium text-right max-w-[200px]" style={{ color: '#000000' }}>
                     Selecciona una fecha para continuar
                   </p>
                 )}
@@ -1412,12 +1246,23 @@ export function BookingModalV2({
               </AnimatedButton>
             </>
           )}
+          </div>
+          <p className="text-xs text-center mt-1" style={{ color: colorPalette.textMuted }}>
+            ¿Gestionas este negocio?{' '}
+            <Link
+              to="/dashboard/schedule"
+              className="underline font-medium hover:opacity-90"
+              style={{ color: colorPalette.primary }}
+            >
+              Configurar horarios en el dashboard
+            </Link>
+          </p>
         </div>
       )}
 
       {step === 4 && (
         <div 
-          className="px-4 sm:px-5 py-3 border-t-2 flex justify-center"
+          className="px-3 sm:px-4 py-2 border-t-2 flex justify-center"
           style={{ 
             borderColor: colorPalette.border,
             backgroundColor: colorPalette.surface

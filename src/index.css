@@ -37,48 +37,46 @@ body.public-page-mode[data-theme='dark'] {
   color: inherit !important;
 }
 
-/* Simple theme overrides - SOLO para páginas internas (dashboard) */
+/* Tema unificado: claro como principal. Dark usa los mismos colores que light. */
 body[data-theme='dark']:not(.public-page-mode) {
-  background-color: #0f172a;
-  color: #e5e7eb;
+  background-color: #f9fafb;
+  color: #111827;
 }
 
 /* ========================================
-   DARK MODE STYLES - SOLO PARA DASHBOARD
-   NO aplican a páginas públicas con clase .public-page-custom-theme
+   TEMA ÚNICO (CLARO) - Dashboard y resto
+   Dark aplica mismas variables que light para unificar
    ======================================== */
 
-/* Dark mode para dashboard - NO afecta páginas públicas */
 body[data-theme='dark']:not(.public-page-mode) .bg-white {
-  background-color: #111827 !important;
+  background-color: #ffffff !important;
 }
 
 body[data-theme='dark']:not(.public-page-mode) .bg-gray-50 {
-  background-color: #0f172a !important;
+  background-color: #f9fafb !important;
 }
 
 body[data-theme='dark']:not(.public-page-mode) .text-gray-900 {
-  color: #f3f4f6 !important;
+  color: #111827 !important;
 }
 
 body[data-theme='dark']:not(.public-page-mode) .text-gray-700,
 body[data-theme='dark']:not(.public-page-mode) .text-gray-600 {
-  color: #e5e7eb !important;
+  color: #374151 !important;
 }
 
 body[data-theme='dark']:not(.public-page-mode) input,
 body[data-theme='dark']:not(.public-page-mode) textarea,
 body[data-theme='dark']:not(.public-page-mode) select {
-  background-color: #111827;
-  color: #e5e7eb;
-  border-color: #1f2937;
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
 }
 
 body[data-theme='dark']:not(.public-page-mode) .shadow {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Keep light badges readable in dark mode */
 body[data-theme='dark']:not(.public-page-mode) .badge-light {
   color: #1e3a8a !important;
 }
@@ -97,7 +95,7 @@ body[data-theme='dark']:not(.public-page-mode) .badge-light {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Horarios: mantener texto azul oscuro al hacer hover en modo oscuro */
+/* Horarios: hover unificado (tema claro) */
 body[data-theme='dark']:not(.public-page-mode) .schedule-slot:hover {
   color: #1e3a8a !important;
 }
@@ -663,101 +661,101 @@ body[data-theme='dark'] .text-gray-400:hover {
   background-color: #374151 !important;
 }
 
-/* Dark Mode - Booking Modal DatePicker Container */
-body[data-theme='dark'] .react-datepicker {
+/* Dark Mode - Booking Modal DatePicker (solo dashboard; público usa .booking-datepicker) */
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker {
   background: linear-gradient(180deg, #1f2937 0%, #111827 100%) !important;
   border-color: #4b5563 !important;
   color: #e5e7eb !important;
 }
 
-body[data-theme='dark'] .react-datepicker__header {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__header {
   background: linear-gradient(135deg, #1e3a8a 0%, #312e81 40%, #1f2937 100%) !important;
   border-bottom-color: #4b5563 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__current-month {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__current-month {
   color: #f3f4f6 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day-name {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day-name {
   color: #d1d5db !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day {
   color: #e5e7eb !important;
   border-color: #4b5563 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day:hover {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day:hover {
   background-color: rgba(59, 130, 246, 0.2) !important;
   border-color: #60a5fa !important;
   color: #f3f4f6 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day--selected {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day--selected {
   background-color: #3b82f6 !important;
   color: #ffffff !important;
   border-color: #3b82f6 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day--keyboard-selected {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day--keyboard-selected {
   background-color: rgba(59, 130, 246, 0.3) !important;
   border-color: #60a5fa !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day--disabled {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day--disabled {
   color: #6b7280 !important;
   background: #111827 !important;
   border-color: #374151 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day--outside-month {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day--outside-month {
   color: #4b5563 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__day--today {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__day--today {
   border-color: #60a5fa !important;
   color: #60a5fa !important;
   font-weight: 700 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__navigation-icon::before {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__navigation-icon::before {
   border-color: #9ca3af !important;
 }
 
-body[data-theme='dark'] .react-datepicker__navigation:hover *::before {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__navigation:hover *::before {
   border-color: #f3f4f6 !important;
 }
 
-body[data-theme='dark'] .react-datepicker__navigation:hover {
+body[data-theme='dark']:not(.public-page-mode) .react-datepicker__navigation:hover {
   background: rgba(59, 130, 246, 0.15) !important;
 }
 
 /* Dark Mode - Bordes de disponibilidad del calendario */
-body[data-theme='dark'] .booking-day-available {
+body[data-theme='dark']:not(.public-page-mode) .booking-day-available {
   border-color: #22c55e !important;
 }
 
-body[data-theme='dark'] .booking-day-low-slots {
+body[data-theme='dark']:not(.public-page-mode) .booking-day-low-slots {
   border-color: #eab308 !important;
 }
 
-body[data-theme='dark'] .booking-day-no-slots {
+body[data-theme='dark']:not(.public-page-mode) .booking-day-no-slots {
   border-color: #ef4444 !important;
 }
 
-body[data-theme='dark'] .booking-day-blocked {
+body[data-theme='dark']:not(.public-page-mode) .booking-day-blocked {
   border-color: #4b5563 !important;
   color: #6b7280 !important;
 }
 
 /* Dark Mode - Quick Date Buttons */
-body[data-theme='dark'] .bg-white.border {
+body[data-theme='dark']:not(.public-page-mode) .bg-white.border {
   background-color: #1f2937 !important;
   border-color: #4b5563 !important;
 }
 
-body[data-theme='dark'] .bg-white.border:hover {
+body[data-theme='dark']:not(.public-page-mode) .bg-white.border:hover {
   background-color: #374151 !important;
   border-color: #60a5fa !important;
 }

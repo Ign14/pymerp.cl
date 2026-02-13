@@ -166,6 +166,13 @@ export interface CompanyAppearance {
   layout?: 'GRID' | 'LIST';
   card_layout?: 1 | 2 | 3; // Layout premium para tarjetas (1: Grid Clásico, 2: Lista Circular, 3: Carrusel Fullscreen)
   show_whatsapp_fab?: boolean;
+  social_icons_mode?: 'light' | 'dark';
+  show_facebook_icon?: boolean;
+  facebook_username?: string;
+  show_instagram_icon?: boolean;
+  instagram_username?: string;
+  show_tiktok_icon?: boolean;
+  tiktok_username?: string;
   menu_category_image_default?: string;
   hero_kicker?: string;
   hero_title?: string;

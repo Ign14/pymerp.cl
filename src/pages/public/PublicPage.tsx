@@ -15,6 +15,7 @@ import {
 import { getMenuCategories } from '../../services/menu';
 import { createAppointment } from '../../services/appointments';
 import { createCalendarInventoryEntry, isInventorySlotAvailable } from '../../services/calendarInventory';
+import { formatLocalDate } from '../../utils/date';
 import { listProfessionals } from '../../services/professionals';
 import {
   AppointmentStatus,
@@ -533,13 +534,13 @@ export default function PublicPage() {
         notes,
       });
 
-      // Crear entrada en el inventario del calendario
+      // Crear entrada en el inventario del calendario (fecha local para consistencia con el calendario)
       await createCalendarInventoryEntry({
         company_id: company.id,
         service_id: selectedService.id,
         professional_id: professionalId,
         schedule_slot_id: selectedSchedule,
-        date: selectedDate.toISOString().split('T')[0],
+        date: formatLocalDate(selectedDate),
         start_time: scheduleSlot.start_time,
         end_time: scheduleSlot.end_time,
         status: 'REQUESTED',
@@ -576,7 +577,7 @@ export default function PublicPage() {
       resetBookingState();
     } catch (error) {
       toast.error('Error al procesar la solicitud. Por favor, intenta nuevamente.');
-      handleError(error);
+      handleError(error, { showToast: false });
     }
   };
 
@@ -904,6 +905,11 @@ export default function PublicPage() {
       <VideoCard company={company} theme={theme} />
     ) : null;
 
+  const isBarberiasCategory =
+    String(company?.category_id || company?.categoryId || '')
+      .toLowerCase()
+      .trim() === 'barberias';
+
   const contactActionsNode = (
     <ContactActions
       theme={theme}
@@ -911,6 +917,18 @@ export default function PublicPage() {
       onOpenCart={() => setShowCart(true)}
       cartItems={totalCartItems}
       showCartCta={company.business_type === BusinessType.PRODUCTS}
+      showSocialIcons={isBarberiasCategory}
+      socialIconsMode={appearance?.social_icons_mode === 'light' ? 'light' : 'dark'}
+      socialUsernames={{
+        facebook: appearance?.facebook_username,
+        instagram: appearance?.instagram_username,
+        tiktok: appearance?.tiktok_username,
+      }}
+      socialVisibility={{
+        facebook: appearance?.show_facebook_icon,
+        instagram: appearance?.show_instagram_icon,
+        tiktok: appearance?.show_tiktok_icon,
+      }}
     />
   );
 
@@ -1098,14 +1116,14 @@ export default function PublicPage() {
         )}
 
         <div
-          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-center py-4 shadow-md safe-area-inset-top relative"
+          className="fixed top-0 inset-x-0 z-40 sm:hidden flex items-center justify-center py-2 shadow-md safe-area-inset-top relative"
           style={{
             backgroundColor: mobileHeaderBg,
             color: mobileHeaderText,
             borderBottom: `1px solid ${mobileHeaderBorder}40`,
           }}
         >
-          <div className="flex items-center justify-center flex-1 mt-2.5">
+          <div className="flex items-center justify-center flex-1">
             {appearance?.logo_url ? (
               <img
                 src={appearance.logo_url}
@@ -1122,7 +1140,7 @@ export default function PublicPage() {
             onClick={() => setIsMobileMenuOpen(true)}
             className="absolute right-4 h-10 w-10 rounded-full flex items-center justify-center transition hover:opacity-80"
             aria-label="Abrir menú"
-            style={{ color: mobileHeaderText, marginTop: '0.5cm' }}
+            style={{ color: mobileHeaderText }}
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -1134,7 +1152,7 @@ export default function PublicPage() {
 
         <main
           id="main-content"
-          className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12 pt-12 sm:pt-4 pb-24 sm:pb-10 lg:pb-12"
+          className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12 pt-[4.25rem] sm:pt-4 pb-24 sm:pb-10 lg:pb-12"
           style={{ color: theme.textColor, fontFamily: theme.fontBody }}
         >
           <LayoutRenderer

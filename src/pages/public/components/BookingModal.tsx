@@ -156,12 +156,29 @@ export function BookingModal({
     return availableSchedules.some((s: ScheduleSlot) => s.days_of_week?.includes(dayKey));
   };
 
+  // Ocultar horarios si ya pasaron 16 min desde el inicio del slot (ej. 12:00-13:00 a las 12:17 ya no se muestra)
+  const PAST_SLOT_MINUTES = 16;
+
+  const filterPastSchedules = (schedules: ScheduleSlot[], date: Date): ScheduleSlot[] => {
+    const now = new Date();
+    const isToday = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+    if (!isToday) return schedules;
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    return schedules.filter(schedule => {
+      const [hours, minutes] = schedule.start_time.split(':').map(Number);
+      const scheduleTime = hours * 60 + minutes;
+      return scheduleTime > currentTime - PAST_SLOT_MINUTES;
+    });
+  };
+
   const getAvailableSchedulesForDate = () => {
     if (!selectedDate) return availableSchedules;
     const dayKey = DAY_OF_WEEK_KEYS[selectedDate.getDay()];
-    const schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => 
+    let schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => 
       s.days_of_week?.includes(dayKey)
     );
+
+    schedulesForDay = filterPastSchedules(schedulesForDay, selectedDate);
 
     // Si no hay citas ocupadas, retornar todos los horarios del día
     if (occupiedSlots.length === 0) return schedulesForDay;
@@ -186,10 +203,11 @@ export function BookingModal({
     if (!selectedDate || professionals.length === 0) return professionals;
     if (occupiedSlots.length === 0) return professionals;
 
-    const schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => {
+    let schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => {
       const dayKey = DAY_OF_WEEK_KEYS[selectedDate.getDay()];
       return s.days_of_week?.includes(dayKey);
     });
+    schedulesForDay = filterPastSchedules(schedulesForDay, selectedDate);
 
     return professionals.filter((pro) => {
       return hasAvailableSlotsForProfessional(pro.id, schedulesForDay, occupiedSlots);
@@ -199,9 +217,11 @@ export function BookingModal({
   // Contar horarios disponibles para una fecha específica (sin ocupados)
   const getAvailableSlotsCount = (date: Date): number => {
     const dayKey = DAY_OF_WEEK_KEYS[date.getDay()];
-    const schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => 
+    let schedulesForDay = availableSchedules.filter((s: ScheduleSlot) => 
       s.days_of_week?.includes(dayKey)
     );
+
+    schedulesForDay = filterPastSchedules(schedulesForDay, date);
 
     // Si no hay horarios configurados para este día, retornar 0
     if (schedulesForDay.length === 0) {
