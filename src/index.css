@@ -1348,6 +1348,71 @@ body[data-theme='dark'] .hover\:shadow-lg:hover {
 .animate-scaleIn {
   animation: scaleIn 0.3s ease-out;
 }
+
+/* Barberías: animación tarjeta Básico — deslizamiento + rebote */
+@keyframes barber-card-slide-bounce {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+  82% {
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-barber-card-basic {
+  animation: barber-card-slide-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Barberías: animación tarjeta Old Money — aparición desde el fondo con difuminado suave */
+@keyframes barber-card-fade-blur {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.animate-barber-card-oldmoney {
+  animation: barber-card-fade-blur 0.5s ease-out forwards;
+}
+
+/* Barberías: margen superior del contenido. Tablet: bajar 1 cm respecto a móvil */
+.barber-public-layout {
+  margin-top: -1.5cm;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .barber-public-layout {
+    margin-top: -0.5cm;
+  }
+}
+
+/* Barberías: pantallas medianas 640px–770px — bajar sección y badges más responsivos */
+@media (min-width: 640px) and (max-width: 770px) {
+  .barber-public-layout {
+    padding-top: 0.8cm;
+  }
+  .barber-hero-badge-medium {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.625rem !important;
+  }
+  .barber-filter-badge-medium {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+}
+
 /* Google Maps InfoWindow styling */
 .gm-style .gm-style-iw-c {
   background: transparent !important;

@@ -86,7 +86,7 @@ function BarberServiceCard({
       }}
     >
       <div
-        className="absolute right-3 top-3 rounded-full px-3 py-1.5 text-xs font-semibold"
+        className="absolute right-2 top-2 sm:right-3 sm:top-3 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-semibold whitespace-nowrap"
         style={{
           backgroundColor: isAvailable ? availableBadgeBg : unavailableBadgeBg,
           color: isAvailable ? availableBadgeText : unavailableBadgeText,
@@ -230,7 +230,7 @@ function OldMoneyServiceCard({
         style={{ backgroundColor: borderColor }}
       />
       <div
-        className="absolute right-3 top-3 rounded-none px-2.5 py-1 text-xs font-medium tracking-widest uppercase border border-solid"
+        className="absolute right-2 top-2 sm:right-3 sm:top-3 rounded-none px-1.5 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs font-medium tracking-wide sm:tracking-widest uppercase border border-solid whitespace-nowrap"
         style={{
           backgroundColor: isAvailable ? accentColor + '12' : (theme.textColor ? theme.textColor + '0c' : 'rgba(100, 116, 139, 0.12)'),
           color: isAvailable ? accentColor : (theme.subtitleColor || theme.textColor || '#64748b'),
@@ -742,24 +742,27 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   }, []);
 
   const heroBlock = (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-      <div className="space-y-3">
+    <div
+      className="flex flex-col gap-3 min-[480px]:gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 md:gap-6 lg:gap-8 w-full max-w-full min-w-0"
+      style={{ paddingTop: '0.8cm' }}
+    >
+      <div className="flex-1 min-w-0 space-y-2 min-[480px]:space-y-3 max-w-xl sm:max-w-none lg:max-w-2xl">
         {(appearance?.hero_kicker || t('publicPage.barberLayout.heroKicker')) && (
           <p 
-            className="text-xs uppercase tracking-[0.35em]"
+            className="text-[10px] min-[375px]:text-xs uppercase tracking-[0.28em] min-[480px]:tracking-[0.35em]"
             style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
           >
             {appearance?.hero_kicker || t('publicPage.barberLayout.heroKicker')}
           </p>
         )}
         <h1
-          className="text-3xl font-bold leading-tight sm:text-4xl"
+          className="text-2xl min-[375px]:text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight break-words"
           style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
         >
           {appearance?.hero_title || company.name}
         </h1>
         <p 
-          className="max-w-2xl text-sm sm:text-base" 
+          className="max-w-2xl text-xs min-[375px]:text-sm sm:text-base leading-relaxed"
           style={{ 
             fontFamily: theme.fontBody,
             color: theme.textColor || '#374151'
@@ -772,14 +775,14 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         </p>
       </div>
       {appearance?.logo_url && (
-        <div className={`relative w-full sm:w-auto sm:flex-shrink-0 items-center justify-center ${hideHeroLogoOnMobile ? 'hidden sm:flex' : 'flex'}`}>
+        <div className={`relative w-full min-w-0 sm:w-auto sm:flex-shrink-0 flex items-center justify-center ${hideHeroLogoOnMobile ? 'hidden sm:flex' : 'flex'}`}>
           <img
             src={appearance.logo_url}
             alt={company.name}
-            className="w-full max-w-[180px] sm:max-w-[220px] md:max-w-[280px] lg:max-w-[320px] h-auto object-contain transition duration-500 ease-out"
+            className="w-full max-w-[140px] min-[375px]:max-w-[160px] min-[480px]:max-w-[180px] sm:max-w-[200px] md:max-w-[240px] lg:max-w-[280px] xl:max-w-[320px] h-auto object-contain transition duration-500 ease-out"
             loading="lazy"
             style={{ 
-              maxHeight: 'clamp(100px, 18vw, 320px)',
+              maxHeight: 'clamp(80px, 16vw, 320px)',
               width: 'auto',
             }}
           />
@@ -807,7 +810,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
       <section
         className={`space-y-4 p-4 sm:p-5 border border-solid ${
           isOldMoney ? 'rounded-none' : 'rounded-2xl border-0 shadow-lg'
-        }`}
+        } ${isOldMoney ? 'animate-barber-card-oldmoney' : 'animate-barber-card-basic'}`}
         style={{
           backgroundColor: sectionBg,
           ...(isOldMoney
@@ -831,7 +834,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             </h2>
           </div>
           <span
-            className={`px-4 py-2 text-xs font-semibold border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-full'}`}
+            className={`barber-hero-badge-medium px-4 py-2 text-xs font-semibold border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-full'}`}
             style={{
               backgroundColor: badgeBg,
               color: badgeText,
@@ -895,7 +898,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                   key={filter}
                   type="button"
                   onClick={() => setFilterByAvailability((prev) => (prev === filter ? 'all' : filter))}
-                  className={`px-4 py-2 text-sm font-semibold transition-all duration-200 border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-xl'}`}
+                  className={`barber-filter-badge-medium px-4 py-2 text-sm font-semibold transition-all duration-200 border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-xl'}`}
                   style={{
                     backgroundColor: isActive ? accentColor : 'transparent',
                     color: isActive ? (theme.buttonTextColor || '#ffffff') : (theme.textColor || '#1e293b'),

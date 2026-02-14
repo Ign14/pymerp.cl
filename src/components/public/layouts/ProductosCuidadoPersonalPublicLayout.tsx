@@ -148,7 +148,7 @@ function ProductCard({
           <div className="flex h-full items-center justify-center text-slate-400">📦</div>
         )}
         {product.hide_price && (
-          <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+          <span className="absolute right-2 top-2 sm:right-3 sm:top-3 rounded-full bg-amber-100 px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold text-amber-800 ring-1 ring-amber-200 whitespace-nowrap">
             {t('publicPage.personalCareLayout.consultCta')}
           </span>
         )}

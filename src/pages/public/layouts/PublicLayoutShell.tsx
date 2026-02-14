@@ -207,8 +207,7 @@ export function PublicLayoutShell({
 
   return (
     <div
-      className="space-y-8 sm:space-y-10"
-      style={isBarberias ? { marginTop: '-1.5cm' } : undefined}
+      className={`space-y-8 sm:space-y-10 ${isBarberias ? 'barber-public-layout' : ''}`}
     >
       {use2ColumnLayout ? (
         <>
