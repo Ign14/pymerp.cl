@@ -170,14 +170,22 @@ export default function PublicPage() {
   // Agregar clase al body para deshabilitar dark mode global en páginas públicas
   useEffect(() => {
     document.body.classList.add('public-page-mode');
-    
-    // DEBUG: Log para verificar que se aplicó la clase
-    console.log('✅ public-page-mode clase agregada al body');
-    
     return () => {
       document.body.classList.remove('public-page-mode');
     };
   }, []);
+
+  // Categoría barbería: forzar light mode en la agenda de citas de las URLs públicas
+  useEffect(() => {
+    if (!company) return;
+    const layoutInfo = resolvePublicLayout(company);
+    if (layoutInfo.key === 'barberiasShowcase') {
+      document.body.dataset.theme = 'light';
+    }
+    return () => {
+      document.body.dataset.theme = 'light';
+    };
+  }, [company]);
 
   useEffect(() => {
     if (slug) {

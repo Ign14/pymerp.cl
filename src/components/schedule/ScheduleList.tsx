@@ -12,6 +12,7 @@ registerLocale('es', es);
 
 // Ref persistente fuera del componente para mantener el estado entre remontajes
 const dateRangePersistRef = { current: 'week' as 'week' | 'month' | 'custom' };
+const customRangePersistRef = { current: { start: '', end: '' } as { start: string; end: string } };
 
 interface ScheduleListProps {
   appointments: Appointment[];
@@ -64,12 +65,18 @@ export function ScheduleList({
       setDateRange(dateRangePersistRef.current);
     }
   }, [dateRange]);
-  const [customStartDate, setCustomStartDate] = useState<string>(() =>
-    format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  );
-  const [customEndDate, setCustomEndDate] = useState<string>(() =>
-    format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  );
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    if (dateRangePersistRef.current === 'custom' && customRangePersistRef.current.start && customRangePersistRef.current.end) {
+      return customRangePersistRef.current.start;
+    }
+    return format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() => {
+    if (dateRangePersistRef.current === 'custom' && customRangePersistRef.current.start && customRangePersistRef.current.end) {
+      return customRangePersistRef.current.end;
+    }
+    return format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  });
   const [selectedStatuses, setSelectedStatuses] = useState<AppointmentStatus[]>([]);
   const [dateError, setDateError] = useState<string | null>(null);
   const [showCustomDateModal, setShowCustomDateModal] = useState(false);
@@ -310,8 +317,11 @@ export function ScheduleList({
     const startNorm = new Date(tempStartDate.getFullYear(), tempStartDate.getMonth(), tempStartDate.getDate(), 0, 0, 0, 0);
     const endNorm = new Date(tempEndDate.getFullYear(), tempEndDate.getMonth(), tempEndDate.getDate(), 23, 59, 59, 999);
 
-    setCustomStartDate(format(startNorm, 'yyyy-MM-dd'));
-    setCustomEndDate(format(endNorm, 'yyyy-MM-dd'));
+    const startStr = format(startNorm, 'yyyy-MM-dd');
+    const endStr = format(endNorm, 'yyyy-MM-dd');
+    customRangePersistRef.current = { start: startStr, end: endStr };
+    setCustomStartDate(startStr);
+    setCustomEndDate(endStr);
     setDateError(null);
     setShowCustomDateModal(false);
     dateRangePersistRef.current = 'custom';
@@ -352,8 +362,6 @@ export function ScheduleList({
             console.log('FiltersSection onDateRangeChange called with:', range, 'current dateRange:', dateRange);
             handleDateRangeChange(range);
           }}
-          customStartDate={customStartDate}
-          customEndDate={customEndDate}
           activeRangeStart={dateRangeDates.start}
           activeRangeEnd={dateRangeDates.end}
           selectedStatuses={selectedStatuses}
@@ -644,8 +652,6 @@ export function ScheduleList({
 function FiltersSection({
   dateRange,
   onDateRangeChange,
-  customStartDate,
-  customEndDate,
   activeRangeStart,
   activeRangeEnd,
   selectedStatuses,
@@ -656,8 +662,6 @@ function FiltersSection({
 }: {
   dateRange: 'week' | 'month' | 'custom';
   onDateRangeChange: (range: 'week' | 'month' | 'custom') => void;
-  customStartDate: string;
-  customEndDate: string;
   activeRangeStart: Date;
   activeRangeEnd: Date;
   selectedStatuses: AppointmentStatus[];
