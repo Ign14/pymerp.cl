@@ -173,43 +173,196 @@ function BarberServiceCard({
   );
 }
 
+/** Layout Old Money: estilo clásico y elegante, respetando colores, transparencias y fuentes del theme */
+function OldMoneyServiceCard({
+  service,
+  theme,
+  onBook,
+  onServiceClick,
+  isAvailable,
+  availabilityLabel,
+  unavailableLabel,
+  priceLabel,
+}: {
+  service: Service;
+  theme: PublicLayoutProps['theme'];
+  onBook?: (service: Service) => void;
+  onServiceClick?: (service: Service) => void;
+  isAvailable: boolean;
+  availabilityLabel: string;
+  unavailableLabel: string;
+  priceLabel: string;
+}) {
+  const hasDuration = service.estimated_duration_minutes && service.estimated_duration_minutes > 0;
+
+  const handleBookClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (onBook && isAvailable) {
+      onBook(service);
+    }
+  };
+
+  const accentColor = theme.buttonColor || '#2563eb';
+  const borderColor = theme.titleColor ? `${theme.titleColor}18` : 'rgba(0,0,0,0.08)';
+  const accentBorder = isAvailable ? `${accentColor}40` : `${theme.subtitleColor || theme.textColor || '#64748b'}25`;
+
+  return (
+    <article
+      key={service.id}
+      onClick={() => onServiceClick?.(service)}
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-none border border-solid transition-all duration-200"
+      style={{
+        color: theme.textColor,
+        backgroundColor: theme.cardColor || '#ffffff',
+        borderWidth: '1px',
+        borderColor: accentBorder,
+        boxShadow: 'none',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <div
+        className="h-px w-full flex-shrink-0"
+        style={{ backgroundColor: borderColor }}
+      />
+      <div
+        className="absolute right-3 top-3 rounded-none px-2.5 py-1 text-xs font-medium tracking-widest uppercase border border-solid"
+        style={{
+          backgroundColor: isAvailable ? accentColor + '12' : (theme.textColor ? theme.textColor + '0c' : 'rgba(100, 116, 139, 0.12)'),
+          color: isAvailable ? accentColor : (theme.subtitleColor || theme.textColor || '#64748b'),
+          border: `1px solid ${isAvailable ? accentColor + '30' : (theme.subtitleColor || theme.textColor || '#64748b') + '25'}`,
+          fontFamily: theme.fontBody,
+        }}
+      >
+        {isAvailable ? availabilityLabel : unavailableLabel}
+      </div>
+
+      <div className="flex-1 space-y-3 p-4 pt-5" style={{ backgroundColor: theme.cardColor || '#ffffff' }}>
+        <h3
+          className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight"
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+        >
+          {service.name}
+        </h3>
+        {service.description && (
+          <p
+            className="line-clamp-3 text-sm leading-relaxed"
+            style={{
+              color: theme.descriptionColor || theme.textColor || '#6b7280',
+              opacity: 0.92,
+              fontFamily: theme.fontBody,
+            }}
+          >
+            {service.description}
+          </p>
+        )}
+        <div className="flex items-baseline justify-between gap-2 pt-1 border-t border-solid" style={{ borderColor }}>
+          <span
+            className="text-base font-semibold"
+            style={{ color: accentColor, fontFamily: theme.fontTitle }}
+          >
+            {priceLabel}
+          </span>
+          {hasDuration && (
+            <span
+              className="text-xs font-medium"
+              style={{
+                color: theme.subtitleColor || theme.textColor || '#64748b',
+                fontFamily: theme.fontBody,
+              }}
+              title={`Duración: ${service.estimated_duration_minutes} minutos`}
+            >
+              {service.estimated_duration_minutes} min
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="border-t border-solid p-3"
+        style={{
+          borderTopColor: borderColor,
+          backgroundColor: theme.cardColor || '#ffffff',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <AnimatedButton
+          onClick={handleBookClick}
+          disabled={!isAvailable}
+          className={`w-full rounded-none px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+            isAvailable ? 'hover:opacity-92' : 'opacity-55 cursor-not-allowed'
+          }`}
+          style={{
+            backgroundColor: isAvailable ? accentColor : '#9ca3af',
+            color: theme.buttonTextColor || '#ffffff',
+            fontFamily: theme.fontButton,
+            boxShadow: 'none',
+            border: isAvailable ? `1px solid ${accentColor}60` : 'none',
+          }}
+          ariaLabel={isAvailable ? `Agendar ${service.name}` : `${service.name} no disponible`}
+        >
+          {isAvailable ? 'Agendar' : 'No disponible'}
+        </AnimatedButton>
+      </div>
+    </article>
+  );
+}
+
 function TeamCard({
   professional,
   theme,
   fallbackSpecialty,
+  isOldMoney,
 }: {
   professional: Professional;
   theme: PublicLayoutProps['theme'];
   fallbackSpecialty: string;
+  isOldMoney?: boolean;
 }) {
   const initials = getInitials(professional.name);
   const specialties = professional.specialties?.filter(Boolean) ?? [];
   const accentColor = theme.buttonColor || '#2563eb';
+  const borderColor = theme.titleColor ? `${theme.titleColor}18` : 'rgba(0,0,0,0.08)';
 
   return (
     <div
-      className="flex items-center gap-4 rounded-xl border-0 p-4 shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+      className={`flex items-center gap-4 p-4 border border-solid transition-all duration-200 ${
+        isOldMoney ? 'rounded-none hover:border-opacity-80' : 'rounded-xl border-0 shadow-md hover:shadow-lg hover:-translate-y-0.5'
+      }`}
       style={{
         backgroundColor: theme.cardColor || '#ffffff',
-        boxShadow: `0 4px 16px ${accentColor}10`,
-        borderLeft: `3px solid ${accentColor}`,
+        ...(isOldMoney
+          ? { borderColor, borderWidth: '1px', boxShadow: 'none' }
+          : { boxShadow: `0 4px 16px ${accentColor}10`, borderLeft: `3px solid ${accentColor}` }),
       }}
     >
       <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner"
+        className={`flex h-12 w-12 shrink-0 items-center justify-center text-sm font-bold text-white border border-solid ${
+          isOldMoney ? 'rounded-none' : 'rounded-full shadow-inner'
+        }`}
         style={{
           backgroundColor: accentColor,
-          boxShadow: `0 2px 8px ${accentColor}50`,
+          ...(isOldMoney ? { borderColor: `${accentColor}60`, boxShadow: 'none' } : { boxShadow: `0 2px 8px ${accentColor}50` }),
         }}
         aria-hidden
       >
         {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold" style={{ color: theme.titleColor }}>
+        <p
+          className={`truncate ${isOldMoney ? 'text-sm font-semibold tracking-tight' : 'text-sm font-bold'}`}
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
+        >
           {professional.name}
         </p>
-        <p className="truncate text-xs font-medium" style={{ color: theme.subtitleColor || theme.textColor || '#64748b', opacity: 0.9 }}>
+        <p
+          className="truncate text-xs font-medium"
+          style={{ color: theme.subtitleColor || theme.textColor || '#64748b', opacity: 0.9, fontFamily: theme.fontBody }}
+        >
           {specialties.length > 0 ? specialties.join(' • ') : fallbackSpecialty}
         </p>
       </div>
@@ -640,6 +793,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   const sectionBg = theme.cardColor || '#ffffff';
   const badgeBg = `${accentColor}18`;
   const badgeText = accentColor;
+  const isOldMoney = (theme.cardLayout ?? 1) === 2;
+  const oldMoneyBorder = theme.titleColor ? `${theme.titleColor}20` : 'rgba(0,0,0,0.1)';
   const hideEmptyServicesCard = ['restaurantes', 'bares', 'foodtruck', 'restaurantes_comida_rapida'].includes(
     categoryId || ''
   );
@@ -650,35 +805,38 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   const servicesSection =
     hasServices && onBookService ? (
       <section
-        className="space-y-4 rounded-2xl border-0 p-4 shadow-lg sm:p-5"
+        className={`space-y-4 p-4 sm:p-5 border border-solid ${
+          isOldMoney ? 'rounded-none' : 'rounded-2xl border-0 shadow-lg'
+        }`}
         style={{
           backgroundColor: sectionBg,
-          boxShadow: `0 4px 24px ${accentColor}0f`,
-          borderLeft: `4px solid ${accentColor}`,
+          ...(isOldMoney
+            ? { boxShadow: 'none', borderColor: oldMoneyBorder, borderWidth: '1px' }
+            : { boxShadow: `0 4px 24px ${accentColor}0f`, borderLeft: `4px solid ${accentColor}` }),
         }}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p 
-              className="text-xs uppercase tracking-[0.25em]"
-              style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+              className={`text-xs uppercase ${isOldMoney ? 'tracking-widest' : 'tracking-[0.25em]'}`}
+              style={{ color: theme.subtitleColor || theme.textColor || '#64748b', fontFamily: theme.fontBody }}
             >
               {t('publicPage.barberLayout.servicesKicker')}
             </p>
             <h2
-              className="text-xl font-bold sm:text-2xl"
+              className={`${isOldMoney ? 'text-lg font-semibold sm:text-xl tracking-tight' : 'text-xl font-bold sm:text-2xl'}`}
               style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
             >
               {t('publicPage.barberLayout.servicesTitle')}
             </h2>
           </div>
           <span
-            className="rounded-full px-4 py-2 text-xs font-bold"
+            className={`px-4 py-2 text-xs font-semibold border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-full'}`}
             style={{
               backgroundColor: badgeBg,
               color: badgeText,
-              border: `1px solid ${badgeText}40`,
-              boxShadow: `0 2px 8px ${badgeText}20`,
+              borderColor: `${badgeText}50`,
+              ...(isOldMoney ? {} : { boxShadow: `0 2px 8px ${badgeText}20` }),
             }}
           >
             {t('publicPage.barberLayout.availableToday')}
@@ -692,7 +850,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('publicPage.barberLayout.searchPlaceholder')}
-            className="w-full rounded-xl border px-4 py-3 pl-10 pr-10 text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-0"
+            className={`w-full border border-solid px-4 py-3 pl-10 pr-10 text-sm transition focus:outline-none focus:ring-2 focus:ring-offset-0 ${isOldMoney ? 'rounded-none' : 'rounded-xl shadow-sm'}`}
             style={{ 
               fontFamily: theme.fontBody, 
               color: theme.textColor,
@@ -713,7 +871,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition hover:bg-opacity-20"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 transition hover:bg-opacity-20 ${isOldMoney ? 'rounded-none' : 'rounded-full'}`}
               style={{ 
                 color: theme.textColor || '#94a3b8',
                 backgroundColor: theme.textColor ? `${theme.textColor}10` : undefined
@@ -737,12 +895,12 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                   key={filter}
                   type="button"
                   onClick={() => setFilterByAvailability((prev) => (prev === filter ? 'all' : filter))}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200"
+                  className={`px-4 py-2 text-sm font-semibold transition-all duration-200 border border-solid ${isOldMoney ? 'rounded-none' : 'rounded-xl'}`}
                   style={{
-                    backgroundColor: isActive ? accentColor : (theme.cardColor ? `${theme.cardColor}e6` : '#f8fafc'),
+                    backgroundColor: isActive ? accentColor : 'transparent',
                     color: isActive ? (theme.buttonTextColor || '#ffffff') : (theme.textColor || '#1e293b'),
-                    border: isActive ? 'none' : `1px solid ${sectionBorder}`,
-                    boxShadow: isActive ? `0 2px 10px ${accentColor}35` : 'none',
+                    borderColor: isActive ? accentColor : sectionBorder,
+                    boxShadow: isOldMoney ? 'none' : (isActive ? `0 2px 10px ${accentColor}35` : 'none'),
                   }}
                 >
                   {t(`publicPage.barberLayout.filterAvailability.${filter}`)}
@@ -753,8 +911,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
           <div className="flex items-center gap-2">
             <label 
               htmlFor="sort-services" 
-              className="text-xs font-semibold"
-              style={{ color: theme.textColor || '#64748b' }}
+              className={`text-xs font-semibold ${isOldMoney ? 'tracking-wide' : ''}`}
+              style={{ color: theme.textColor || '#64748b', fontFamily: theme.fontBody }}
             >
               {t('publicPage.barberLayout.orderBy')}
             </label>
@@ -762,7 +920,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               id="sort-services"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none"
+              className={`border border-solid px-3 py-2 text-sm font-semibold focus:outline-none ${isOldMoney ? 'rounded-none' : 'rounded-lg shadow-sm'}`}
               style={{ 
                 fontFamily: theme.fontBody,
                 borderColor: sectionBorder,
@@ -786,22 +944,25 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               <div className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2">
                 {paginatedServices.map((service) => {
                 const isAvailable = isServiceAvailable(service);
-                return (
-                  <BarberServiceCard
-                    key={service.id}
-                    service={service}
-                    theme={theme}
-                    onBook={onBookService}
-                    onServiceClick={onServiceClick}
-                    isAvailable={isAvailable}
-                    availabilityLabel={t('publicPage.barberLayout.available')}
-                    unavailableLabel={t('publicPage.barberLayout.unavailable')}
-                    priceLabel={
-                      service.hide_price
-                        ? t('publicPage.barberLayout.priceOnRequest')
-                        : t('publicPage.barberLayout.price', { value: service.price.toLocaleString(i18n.language) })
-                    }
-                  />
+                const priceLabel = service.hide_price
+                  ? t('publicPage.barberLayout.priceOnRequest')
+                  : t('publicPage.barberLayout.price', { value: service.price.toLocaleString(i18n.language) });
+                const cardProps = {
+                  key: service.id,
+                  service,
+                  theme,
+                  onBook: onBookService,
+                  onServiceClick,
+                  isAvailable,
+                  availabilityLabel: t('publicPage.barberLayout.available'),
+                  unavailableLabel: t('publicPage.barberLayout.unavailable'),
+                  priceLabel,
+                };
+                const isOldMoney = (theme.cardLayout ?? 1) === 2;
+                return isOldMoney ? (
+                  <OldMoneyServiceCard {...cardProps} />
+                ) : (
+                  <BarberServiceCard {...cardProps} />
                 );
               })}
               </div>
@@ -812,8 +973,13 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                 {currentPage < totalPages ? (
                   <AnimatedButton
                     onClick={() => setCurrentPage((p) => p + 1)}
-                    className="rounded-full px-6 py-3 text-sm font-semibold shadow-md transition"
-                    style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
+                    className={`px-6 py-3 text-sm font-semibold border border-solid transition ${isOldMoney ? 'rounded-none' : 'rounded-full shadow-md'}`}
+                    style={{ 
+                      backgroundColor: theme.buttonColor, 
+                      color: theme.buttonTextColor, 
+                      fontFamily: theme.fontButton,
+                      ...(isOldMoney ? { borderColor: theme.buttonColor, boxShadow: 'none' } : {}),
+                    }}
                     ariaLabel={t('publicPage.barberLayout.loadMore')}
                   >
                     {t('publicPage.barberLayout.loadMore')}
@@ -834,7 +1000,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
           </>
         ) : (searchTerm || filterByAvailability !== 'all') ? (
           <div 
-            className="rounded-xl border border-dashed px-6 py-8 text-center"
+            className={`border border-dashed px-6 py-8 text-center ${isOldMoney ? 'rounded-none' : 'rounded-xl'}`}
             style={{
               borderColor: sectionBorder,
               backgroundColor: theme.bgColor ? `${theme.bgColor}80` : '#f8fafc'
@@ -858,7 +1024,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
       </section>
     ) : hideEmptyServicesCard ? null : (
       <section 
-        className="rounded-2xl border border-dashed p-6 text-center shadow-sm"
+        className={`border border-dashed p-6 text-center border-solid ${isOldMoney ? 'rounded-none' : 'rounded-2xl shadow-sm'}`}
         style={{
           borderColor: sectionBorder,
           backgroundColor: sectionBg
@@ -867,8 +1033,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         <div className="space-y-3">
           <div className="text-4xl mb-2">✂️</div>
           <h3 
-            className="text-lg font-semibold" 
-            style={{ color: theme.titleColor }}
+            className={`${isOldMoney ? 'text-base font-semibold tracking-tight' : 'text-lg font-semibold'}`}
+            style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
           >
             {t('publicPage.barberLayout.noServicesTitle')}
           </h3>
@@ -881,8 +1047,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
           {onWhatsAppClick && (
             <AnimatedButton
               onClick={onWhatsAppClick}
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-solid transition ${isOldMoney ? 'rounded-none' : 'rounded-full shadow-sm'}`}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton, borderColor: theme.buttonColor }}
               ariaLabel={t('publicPage.barberLayout.contactCta')}
             >
               💬 {t('publicPage.barberLayout.contactCta')}
@@ -894,23 +1060,26 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
   const teamSection = showTeam ? (
     <section
-      className="space-y-4 rounded-2xl border-0 p-4 shadow-lg sm:p-5"
+      className={`space-y-4 p-4 sm:p-5 border border-solid ${
+        isOldMoney ? 'rounded-none' : 'rounded-2xl border-0 shadow-lg'
+      }`}
       style={{
         backgroundColor: sectionBg,
-        boxShadow: `0 4px 24px ${accentColor}0f`,
-        borderLeft: `4px solid ${accentColor}`,
+        ...(isOldMoney
+          ? { boxShadow: 'none', borderColor: oldMoneyBorder, borderWidth: '1px' }
+          : { boxShadow: `0 4px 24px ${accentColor}0f`, borderLeft: `4px solid ${accentColor}` }),
       }}
     >
       <div className="flex items-center justify-between">
         <div>
           <p 
-            className="text-xs uppercase tracking-[0.25em]"
-            style={{ color: theme.subtitleColor || theme.textColor || '#64748b' }}
+            className={`text-xs uppercase ${isOldMoney ? 'tracking-widest' : 'tracking-[0.25em]'}`}
+            style={{ color: theme.subtitleColor || theme.textColor || '#64748b', fontFamily: theme.fontBody }}
           >
             {t('publicPage.barberLayout.teamKicker')}
           </p>
           <h2
-            className="text-xl font-bold sm:text-2xl"
+            className={`${isOldMoney ? 'text-lg font-semibold sm:text-xl tracking-tight' : 'text-xl font-bold sm:text-2xl'}`}
             style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
           >
             {t('publicPage.barberLayout.teamTitle')}
@@ -924,13 +1093,14 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
             professional={professional}
             theme={theme}
             fallbackSpecialty={t('publicPage.barberLayout.defaultSpecialty')}
+            isOldMoney={isOldMoney}
           />
         ))}
       </div>
     </section>
   ) : hasServices && professionals.length === 0 ? (
     <section 
-      className="rounded-2xl border border-dashed p-6 text-center shadow-sm"
+      className={`border border-dashed p-6 text-center border-solid ${isOldMoney ? 'rounded-none' : 'rounded-2xl shadow-sm'}`}
       style={{
         borderColor: sectionBorder,
         backgroundColor: sectionBg
@@ -939,8 +1109,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
       <div className="space-y-3">
         <div className="text-4xl mb-2">👥</div>
         <h3 
-          className="text-lg font-semibold" 
-          style={{ color: theme.titleColor }}
+          className={`${isOldMoney ? 'text-base font-semibold tracking-tight' : 'text-lg font-semibold'}`}
+          style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
         >
           {t('publicPage.barberLayout.noProfessionalsTitle')}
         </h3>
@@ -953,8 +1123,8 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         {onWhatsAppClick && (
           <AnimatedButton
             onClick={onWhatsAppClick}
-            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton }}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-solid transition ${isOldMoney ? 'rounded-none' : 'rounded-full shadow-sm'}`}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, fontFamily: theme.fontButton, borderColor: theme.buttonColor }}
             ariaLabel={t('publicPage.barberLayout.contactCta')}
           >
             💬 {t('publicPage.barberLayout.contactCta')}
@@ -967,15 +1137,18 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
   const scheduleSection = hideScheduleSection ? null : (
     <div className="flex justify-center w-full">
       <section
-        className="barber-schedule-section flex w-full max-w-sm flex-col items-center space-y-2 border-0 p-3 text-center sm:p-3"
+        className={`barber-schedule-section flex w-full max-w-sm flex-col items-center space-y-2 p-3 text-center sm:p-3 border border-solid ${
+          isOldMoney ? 'rounded-none' : 'border-0'
+        }`}
         style={{
           backgroundColor: sectionBg,
-          boxShadow: `0 4px 24px ${accentColor}0f`,
-          borderLeftColor: accentColor,
+          ...(isOldMoney
+            ? { boxShadow: 'none', borderColor: oldMoneyBorder, borderWidth: '1px' }
+            : { boxShadow: `0 4px 24px ${accentColor}0f`, borderLeftColor: accentColor }),
         }}
       >
         <h2
-          className="text-base font-bold leading-tight sm:text-lg"
+          className={`${isOldMoney ? 'text-sm font-semibold sm:text-base tracking-tight' : 'text-base font-bold leading-tight sm:text-lg'}`}
           style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
         >
           {t('publicPage.barberLayout.scheduleTitle')}
@@ -985,25 +1158,29 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
           <div className="w-full space-y-1.5">
             {scheduleStrips.map((strip, index) => {
               const rowAccent = theme.buttonColor || (strip.accent === 'emerald' ? '#059669' : '#0284c7');
+              const rowBorder = theme.titleColor ? `${theme.titleColor}15` : 'rgba(0,0,0,0.06)';
               return (
                 <div
                   key={`${strip.label}-${index}`}
-                  className="barber-schedule-row flex flex-col items-center gap-0 border-0 px-3 py-1.5 text-center transition-all duration-200 hover:shadow-md"
+                  className={`barber-schedule-row flex flex-col items-center gap-0 px-3 py-1.5 text-center transition-all duration-200 border border-solid ${
+                    isOldMoney ? 'rounded-none' : 'border-0'
+                  }`}
                   style={{
                     backgroundColor: theme.cardColor || '#ffffff',
-                    borderLeftColor: rowAccent,
-                    boxShadow: `0 2px 10px ${rowAccent}12`,
+                    ...(isOldMoney
+                      ? { borderColor: rowBorder, borderWidth: '1px', boxShadow: 'none' }
+                      : { borderLeftColor: rowAccent, boxShadow: `0 2px 10px ${rowAccent}12` }),
                   }}
                 >
                   <h3
-                    className="text-sm font-bold leading-snug"
+                    className={`text-sm leading-snug ${isOldMoney ? 'font-semibold tracking-tight' : 'font-bold'}`}
                     style={{ color: theme.titleColor, fontFamily: theme.fontTitle }}
                   >
                     {strip.label}
                   </h3>
                   <p
                     className="text-xs font-medium leading-snug"
-                    style={{ color: theme.textColor || '#374151', opacity: 0.95 }}
+                    style={{ color: theme.textColor || '#374151', opacity: 0.95, fontFamily: theme.fontBody }}
                   >
                     {strip.hours}
                   </p>
@@ -1013,7 +1190,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
           </div>
         ) : (
           <div
-            className="w-full rounded-xl border border-dashed px-3 py-3 text-center"
+            className={`w-full border border-dashed px-3 py-3 text-center border-solid ${isOldMoney ? 'rounded-none' : 'rounded-xl'}`}
             style={{
               borderColor: sectionBorder,
               backgroundColor: theme.bgColor ? `${theme.bgColor}80` : '#f8fafc',
@@ -1023,7 +1200,7 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
               <div className="text-2xl mb-1">🕐</div>
               <p
                 className="text-sm font-medium"
-                style={{ color: theme.textColor || '#374151' }}
+                style={{ color: theme.textColor || '#374151', fontFamily: theme.fontBody }}
               >
                 {t('publicPage.barberLayout.noSchedule')}
               </p>
@@ -1031,7 +1208,9 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
                 <button
                   type="button"
                   onClick={onWhatsAppClick}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition"
+                  className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-solid transition ${
+                    isOldMoney ? 'rounded-none' : 'rounded-full ring-1'
+                  }`}
                   style={{
                     backgroundColor: badgeBg,
                     color: badgeText,
@@ -1048,12 +1227,15 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
         <div className="pt-0.5 flex w-full justify-center">
           <AnimatedButton
             onClick={handlePrimaryCta}
-            className="w-full rounded-lg px-3 py-2 text-sm font-semibold shadow-md transition hover:shadow-lg sm:w-auto"
+            className={`w-full px-3 py-2 text-sm font-semibold border border-solid transition sm:w-auto ${
+              isOldMoney ? 'rounded-none' : 'rounded-lg shadow-md hover:shadow-lg'
+            }`}
             style={{
               backgroundColor: theme.buttonColor,
               color: theme.buttonTextColor,
               fontFamily: theme.fontButton,
-              boxShadow: theme.buttonColor ? `0 4px 14px ${theme.buttonColor}40` : undefined,
+              borderColor: theme.buttonColor,
+              ...(isOldMoney ? { boxShadow: 'none' } : { boxShadow: theme.buttonColor ? `0 4px 14px ${theme.buttonColor}40` : undefined }),
             }}
             ariaLabel={t('publicPage.barberLayout.primaryCta')}
           >
@@ -1066,33 +1248,70 @@ export function BarberiasPublicLayout(props: PublicLayoutProps) {
 
   /* Equipo arriba; Acerca de (o Horarios si no hay descripción) debajo y centrado */
   const belowTeamContent = sections.highlight ?? scheduleSection;
+  const belowTeamWrapped =
+    belowTeamContent && isOldMoney && belowTeamContent === sections.highlight
+      ? (
+          <div
+            className="w-full rounded-none border border-solid p-4 sm:p-5"
+            style={{
+              borderColor: oldMoneyBorder,
+              borderWidth: '1px',
+              backgroundColor: sectionBg,
+              boxShadow: 'none',
+            }}
+          >
+            {sections.highlight}
+          </div>
+        )
+      : belowTeamContent;
   const teamScheduleSection =
     teamSection && belowTeamContent ? (
       <div className="space-y-6">
         <div className="min-w-0">{teamSection}</div>
         <div className="flex justify-center w-full">
-          <div className="w-full max-w-2xl">{belowTeamContent}</div>
+          <div className="w-full max-w-2xl">{belowTeamWrapped}</div>
         </div>
       </div>
     ) : teamSection ? (
       teamSection
     ) : belowTeamContent ? (
-      belowTeamContent
+      belowTeamWrapped
     ) : undefined;
+
+  const highlightWrapped =
+    !hideScheduleSection && scheduleSection
+      ? scheduleSection
+      : sections.highlight && isOldMoney
+        ? (
+            <div
+              className="w-full rounded-none border border-solid p-4 sm:p-5"
+              style={{
+                borderColor: oldMoneyBorder,
+                borderWidth: '1px',
+                backgroundColor: sectionBg,
+                boxShadow: 'none',
+              }}
+            >
+              {sections.highlight}
+            </div>
+          )
+        : sections.highlight;
+
+  const locationWrapped = sections.location ? (
+    <div className="flex justify-center w-full">
+      <div className={`w-full max-w-2xl ${isOldMoney ? 'rounded-none border border-solid p-4 sm:p-5' : ''}`} style={isOldMoney ? { borderColor: oldMoneyBorder, borderWidth: '1px', backgroundColor: sectionBg, boxShadow: 'none' } : undefined}>
+        {sections.location}
+      </div>
+    </div>
+  ) : sections.location;
 
   const mergedSections: PublicLayoutSections = {
     ...sections,
     hero: heroBlock,
     services: servicesSection,
     teamSchedule: teamScheduleSection,
-    /* Horarios en la posición de highlight (donde estaba Acerca de); si no hay horarios, se mantiene highlight original */
-    highlight: !hideScheduleSection && scheduleSection ? scheduleSection : sections.highlight,
-    /* Ubicación centrada en el flujo */
-    location: sections.location ? (
-      <div className="flex justify-center w-full">
-        <div className="w-full max-w-2xl">{sections.location}</div>
-      </div>
-    ) : sections.location,
+    highlight: highlightWrapped,
+    location: locationWrapped,
   };
 
   const mobileCta =

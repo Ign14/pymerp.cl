@@ -5,6 +5,7 @@ import { uploadImage } from '../../../services/storage';
 import { BusinessType, type Company, type IndustrialProjectMedia } from '../../../types';
 import toast from 'react-hot-toast';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { resolveCategoryId } from '../../../config/categories';
 
 const FONT_OPTIONS = [
   { label: 'Sans (Inter/Segoe)', value: 'Inter, "Segoe UI", system-ui, -apple-system, sans-serif' },
@@ -47,6 +48,10 @@ export default function ServicesSettings() {
     instagram_username: '',
     show_tiktok_icon: false,
     tiktok_username: '',
+    // Hero principal (Barberías)
+    hero_kicker: '',
+    hero_title: '',
+    hero_description: '',
     // Personalización del calendario
     calendar_card_color: '#ffffff',
     calendar_card_opacity: 100,
@@ -168,6 +173,7 @@ export default function ServicesSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [layoutSectionOpen, setLayoutSectionOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -208,6 +214,9 @@ export default function ServicesSettings() {
           instagram_username: appearanceData.instagram_username || '',
           show_tiktok_icon: Boolean(appearanceData.show_tiktok_icon),
           tiktok_username: appearanceData.tiktok_username || '',
+          hero_kicker: appearanceData.hero_kicker || '',
+          hero_title: appearanceData.hero_title || '',
+          hero_description: appearanceData.hero_description || '',
           // Personalización del calendario
           calendar_card_color: appearanceData.calendar_card_color || '#ffffff',
           calendar_card_opacity: appearanceData.calendar_card_opacity ?? 100,
@@ -464,6 +473,7 @@ export default function ServicesSettings() {
 
   const isConstructionMaintenance =
     (company?.category_id || company?.categoryId || '').toLowerCase() === 'construccion_mantencion';
+  const isBarberias = resolveCategoryId(company) === 'barberias';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 relative">
@@ -1845,6 +1855,87 @@ export default function ServicesSettings() {
               </p>
             </div>
           </div>
+
+          {isBarberias && (
+            <div className="border rounded-lg p-4 space-y-4 border-amber-200 bg-amber-50/50">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-gray-900">Layout de sección pública</h3>
+                <button
+                  type="button"
+                  onClick={() => setLayoutSectionOpen((v) => !v)}
+                  className="px-3 py-2 text-sm font-medium rounded-lg border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 transition"
+                  aria-expanded={layoutSectionOpen}
+                >
+                  {layoutSectionOpen ? 'Ocultar opciones' : 'Elegir layout'}
+                </button>
+              </div>
+              {layoutSectionOpen && (
+                <div className="pt-2 border-t border-amber-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estilo de tarjetas en la URL pública (servicios, horarios, equipo)
+                  </label>
+                  <select
+                    value={appearance.card_layout}
+                    onChange={(e) => updateAppearance({ card_layout: Number(e.target.value) as 1 | 2 | 3 })}
+                    className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-900 bg-white"
+                  >
+                    <option value={1}>Básico</option>
+                    <option value={2}>Old Money</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Básico: tarjetas actuales. Old Money: estilo clásico y elegante, respetando tus colores y fuentes.
+                  </p>
+                </div>
+              )}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Texto del hero principal (Barberías)</h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  Edita el contenido que se muestra en la parte superior de tu página pública: subtítulo, título y descripción.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="heroKicker" className="block text-sm font-medium text-gray-700 mb-1">
+                    Subtítulo (kicker)
+                  </label>
+                  <input
+                    id="heroKicker"
+                    type="text"
+                    value={appearance.hero_kicker}
+                    onChange={(e) => updateAppearance({ hero_kicker: e.target.value })}
+                    placeholder="ej: Salón/barbería masculina"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="heroTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Título principal
+                  </label>
+                  <input
+                    id="heroTitle"
+                    type="text"
+                    value={appearance.hero_title}
+                    onChange={(e) => updateAppearance({ hero_title: e.target.value })}
+                    placeholder="Si está vacío se usa el nombre del negocio"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="heroDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                    Descripción
+                  </label>
+                  <textarea
+                    id="heroDescription"
+                    rows={3}
+                    value={appearance.hero_description}
+                    onChange={(e) => updateAppearance({ hero_description: e.target.value })}
+                    placeholder="ej: Bienvenidos, priorizamos tu estilo y cuidado personal."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="border rounded-lg p-4 space-y-4">
             <div>

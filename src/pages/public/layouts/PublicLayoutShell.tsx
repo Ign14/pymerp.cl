@@ -203,8 +203,13 @@ export function PublicLayoutShell({
   const use2ColumnLayout =
     layoutKey !== 'barberiasShowcase' && Boolean(heroBlock && highlightBlock && locationBlock);
 
+  const isBarberias = layoutKey === 'barberiasShowcase';
+
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div
+      className="space-y-8 sm:space-y-10"
+      style={isBarberias ? { marginTop: '-1.5cm' } : undefined}
+    >
       {use2ColumnLayout ? (
         <>
           {/* Layout de 2 columnas para desktop: hero + highlight (izq) y location (der) */}

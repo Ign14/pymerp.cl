@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
+  getCompany,
   getMinimarketAccessAccounts,
   createMinimarketAccessAccount,
   updateMinimarketAccessAccount,
@@ -13,6 +14,7 @@ import type { MinimarketAccessAccount, MinimarketAccessRole, MinimarketAccessSta
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/animations/LoadingSpinner';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { resolveCategoryId } from '../../config/categories';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -55,6 +57,22 @@ export default function AccessAccountsPage() {
     !!currentEmail &&
     list.length >= 0 &&
     !list.some((a) => a.email.toLowerCase() === currentEmail);
+
+  // Solo minimarket puede acceder a esta página; el resto (ej. barberías) se redirige al dashboard
+  useEffect(() => {
+    if (!companyId) return;
+    let active = true;
+    getCompany(companyId)
+      .then((company) => {
+        if (!active || !company) return;
+        const categoryId = resolveCategoryId(company);
+        if (categoryId !== 'minimarket') {
+          navigate('/dashboard', { replace: true });
+        }
+      })
+      .catch(() => { if (active) navigate('/dashboard', { replace: true }); });
+    return () => { active = false; };
+  }, [companyId, navigate]);
 
   useEffect(() => {
     if (!companyId) return;
